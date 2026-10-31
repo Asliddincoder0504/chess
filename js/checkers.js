@@ -29,10 +29,11 @@ for (let r = 0; r < 8; r++) {
 }
 
 export class CheckersBoardUI {
-  constructor(containerElement, { orientation = 'white', onMove = null, size = 10 } = {}) {
+  constructor(containerElement, { orientation = 'white', onMove = null, onSelectSquare = null, size = 10 } = {}) {
     this.container = containerElement;
     this.orientation = orientation;
     this.onMove = onMove;
+    this.onSelectSquare = onSelectSquare;
     this.size = size;
     this.totalSquares = size === 8 ? 32 : 50;
     this.selectedSquare = null;
@@ -159,42 +160,52 @@ export class CheckersBoardUI {
     const playerColor = this.orientation === 'white' ? 'w' : 'b';
     const isOwnPiece = piece && (playerColor === 'w' ? (piece === 'w' || piece === 'W') : (piece === 'b' || piece === 'B'));
 
-    if (this.selectedSquare === null) {
-      if (isOwnPiece) {
-        this.selectedSquare = sq;
+    // 1. If currently a piece is selected and player clicks a destination square
+    if (this.selectedSquare !== null) {
+      const numSel = Number(this.selectedSquare);
+      const numSq = Number(sq);
+
+      const matchedMove = this.validMoves.find(m => Number(m.from) === numSel && Number(m.to) === numSq);
+      if (matchedMove) {
+        const from = numSel;
+        this.selectedSquare = null;
+        this.validMoves = [];
         this.renderHighlights();
+        if (typeof this.onMove === 'function') {
+          this.onMove({
+            from,
+            to: numSq,
+            path: matchedMove.path,
+            captured: matchedMove.captured
+          });
+        }
+        return;
       }
-      return;
+
+      // If clicked the same selected piece again: deselect
+      if (numSel === numSq) {
+        this.selectedSquare = null;
+        this.validMoves = [];
+        this.renderHighlights();
+        return;
+      }
     }
 
-    if (this.selectedSquare === sq) {
-      this.selectedSquare = null;
-      this.renderHighlights();
-      return;
-    }
-
+    // 2. If clicking an own piece: select it and calculate its valid moves
     if (isOwnPiece) {
-      this.selectedSquare = sq;
+      this.selectedSquare = Number(sq);
+      if (typeof this.onSelectSquare === 'function') {
+        this.validMoves = this.onSelectSquare(this.selectedSquare) || [];
+      } else {
+        this.validMoves = [];
+      }
       this.renderHighlights();
       return;
     }
 
-    const matchedMove = this.validMoves.find(m => m.from === this.selectedSquare && m.to === sq);
-    if (matchedMove) {
-      const from = this.selectedSquare;
-      this.selectedSquare = null;
-      if (typeof this.onMove === 'function') {
-        this.onMove({
-          from,
-          to: sq,
-          path: matchedMove.path,
-          captured: matchedMove.captured
-        });
-      }
-    } else {
-      this.selectedSquare = null;
-    }
-
+    // 3. Clicked empty square or opponent piece with no valid move: clear selection
+    this.selectedSquare = null;
+    this.validMoves = [];
     this.renderHighlights();
   }
 
@@ -218,7 +229,7 @@ export class CheckersBoardUI {
       const selEl = this.grid.querySelector(`[data-square="${this.selectedSquare}"]`);
       if (selEl) selEl.classList.add('selected');
 
-      const dests = this.validMoves.filter(m => m.from === this.selectedSquare);
+      const dests = this.validMoves.filter(m => Number(m.from) === Number(this.selectedSquare));
       for (const move of dests) {
         const destEl = this.grid.querySelector(`[data-square="${move.to}"]`);
         if (destEl) {
@@ -226,7 +237,7 @@ export class CheckersBoardUI {
           destEl.classList.add(isCapture ? 'capture-dest' : 'valid-dest');
 
           const indicator = document.createElement('div');
-          indicator.className = `move-indicator ${isCapture ? 'capture-ring' : 'move-dot'}`;
+          indicator.className = `move-indicator ${isCapture ? 'capture-ring' : 'dest-dot'}`;
           destEl.appendChild(indicator);
         }
       }
@@ -235,6 +246,7 @@ export class CheckersBoardUI {
 
   clearSelection() {
     this.selectedSquare = null;
+    this.validMoves = [];
     this.renderHighlights();
   }
 }

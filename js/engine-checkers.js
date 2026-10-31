@@ -68,12 +68,18 @@ export class CheckersGame {
    * @param {'w' | 'b'} [turn='w'] Current turn
    * @param {number} [boardSize=null] Optional explicit board size (8 or 10)
    */
-  constructor(boardString = INITIAL_CHECKERS_STATE, turn = 'w', boardSize = null) {
-    const clean = (boardString || '').replace(/[^bwBW.]/g, '');
-    this.boardSize = boardSize || (clean.length === 32 ? 8 : 10);
+  constructor(boardString = null, turn = 'w', boardSize = null) {
+    let clean = (boardString || '').replace(/[^bwBW.]/g, '');
+    const determinedSize = boardSize || (clean.length === 32 ? 8 : 10);
+    this.boardSize = determinedSize;
     this.totalSquares = this.boardSize === 8 ? 32 : 50;
     this.sqToCoords = this.boardSize === 8 ? SQUARE_TO_COORDS_8 : SQUARE_TO_COORDS_10;
     this.coordsToSq = this.boardSize === 8 ? COORDS_TO_SQUARE_8 : COORDS_TO_SQUARE_10;
+
+    const defaultState = this.boardSize === 8 ? INITIAL_CHECKERS_8_STATE : INITIAL_CHECKERS_STATE;
+    if (!clean) {
+      clean = defaultState;
+    }
 
     this.board = Array(this.boardSize).fill(null).map(() => Array(this.boardSize).fill(null));
     this.turn = turn;
@@ -81,8 +87,7 @@ export class CheckersGame {
     this.fullmoveNumber = 1;
     this.history = [];
 
-    const defaultState = this.boardSize === 8 ? INITIAL_CHECKERS_8_STATE : INITIAL_CHECKERS_STATE;
-    this.loadState(clean || defaultState, turn);
+    this.loadState(clean, turn);
   }
 
   get boardMatrix() {
