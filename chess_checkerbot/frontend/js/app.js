@@ -182,7 +182,11 @@ class WellChessApp {
     });
 
     document.getElementById('modal-close-btn')?.addEventListener('click', () => {
-      document.getElementById('game-over-modal')?.classList.add('hidden');
+      const modal = document.getElementById('game-over-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+      }
       this.navigate('home');
     });
 

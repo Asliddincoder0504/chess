@@ -117,6 +117,12 @@ export class GameController {
   }
 
   setupGameUI() {
+    const modal = document.getElementById('game-over-modal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.style.display = 'none';
+    }
+
     const user = this.app.currentUser;
     const isWhite = Number(user.id) === this.gameData.whiteId;
     this.playerColor = isWhite ? 'white' : 'black';
@@ -398,6 +404,7 @@ export class GameController {
     ratingChange.className = `rating-change-badge ${change >= 0 ? 'positive' : 'negative'}`;
 
     modal.classList.remove('hidden');
+    modal.style.display = 'flex';
   }
 
   async resign() {
