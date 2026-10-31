@@ -26,6 +26,8 @@ class WellChessApp {
     this.selectedTimeControl = '3+2';
     this.invitePollTimer = null;
     this.pendingInviteGameId = null;
+    this.pendingChallengesTimer = null;
+    this.activeIncomingChallenge = null;
   }
 
   async init() {
@@ -59,13 +61,17 @@ class WellChessApp {
     this.updateUserUI();
     this.renderIcons();
     this.bindEvents();
+    this.startPendingChallengesPoll();
 
     const params = new URLSearchParams(window.location.search);
+    const joinMatchHost = params.get('joinMatch');
     const deepGameId = params.get('gameId');
     const autoPlay = params.get('game');
     const autoQuick = params.get('quick');
 
-    if (deepGameId) {
+    if (joinMatchHost) {
+      await this.handleJoinMatchFromInvite(joinMatchHost, autoPlay || 'chess', params.get('tc') || '3+2');
+    } else if (deepGameId) {
       await this.handleDeepGameLink(deepGameId);
     } else if (autoQuick) {
       this.matchmakingController.startSearch('chess', '3+2');
@@ -80,11 +86,102 @@ class WellChessApp {
   clearGameUrlParam() {
     try {
       const url = new URL(window.location.href);
+      let changed = false;
       if (url.searchParams.has('gameId')) {
         url.searchParams.delete('gameId');
+        changed = true;
+      }
+      if (url.searchParams.has('joinMatch')) {
+        url.searchParams.delete('joinMatch');
+        changed = true;
+      }
+      if (changed) {
         window.history.replaceState({}, document.title, url.pathname);
       }
     } catch {}
+  }
+
+  async handleJoinMatchFromInvite(hostUserId, gameType, timeControl) {
+    if (Number(hostUserId) === Number(this.currentUser.id)) {
+      this.clearGameUrlParam();
+      this.showToast('O‘zingiz bilan o‘ynay olmaysiz', 'error');
+      this.navigate('home');
+      return;
+    }
+
+    this.showToast('⚔️ O‘yinga ulanmoqda...', 'info');
+
+    try {
+      const res = await api.acceptMatchChallenge(hostUserId, gameType, timeControl);
+      if (res.success && res.status === 'matched' && res.gameId) {
+        this.clearGameUrlParam();
+        this.showToast('Bellashuv qabul qilindi! O‘yin boshlandi!', 'success');
+        this.launchGame(res.gameId);
+        return;
+      }
+
+      this.clearGameUrlParam();
+      this.showToast(res.message || 'Ushbu taklif muddati o‘tgan yoki o‘yin allaqachon boshlangan', 'info');
+      this.navigate('home');
+    } catch (err) {
+      this.clearGameUrlParam();
+      this.showToast(`Xatolik: ${err.message}`, 'error');
+      this.navigate('home');
+    }
+  }
+
+  startPendingChallengesPoll() {
+    if (this.pendingChallengesTimer) clearInterval(this.pendingChallengesTimer);
+    this.pendingChallengesTimer = setInterval(async () => {
+      // Don't interrupt while inside an active game or while challenge dialog is open
+      if (this.currentView === 'game' || this.activeIncomingChallenge) return;
+
+      try {
+        const res = await api.getPendingChallenges();
+        if (res.success && res.challenges && res.challenges.length > 0) {
+          const latest = res.challenges[0];
+          this.showIncomingChallenge(latest);
+        }
+      } catch {
+        // Silent poll
+      }
+    }, 3200);
+  }
+
+  showIncomingChallenge(challenge) {
+    this.activeIncomingChallenge = challenge;
+    const modal = document.getElementById('incoming-challenge-modal');
+    if (!modal) return;
+
+    sounds.play('move');
+
+    const pName = challenge.whitePlayer?.firstName || 'O‘yinchi';
+    const pElo = challenge.whitePlayer?.elo || 1200;
+    let gName = 'Shaxmat (8x8 FIDE)';
+    if (challenge.gameType === 'checkers8') gName = 'Klassik shashka (8x8, 12 tosh)';
+    else if (challenge.gameType === 'checkers') gName = 'Xalqaro shashka (10x10, 20 tosh)';
+
+    const nameEl = document.getElementById('incoming-challenger-name');
+    const eloEl = document.getElementById('incoming-challenger-elo');
+    const typeEl = document.getElementById('incoming-challenge-type');
+    const tcEl = document.getElementById('incoming-challenge-tc');
+
+    if (nameEl) nameEl.textContent = pName;
+    if (eloEl) eloEl.textContent = `${pElo} ELO`;
+    if (typeEl) typeEl.textContent = gName;
+    if (tcEl) tcEl.textContent = challenge.timeControl || '5+0';
+
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+  }
+
+  closeIncomingChallenge() {
+    this.activeIncomingChallenge = null;
+    const modal = document.getElementById('incoming-challenge-modal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.style.display = 'none';
+    }
   }
 
   async handleDeepGameLink(gameId) {
@@ -280,11 +377,61 @@ class WellChessApp {
       this.openFriendInviteModal();
     });
 
-    // Generate Invite Link
-    document.getElementById('generate-invite-link-btn')?.addEventListener('click', async () => {
-      const gameType = document.getElementById('invite-game-type').value;
-      const timeControl = document.getElementById('invite-time-control').value;
-      await this.createAndShowInviteLink(gameType, timeControl);
+    // Incoming Challenge accept/decline
+    document.getElementById('incoming-accept-btn')?.addEventListener('click', async () => {
+      if (!this.activeIncomingChallenge) return;
+      const gameId = this.activeIncomingChallenge.id;
+      this.closeIncomingChallenge();
+
+      try {
+        const res = await api.acceptInvite(gameId);
+        if (res.success) {
+          this.showToast('Taklif qabul qilindi! O‘yin boshlandi!', 'success');
+          this.launchGame(gameId);
+        } else {
+          this.showToast(res.error || 'Taklifni qabul qilib bo‘lmadi', 'error');
+        }
+      } catch (err) {
+        this.showToast(`Xatolik: ${err.message}`, 'error');
+      }
+    });
+
+    document.getElementById('incoming-decline-btn')?.addEventListener('click', async () => {
+      if (!this.activeIncomingChallenge) return;
+      const gameId = this.activeIncomingChallenge.id;
+      this.closeIncomingChallenge();
+
+      try {
+        await api.declineInvite(gameId);
+        this.showToast('Taklif rad etildi', 'info');
+      } catch {
+        // ignore
+      }
+    });
+
+    // Direct Telegram ID invite
+    document.getElementById('direct-invite-id-btn')?.addEventListener('click', async () => {
+      const input = document.getElementById('direct-invite-id-input');
+      const targetId = input?.value?.trim();
+      if (!targetId) {
+        this.showToast('Iltimos, Telegram ID ni kiriting', 'error');
+        return;
+      }
+      await this.sendDirectInvite(targetId, `Foydalanuvchi (${targetId})`);
+    });
+
+    // Toggle fallback link
+    document.getElementById('toggle-fallback-link-btn')?.addEventListener('click', () => {
+      const shareBox = document.getElementById('invite-share-box');
+      if (shareBox) {
+        shareBox.classList.toggle('hidden');
+      }
+    });
+
+    // Cancel invite waiting
+    document.getElementById('cancel-invite-wait-btn')?.addEventListener('click', () => {
+      this.closeInviteModal();
+      this.showToast('Taklif bekor qilindi', 'info');
     });
 
     // Copy Invite Link
@@ -417,14 +564,116 @@ class WellChessApp {
     });
   }
 
-  openFriendInviteModal() {
+  async openFriendInviteModal() {
     const modal = document.getElementById('friend-invite-modal');
-    if (modal) {
-      document.getElementById('invite-share-box')?.classList.add('hidden');
-      document.getElementById('generate-invite-link-btn').style.display = 'block';
-      modal.classList.remove('hidden');
-      modal.style.display = 'flex';
+    if (!modal) return;
+
+    // Reset visibility states
+    document.getElementById('invite-waiting-box')?.classList.add('hidden');
+    document.getElementById('invite-share-box')?.classList.add('hidden');
+    document.getElementById('friend-invite-main-section')?.classList.remove('hidden');
+
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+
+    await this.loadFriendInvitePlayers();
+  }
+
+  async loadFriendInvitePlayers() {
+    const listEl = document.getElementById('friend-invite-players-list');
+    if (!listEl) return;
+
+    listEl.innerHTML = '<div class="loader-spinner-sm"></div>';
+
+    try {
+      const res = await api.getOnlinePlayers();
+      if (!res.success || !res.players || res.players.length === 0) {
+        listEl.innerHTML = '<div class="text-muted" style="font-size: 0.8rem; padding: 6px;">Hozircha onlayn o‘yinchilar yo‘q. Quyida Telegram ID orqali chaqirishingiz mumkin.</div>';
+        return;
+      }
+
+      listEl.innerHTML = '';
+      const topPlayers = res.players.slice(0, 6);
+
+      for (const p of topPlayers) {
+        const item = document.createElement('div');
+        item.className = 'friend-player-item';
+        item.innerHTML = `
+          <div class="friend-player-info">
+            <span class="friend-player-name">${p.firstName || 'O‘yinchi'}</span>
+            <span class="friend-player-elo">${p.chessElo || 1200} ELO</span>
+          </div>
+          <button class="btn-small btn-primary friend-invite-btn" data-user-id="${p.id}" data-name="${p.firstName || 'O‘yinchi'}">
+            <span>⚔️ Taklif</span>
+          </button>
+        `;
+
+        item.querySelector('.friend-invite-btn')?.addEventListener('click', async () => {
+          await this.sendDirectInvite(p.id, p.firstName || 'O‘yinchi');
+        });
+
+        listEl.appendChild(item);
+      }
+    } catch (err) {
+      listEl.innerHTML = `<div class="text-muted" style="font-size: 0.8rem;">Xatolik: ${err.message}</div>`;
     }
+  }
+
+  async sendDirectInvite(targetUserId, targetName) {
+    const gameType = document.getElementById('invite-game-type')?.value || this.selectedGameType || 'checkers8';
+    const timeControl = document.getElementById('invite-time-control')?.value || this.selectedTimeControl || '5+0';
+
+    try {
+      this.showToast(`Bot orqali ${targetName}ga taklif yuborilmoqda...`, 'info');
+      const res = await api.createInvite(gameType, timeControl, targetUserId);
+      if (!res.success || !res.gameId) {
+        throw new Error(res.error || 'Taklif yaratib bo‘lmadi');
+      }
+
+      this.openInviteWaitingModal(res.gameId, targetName, gameType, timeControl);
+      this.showToast(`✅ ${targetName}ga bot orqali taklif yuborildi!`, 'success');
+    } catch (err) {
+      this.showToast(`Xatolik: ${err.message}`, 'error');
+    }
+  }
+
+  openInviteWaitingModal(gameId, targetName, gameType, timeControl) {
+    const modal = document.getElementById('friend-invite-modal');
+    if (!modal) return;
+
+    document.getElementById('friend-invite-main-section')?.classList.add('hidden');
+    const waitingBox = document.getElementById('invite-waiting-box');
+    const waitingText = document.getElementById('invite-waiting-text');
+
+    if (waitingBox) waitingBox.classList.remove('hidden');
+    if (waitingText) {
+      waitingText.innerHTML = `<b>${targetName}</b>ga bot orqali taklif yuborildi!<br><small style="color: var(--text-muted);">U qabul qilishi bilan o‘yin darhol boshlanadi...</small>`;
+    }
+
+    // Also populate fallback link input
+    const inviteUrl = `https://t.me/chess_checkerbot?start=game_${gameId}`;
+    const input = document.getElementById('invite-link-input');
+    if (input) input.value = inviteUrl;
+
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+
+    // Host polls until friend joins and game becomes active
+    if (this.invitePollTimer) clearInterval(this.invitePollTimer);
+    this.invitePollTimer = setInterval(async () => {
+      try {
+        const gameRes = await api.getGame(gameId);
+        if (gameRes.success && gameRes.game && gameRes.game.status === 'active') {
+          clearInterval(this.invitePollTimer);
+          this.invitePollTimer = null;
+          this.closeInviteModal();
+          this.showToast('Raqib taklifni qabul qildi! O‘yin boshlandi!', 'success');
+          this.launchGame(gameId);
+        }
+      } catch {
+        // Polling retry
+      }
+    }, 1500);
   }
 
   closeInviteModal() {
@@ -454,13 +703,16 @@ class WellChessApp {
 
   openInviteModalWithExisting(gameId, gameType, timeControl) {
     const inviteUrl = `https://t.me/chess_checkerbot?start=game_${gameId}`;
-    const directMiniAppUrl = `https://app9223102562.tgcloud.ai/?gameId=${gameId}`;
-
     const input = document.getElementById('invite-link-input');
     if (input) input.value = inviteUrl;
 
-    document.getElementById('invite-share-box')?.classList.remove('hidden');
-    document.getElementById('generate-invite-link-btn').style.display = 'none';
+    document.getElementById('friend-invite-main-section')?.classList.add('hidden');
+    const waitingBox = document.getElementById('invite-waiting-box');
+    const waitingText = document.getElementById('invite-waiting-text');
+    if (waitingBox) waitingBox.classList.remove('hidden');
+    if (waitingText) {
+      waitingText.innerHTML = `Taklif tayyorlandi!<br><small style="color: var(--text-muted);">Do‘stingiz qabul qilishi bilan o‘yin darhol boshlanadi...</small>`;
+    }
 
     const modal = document.getElementById('friend-invite-modal');
     if (modal) {

@@ -3,7 +3,9 @@ import {
   joinMatchmaking,
   pollMatchmakingStatus,
   cancelMatchmaking,
-  getQueueStats
+  getQueueStats,
+  broadcastMatchmakingRequest,
+  acceptMatchmakingChallenge
 } from '../lib/core/matchmaking.js';
 import { isValidGameType, isValidTimeControl } from '../lib/core/validation.js';
 
@@ -27,9 +29,36 @@ export default async function (input, ctx) {
 
     try {
       const result = await joinMatchmaking({ userId, gameType, timeControl });
+      if (result.status === 'waiting') {
+        // Asynchronously notify players with close ELO
+        broadcastMatchmakingRequest({
+          hostUser: user,
+          gameType,
+          timeControl,
+          userElo: result.userElo
+        }).catch(err => console.warn('[Broadcast matchmaking bg error]:', err.message));
+      }
       return { success: true, ...result };
     } catch (err) {
       throw new EndpointError(err.message, { code: 'MATCHMAKING_ERROR' });
+    }
+  }
+
+  if (action === 'accept_challenge') {
+    const { hostUserId, gameType, timeControl } = input;
+    if (!hostUserId) {
+      throw new EndpointError('Missing hostUserId', { code: 'MISSING_HOST' });
+    }
+    try {
+      const result = await acceptMatchmakingChallenge({
+        hostUserId: Number(hostUserId),
+        candidateUserId: userId,
+        gameType,
+        timeControl
+      });
+      return { success: true, ...result };
+    } catch (err) {
+      throw new EndpointError(err.message, { code: 'ACCEPT_CHALLENGE_ERROR' });
     }
   }
 

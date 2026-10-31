@@ -137,3 +137,19 @@ export async function getAllActiveGames() {
     .orderBy(desc(games.createdAt))
     .all();
 }
+
+export async function getPendingInvitesForUser(userId) {
+  const numId = Number(userId);
+  const rows = await db.select()
+    .from(games)
+    .where(and(
+      eq(games.blackId, numId),
+      eq(games.status, 'waiting')
+    ))
+    .orderBy(desc(games.createdAt))
+    .limit(5)
+    .all();
+
+  return rows;
+}
+

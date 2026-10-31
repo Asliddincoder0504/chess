@@ -1490,3 +1490,183 @@ body {
 .user-item-action {
   flex-shrink: 0;
 }
+
+/* ==========================================================
+   Elevated Modern Design & Incoming Challenge Modal
+   ========================================================== */
+.challenge-incoming-dialog {
+  background: linear-gradient(145deg, #181d2f 0%, #0f1322 100%) !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+  box-shadow: 0 0 35px rgba(245, 158, 11, 0.25), 0 20px 45px rgba(0, 0, 0, 0.6) !important;
+  text-align: center;
+}
+
+.challenge-alert-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 5px 14px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.pulse-dot-alert {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background-color: #f59e0b;
+  box-shadow: 0 0 10px #f59e0b;
+  animation: alertPulse 1.2s infinite;
+}
+
+.challenge-details-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  width: 100%;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.challenge-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.88rem;
+}
+
+.badge-gold {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #0b0f19;
+  font-weight: 800;
+  font-size: 0.8rem;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.pulse-btn {
+  animation: pulseGlow 1.8s infinite;
+}
+
+@keyframes alertPulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.25); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 0 0 rgba(229, 183, 59, 0.6); }
+  70% { box-shadow: 0 0 0 10px rgba(229, 183, 59, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(229, 183, 59, 0); }
+}
+
+/* Friend Invite Dialog & Players List */
+.friend-invite-dialog {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.friend-players-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+  margin-top: 6px;
+  padding-right: 4px;
+}
+
+.friend-players-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.friend-players-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+.friend-player-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+
+.friend-player-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.friend-player-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.friend-player-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.friend-player-elo {
+  font-size: 0.74rem;
+  color: var(--primary-gold);
+}
+
+.direct-invite-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.modal-input {
+  background-color: var(--bg-main);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.modal-input:focus {
+  border-color: var(--primary-gold);
+}
+
+/* Polished Turn Banner & Active Turn indicator */
+.player-card.active-turn {
+  border-color: rgba(245, 158, 11, 0.6) !important;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.25) !important;
+}
+
+.game-clock.active-clock {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(245, 158, 11, 0.05) 100%) !important;
+  border-color: #f59e0b !important;
+  color: #fbbf24 !important;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.28) !important;
+}
+
+/* Polished piece sizes and high-contrast rendering */
+.checkers-piece {
+  width: 90% !important;
+  height: 90% !important;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.55));
+  transition: transform 0.12s ease;
+}
+
+.checkers-cell:active .checkers-piece {
+  transform: scale(1.08);
+}
+

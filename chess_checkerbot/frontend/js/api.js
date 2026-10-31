@@ -197,11 +197,30 @@ class ApiClient {
           game
         };
       }
+      if (action === 'accept_challenge') {
+        const gameId = `local_accept_${Date.now()}`;
+        const game = this.createLocalGame(gameId, payload.gameType || 'chess', payload.timeControl || '3+2', payload.hostUserId || 1002, user.id);
+        return {
+          success: true,
+          status: 'matched',
+          gameId: game.id,
+          assignedColor: 'black',
+          game
+        };
+      }
       return { success: true, status: 'waiting' };
     }
 
     if (endpoint === 'game') {
       const localGames = this.getLocalGames();
+
+      if (action === 'pending_challenges') {
+        return { success: true, challenges: [] };
+      }
+
+      if (action === 'decline_invite') {
+        return { success: true };
+      }
 
       if (action === 'live_games') {
         return {
@@ -422,6 +441,18 @@ class ApiClient {
 
   async acceptInvite(gameId) {
     return this.call('game', { action: 'accept_invite', gameId });
+  }
+
+  async declineInvite(gameId) {
+    return this.call('game', { action: 'decline_invite', gameId });
+  }
+
+  async getPendingChallenges() {
+    return this.call('game', { action: 'pending_challenges' });
+  }
+
+  async acceptMatchChallenge(hostUserId, gameType = 'chess', timeControl = '3+2') {
+    return this.call('matchmaking', { action: 'accept_challenge', hostUserId, gameType, timeControl });
   }
 
   async getLiveGames() {

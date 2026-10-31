@@ -6,7 +6,8 @@ import {
   getGameMoves,
   getUserActiveGame,
   getUserGameHistory,
-  getAllActiveGames
+  getAllActiveGames,
+  getPendingInvitesForUser
 } from './storage/games.js';
 import { getUserById, updateUserStats, getAllUsers } from './storage/users.js';
 import { recordRatingHistory } from './storage/ratings.js';
@@ -318,7 +319,7 @@ export async function handleCreateInvite(userId, { gameType = 'chess', timeContr
     gameType,
     timeControl,
     whiteId: Number(userId),
-    blackId: null,
+    blackId: targetUserId ? Number(targetUserId) : null,
     status: 'waiting'
   });
 
@@ -327,6 +328,44 @@ export async function handleCreateInvite(userId, { gameType = 'chess', timeContr
     gameId: game.id,
     game
   };
+}
+
+export async function handleGetPendingChallenges(userId) {
+  const invites = await getPendingInvitesForUser(userId);
+  const now = Math.floor(Date.now() / 1000);
+  const valid = [];
+
+  for (const g of invites) {
+    if (now - g.createdAt > 180) continue; // Only invites within last 3 minutes
+    const whiteUser = await getUserById(g.whiteId);
+    valid.push({
+      id: g.id,
+      gameType: g.gameType,
+      timeControl: g.timeControl,
+      createdAt: g.createdAt,
+      whitePlayer: {
+        id: whiteUser?.id,
+        firstName: whiteUser?.firstName || 'O‘yinchi',
+        username: whiteUser?.username || '',
+        photoUrl: whiteUser?.photoUrl || '',
+        elo: getPlayerElo(whiteUser, g.gameType)
+      }
+    });
+  }
+
+  return { success: true, challenges: valid };
+}
+
+export async function handleDeclineInvite(gameId, userId) {
+  const game = await getGameById(gameId);
+  if (!game) return { error: 'O‘yin topilmadi', status: 404 };
+  if (game.status !== 'waiting') return { error: 'Taklif eskirgan yoki o‘yin boshlangan', status: 400 };
+
+  const updated = await updateGame(game.id, {
+    status: 'aborted'
+  });
+
+  return { success: true, game: updated };
 }
 
 export async function handleAcceptInvite(gameId, userId) {

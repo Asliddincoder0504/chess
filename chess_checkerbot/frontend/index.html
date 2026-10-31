@@ -289,18 +289,55 @@
       </section>
     </main>
 
+    <!-- Incoming Challenge Modal (Direct alert when someone invites user) -->
+    <div class="modal-overlay hidden" id="incoming-challenge-modal" style="display: none;">
+      <div class="modal-dialog challenge-incoming-dialog">
+        <div class="challenge-alert-badge">
+          <span class="pulse-dot-alert"></span>
+          <span>YANGI O‘YIN CHAQIRUVI!</span>
+        </div>
+        <div class="outcome-title" id="incoming-challenger-title">Sizni o‘yinga chorlashdi!</div>
+        <div class="challenge-details-card">
+          <div class="challenge-info-row">
+            <span class="text-muted">Raqib:</span>
+            <span class="fw-bold" id="incoming-challenger-name">Rustam</span>
+          </div>
+          <div class="challenge-info-row">
+            <span class="text-muted">Reyting:</span>
+            <span class="badge-gold" id="incoming-challenger-elo">1200 ELO</span>
+          </div>
+          <div class="challenge-info-row">
+            <span class="text-muted">O‘yin turi:</span>
+            <span class="fw-bold" id="incoming-challenge-type">Klassik shashka (8x8)</span>
+          </div>
+          <div class="challenge-info-row">
+            <span class="text-muted">Vaqt nazorati:</span>
+            <span class="fw-bold" id="incoming-challenge-tc">5+0</span>
+          </div>
+        </div>
+        <div class="modal-actions-row" style="display: flex; gap: 10px; width: 100%; margin-top: 14px;">
+          <button class="btn-primary pulse-btn" id="incoming-accept-btn" style="flex: 1;">
+            <span>✅ Qabul qilish</span>
+          </button>
+          <button class="btn-secondary" id="incoming-decline-btn" style="flex: 1;">
+            <span>❌ Rad etish</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Friend Invite Creation Modal -->
     <div class="modal-overlay hidden" id="friend-invite-modal" style="display: none;">
-      <div class="modal-dialog">
-        <div class="outcome-title">🤝 Do'st bilan o'ynash</div>
-        <div class="text-muted">Do'stingizga havola yuboring va u qabul qilishi bilan o'yin boshlanadi!</div>
+      <div class="modal-dialog friend-invite-dialog">
+        <div class="outcome-title">🤝 Do‘st bilan o‘ynash</div>
+        <div class="text-muted" style="margin-bottom: 10px;">Bot orqali to‘g‘ridan-to‘g‘ri o‘yinchiga taklif yuboriladi!</div>
 
         <div class="invite-modal-controls">
-          <label class="modal-label">O'yin turi:</label>
+          <label class="modal-label">O‘yin turi:</label>
           <select id="invite-game-type" class="modal-select">
-            <option value="chess">♟️ Shaxmat (8x8 FIDE)</option>
             <option value="checkers8" selected>🔴 Klassik shashka (8x8, 12 tosh)</option>
             <option value="checkers">⚪ Xalqaro shashka (10x10, 20 tosh)</option>
+            <option value="chess">♟️ Shaxmat (8x8 FIDE)</option>
           </select>
 
           <label class="modal-label" style="margin-top: 10px;">Vaqt nazorati:</label>
@@ -313,25 +350,51 @@
           </select>
         </div>
 
-        <button class="btn-primary" id="generate-invite-link-btn" style="margin-top: 10px;">
-          <span>Havola yaratish</span>
-        </button>
-
-        <div id="invite-share-box" class="hidden" style="width: 100%; margin-top: 12px;">
-          <div class="invite-link-wrapper">
-            <input type="text" id="invite-link-input" readonly class="invite-link-field">
-            <button class="btn-small btn-primary" id="copy-invite-link-btn">Nusxalash</button>
-          </div>
-          <button class="btn-primary tg-share-btn" id="share-telegram-btn" style="margin-top: 8px;">
-            <span>Telegram orqali yuborish ✈️</span>
-          </button>
+        <!-- Waiting Status Box (When invitation is dispatched) -->
+        <div id="invite-waiting-box" class="hidden" style="width: 100%; margin-top: 14px;">
           <div class="invite-waiting-msg">
             <div class="loader-spinner-sm"></div>
-            <span>Do'stingiz qabul qilishi kutilmoqda...</span>
+            <span id="invite-waiting-text">Taklif bot orqali yuborildi! Raqib qabul qilishi kutilmoqda...</span>
+          </div>
+          <button class="btn-secondary" id="cancel-invite-wait-btn" style="margin-top: 10px; width: 100%;">Taklifni bekor qilish</button>
+        </div>
+
+        <!-- Direct Invite Players List -->
+        <div id="friend-invite-main-section" style="width: 100%; margin-top: 12px;">
+          <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">
+            Tezkor taklif yuborish:
+          </div>
+          <div id="friend-invite-players-list" class="friend-players-list">
+            <div class="loader-spinner-sm"></div>
+          </div>
+
+          <div style="margin-top: 12px;">
+            <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">
+              Telegram ID orqali taklif:
+            </div>
+            <div class="direct-invite-input-row" style="display: flex; gap: 8px;">
+              <input type="text" id="direct-invite-id-input" placeholder="Telegram ID (masalan: 6472114736)" class="modal-input" style="flex: 1;">
+              <button class="btn-small btn-primary" id="direct-invite-id-btn" style="min-width: 80px;">Yuborish</button>
+            </div>
+          </div>
+
+          <!-- Optional link share accordion -->
+          <button class="btn-text-link" id="toggle-fallback-link-btn" style="margin-top: 14px; font-size: 0.8rem; background: none; border: none; color: var(--primary-gold); cursor: pointer; text-decoration: underline;">
+            🔗 Havola orqali ulashish
+          </button>
+
+          <div id="invite-share-box" class="hidden" style="width: 100%; margin-top: 10px;">
+            <div class="invite-link-wrapper">
+              <input type="text" id="invite-link-input" readonly class="invite-link-field">
+              <button class="btn-small btn-primary" id="copy-invite-link-btn">Nusxalash</button>
+            </div>
+            <button class="btn-primary tg-share-btn" id="share-telegram-btn" style="margin-top: 8px; width: 100%;">
+              <span>Telegram orqali ulashish ✈️</span>
+            </button>
           </div>
         </div>
 
-        <button class="btn-secondary" id="close-invite-modal-btn" style="margin-top: 8px;">Yopish</button>
+        <button class="btn-secondary" id="close-invite-modal-btn" style="margin-top: 12px; width: 100%;">Yopish</button>
       </div>
     </div>
 

@@ -7,6 +7,8 @@ import {
   handleRematchAction,
   handleCreateInvite,
   handleAcceptInvite,
+  handleGetPendingChallenges,
+  handleDeclineInvite,
   handleGetLiveGames,
   handleGetOnlinePlayers,
   syncGameClocks
@@ -43,24 +45,25 @@ export default async function (input, ctx) {
     const targetId = input.targetUserId ? Number(input.targetUserId) : null;
     const res = await handleCreateInvite(userId, {
       gameType: input.gameType || 'chess',
-      timeControl: input.timeControl || '5+0'
+      timeControl: input.timeControl || '5+0',
+      targetUserId: targetId
     });
 
     if (targetId && res.success && res.gameId) {
       try {
         const MINI_APP_URL = 'https://app9223102562.tgcloud.ai/';
         const challengerName = user.first_name || user.firstName || 'Do‘stingiz';
-        let gName = 'Shaxmat (8x8)';
+        let gName = 'Shaxmat (8x8 FIDE)';
         if (input.gameType === 'checkers8') gName = 'Klassik shashka (8x8, 12 tosh)';
         else if (input.gameType === 'checkers') gName = 'Xalqaro shashka (10x10, 20 tosh)';
 
         await api.sendMessage({
           chat_id: targetId,
-          text: `⚔️ *${challengerName} sizni o‘yinga taklif qildi!*\n\nO‘yin turi: *${gName}*\nVaqt: *${input.timeControl || '5+0'}*\n\nPastdagi tugmani bosing va o‘yinga qo‘shiling:`,
+          text: `⚔️ *${challengerName} sizni o‘yinga taklif qildi!*\n\n🎮 O‘yin turi: *${gName}*\n⏱ Vaqt: *${input.timeControl || '5+0'}*\n\nPastdagi tugmani bosing va o‘yinga qo‘shiling:`,
           parse_mode: 'Markdown',
           reply_markup: {
             inline_keyboard: [
-              [{ text: '⚔️ O‘yinga qo‘shilish va boshlash', web_app: { url: `${MINI_APP_URL}?gameId=${res.gameId}` } }]
+              [{ text: '⚔️ Qabul qilish va o‘yinga kirish', web_app: { url: `${MINI_APP_URL}?gameId=${res.gameId}` } }]
             ]
           }
         });
@@ -69,6 +72,17 @@ export default async function (input, ctx) {
       }
     }
 
+    return res;
+  }
+
+  if (action === 'pending_challenges') {
+    return await handleGetPendingChallenges(userId);
+  }
+
+  if (action === 'decline_invite') {
+    if (!gameId) throw new EndpointError('Missing gameId', { code: 'MISSING_GAME_ID' });
+    const res = await handleDeclineInvite(gameId, userId);
+    if (res.error) throw new EndpointError(res.error, { code: 'DECLINE_ERROR' });
     return res;
   }
 

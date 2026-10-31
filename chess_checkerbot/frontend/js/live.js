@@ -276,9 +276,9 @@ export class LiveController {
         throw new Error(res.error || 'Taklif yaratib bo‘lmadi');
       }
 
-      // Open existing invite modal with newly generated game
-      this.app.openInviteModalWithExisting(res.gameId, gameType, timeControl);
-      this.app.showToast(`${targetName} uchun taklif tayyorlandi! Havolani yuboring.`, 'success');
+      // Open invite waiting modal directly - Bot already dispatched notification to user
+      this.app.openInviteWaitingModal(res.gameId, targetName, gameType, timeControl);
+      this.app.showToast(`✅ ${targetName}ga bot orqali taklif yuborildi!`, 'success');
     } catch (err) {
       this.app.showToast(`Xatolik: ${err.message}`, 'error');
     }
