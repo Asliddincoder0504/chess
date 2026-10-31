@@ -77,6 +77,12 @@
             <span class="btn-icon" id="icon-btn-friends"></span>
             <span>Do'st bilan o'ynash</span>
           </button>
+
+          <button class="btn-secondary btn-live-banner" id="btn-quick-live">
+            <span class="btn-icon" id="icon-btn-live"></span>
+            <span>Jonli o'yinlar & Onlayn o'yinchilar</span>
+            <span class="pulse-dot"></span>
+          </button>
         </div>
       </section>
 
@@ -150,6 +156,45 @@
               <span class="btn-ctrl-icon" id="icon-btn-resign"></span>
               <span>Taslim bo'lish</span>
             </button>
+            <button class="btn-secondary btn-with-icon hidden" id="exit-spectate-btn">
+              <span class="btn-ctrl-icon" id="icon-btn-exit-spectate"></span>
+              <span>Tomoshadan chiqish</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- LIVE / ONLINE VIEW (Spectate Active Matches & Online Community) -->
+      <section id="view-live" class="view-panel hidden">
+        <div class="view-header" style="margin-bottom: 12px;">
+          <h2 class="view-title">Jonli O'yinlar va Onlayn O'yinchilar</h2>
+          <div class="text-muted" style="font-size: 0.85rem;">Hozir o'ynayotganlarni tomosha qiling yoki o'yinchilarni bellashuvga chorlang!</div>
+        </div>
+
+        <!-- Live Sub-tabs -->
+        <div class="live-tabs-strip">
+          <button class="live-tab-btn active" data-tab="live-games">
+            <span class="pulse-dot"></span>
+            <span>Jonli o'yinlar</span>
+            <span class="badge" id="live-games-count">0</span>
+          </button>
+          <button class="live-tab-btn" data-tab="online-users">
+            <span>Onlayn o'yinchilar</span>
+            <span class="badge" id="online-users-count">0</span>
+          </button>
+        </div>
+
+        <!-- Tab 1: Live Games List -->
+        <div id="live-games-tab-content" class="live-tab-content">
+          <div id="live-games-container" class="live-games-list">
+            <div class="loader-spinner"></div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Online Users List -->
+        <div id="online-users-tab-content" class="live-tab-content hidden">
+          <div id="online-users-container" class="online-users-list">
+            <div class="loader-spinner"></div>
           </div>
         </div>
       </section>
@@ -318,6 +363,37 @@
       </div>
     </div>
 
+    <!-- Direct Challenge Modal -->
+    <div class="modal-overlay hidden" id="direct-challenge-modal" style="display: none;">
+      <div class="modal-dialog">
+        <div class="outcome-title">⚔️ O'yinga taklif qilish</div>
+        <div class="text-muted" id="challenge-target-name">Raqibni bellashuvga chorlash</div>
+
+        <div class="invite-modal-controls">
+          <label class="modal-label">O'yin turi:</label>
+          <select id="challenge-game-type" class="modal-select">
+            <option value="checkers8" selected>🔴 Klassik shashka (8x8, 12 tosh)</option>
+            <option value="checkers">⚪ Xalqaro shashka (10x10, 20 tosh)</option>
+            <option value="chess">♟️ Shaxmat (8x8 FIDE)</option>
+          </select>
+
+          <label class="modal-label" style="margin-top: 10px;">Vaqt nazorati:</label>
+          <select id="challenge-time-control" class="modal-select">
+            <option value="3+0">3+0 (Blitz)</option>
+            <option value="3+2">3+2 (Blitz)</option>
+            <option value="5+0" selected>5+0 (Blitz)</option>
+            <option value="10+0">10+0 (Rapid)</option>
+            <option value="15+10">15+10 (Rapid)</option>
+          </select>
+        </div>
+
+        <button class="btn-primary" id="send-direct-challenge-btn" style="margin-top: 12px;">
+          <span>Taklifni yuborish</span>
+        </button>
+        <button class="btn-secondary" id="close-challenge-modal-btn" style="margin-top: 8px;">Bekor qilish</button>
+      </div>
+    </div>
+
     <!-- Toast Notification -->
     <div id="toast" class="toast hidden"></div>
 
@@ -326,6 +402,10 @@
       <div class="nav-tab active" data-view="home">
         <span class="tab-icon" id="icon-nav-home"></span>
         <span>Bosh sahifa</span>
+      </div>
+      <div class="nav-tab" data-view="live">
+        <span class="tab-icon" id="icon-nav-live"></span>
+        <span>Jonli</span>
       </div>
       <div class="nav-tab" data-view="leaderboard">
         <span class="tab-icon" id="icon-nav-ranks"></span>

@@ -5,9 +5,10 @@ import {
   recordMove,
   getGameMoves,
   getUserActiveGame,
-  getUserGameHistory
+  getUserGameHistory,
+  getAllActiveGames
 } from '../storage/games.js';
-import { getUserById, updateUserStats } from '../storage/users.js';
+import { getUserById, updateUserStats, getAllUsers } from '../storage/users.js';
 import { recordRatingHistory } from '../storage/ratings.js';
 import { ChessGame } from '../core/chess.js';
 import { CheckersGame } from '../core/checkers.js';
@@ -446,4 +447,64 @@ export async function handleRematchAction(gameId, userId, { action }) {
   }
 
   return { error: 'Invalid rematch action', status: 400 };
+}
+
+export async function handleGetLiveGames() {
+  const activeGames = await getAllActiveGames();
+  const list = [];
+  for (const g of activeGames) {
+    if (!g.blackId) continue; // Waiting for opponent
+    const whiteUser = await getUserById(g.whiteId);
+    const blackUser = await getUserById(g.blackId);
+    const moves = await getGameMoves(g.id);
+    list.push({
+      id: g.id,
+      gameType: g.gameType,
+      timeControl: g.timeControl,
+      currentTurn: g.currentTurn,
+      moveCount: moves.length,
+      createdAt: g.createdAt,
+      whitePlayer: {
+        id: whiteUser?.id,
+        firstName: whiteUser?.firstName || 'Oqlar',
+        username: whiteUser?.username,
+        photoUrl: whiteUser?.photoUrl,
+        elo: getPlayerElo(whiteUser, g.gameType)
+      },
+      blackPlayer: {
+        id: blackUser?.id,
+        firstName: blackUser?.firstName || 'Qoralar',
+        username: blackUser?.username,
+        photoUrl: blackUser?.photoUrl,
+        elo: getPlayerElo(blackUser, g.gameType)
+      }
+    });
+  }
+  return { success: true, games: list };
+}
+
+export async function handleGetOnlinePlayers(currentUserId) {
+  const allUsers = await getAllUsers(50);
+  const activeGames = await getAllActiveGames();
+  const playingMap = new Map();
+  for (const g of activeGames) {
+    if (g.whiteId) playingMap.set(Number(g.whiteId), g.id);
+    if (g.blackId) playingMap.set(Number(g.blackId), g.id);
+  }
+
+  const players = allUsers
+    .filter(u => Number(u.id) !== Number(currentUserId))
+    .map(u => ({
+      id: u.id,
+      firstName: u.firstName || 'O‘yinchi',
+      username: u.username || '',
+      photoUrl: u.photoUrl || '',
+      chessElo: u.chessElo || 1200,
+      checkers8Elo: u.checkers8Elo || u.checkersElo || 1200,
+      checkersElo: u.checkersElo || 1200,
+      isPlaying: playingMap.has(Number(u.id)),
+      activeGameId: playingMap.get(Number(u.id)) || null
+    }));
+
+  return { success: true, players };
 }

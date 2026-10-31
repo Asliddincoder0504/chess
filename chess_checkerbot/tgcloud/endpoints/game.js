@@ -7,6 +7,8 @@ import {
   handleRematchAction,
   handleCreateInvite,
   handleAcceptInvite,
+  handleGetLiveGames,
+  handleGetOnlinePlayers,
   syncGameClocks
 } from '../lib/game_service.js';
 import { getGameById } from '../lib/storage/games.js';
@@ -33,6 +35,14 @@ export default async function (input, ctx) {
     const res = await handleAcceptInvite(gameId, userId);
     if (res.error) throw new EndpointError(res.error, { code: 'INVITE_ERROR' });
     return res;
+  }
+
+  if (action === 'live_games') {
+    return await handleGetLiveGames();
+  }
+
+  if (action === 'online_players') {
+    return await handleGetOnlinePlayers(userId);
   }
 
   if (!gameId) {

@@ -149,6 +149,14 @@ class ApiClient {
     return this.call('game', { action: 'accept_invite', gameId });
   }
 
+  async getLiveGames() {
+    return this.call('game', { action: 'live_games' });
+  }
+
+  async getOnlinePlayers() {
+    return this.call('game', { action: 'online_players' });
+  }
+
   // Admin API
   async getAdminStats() {
     return this.call('admin', { action: 'stats' });

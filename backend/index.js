@@ -40,7 +40,9 @@ import {
   handleDrawAction,
   handleRematchAction,
   handleCreateInvite,
-  handleAcceptInvite
+  handleAcceptInvite,
+  handleGetLiveGames,
+  handleGetOnlinePlayers
 } from './api/games.js';
 import {
   handleGetAdminStats,
@@ -160,6 +162,12 @@ export async function dispatchApiRequest({ method, pathname, query = {}, body = 
     }
     if (action === 'accept_invite') {
       return await handleAcceptInvite(gameId, user.id);
+    }
+    if (action === 'live_games') {
+      return await handleGetLiveGames();
+    }
+    if (action === 'online_players') {
+      return await handleGetOnlinePlayers(user.id);
     }
     if (action === 'move') {
       return await handleMakeMove(gameId, user.id, { move: body.move, clientVersion: body.version });
