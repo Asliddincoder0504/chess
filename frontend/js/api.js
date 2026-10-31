@@ -1,6 +1,6 @@
 /**
  * WellChess API Client
- * Seamlessly handles both Telegram Serverless native calls and REST fetch over HTTP
+ * Seamlessly handles Telegram Serverless runtime POST calls and universal REST
  */
 
 class ApiClient {
@@ -32,12 +32,11 @@ class ApiClient {
 
   /**
    * Universal API call dispatcher
-   * @param {string} endpoint e.g. 'profile', 'matchmaking', 'game'
+   * Telegram Cloud serverless endpoints accept POST to /api/<endpoint>
+   * @param {string} endpoint e.g. 'profile', 'matchmaking', 'game', 'admin', 'leaderboard'
    * @param {Object} payload Arguments or request body
-   * @param {string} [httpMethod='POST'] HTTP method for REST fallback
-   * @param {string} [httpPath=null] REST pathname override
    */
-  async call(endpoint, payload = {}, httpMethod = 'POST', httpPath = null) {
+  async call(endpoint, payload = {}) {
     // 1. If running natively inside Telegram Serverless runtime with Serverless.call
     if (this.tg?.Serverless?.call) {
       try {
@@ -64,28 +63,23 @@ class ApiClient {
         if (res !== undefined) return res;
       } catch (err) {
         console.warn(`[Serverless.call fallback on ${endpoint}]:`, err);
-        // Fallback to fetch below
       }
     }
 
-    // 2. Standard fetch request with Authorization header
-    const path = httpPath || `/api/${endpoint}`;
-    const url = `${this.baseUrl}${path}`;
+    // 2. Standard fetch POST to /api/<endpoint>
+    const url = `${this.baseUrl}/api/${endpoint}`;
 
     const options = {
-      method: httpMethod,
-      headers: this.getHeaders()
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(payload)
     };
-
-    if (httpMethod !== 'GET' && httpMethod !== 'HEAD') {
-      options.body = JSON.stringify(payload);
-    }
 
     const response = await fetch(url, options);
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || `HTTP ${response.status}: Request failed`);
+      throw new Error(data.error || data.description || `HTTP ${response.status}: Request failed`);
     }
 
     return data;
@@ -93,91 +87,91 @@ class ApiClient {
 
   // Profile API
   async getProfile() {
-    return this.call('profile', { action: 'profile' }, 'GET', '/api/profile');
+    return this.call('profile', { action: 'profile' });
   }
 
   async getProfileStats() {
-    return this.call('profile', { action: 'stats' }, 'GET', '/api/profile/stats');
+    return this.call('profile', { action: 'stats' });
   }
 
   async getProfileHistory(limit = 50) {
-    return this.call('profile', { action: 'history', limit }, 'GET', `/api/profile/history?limit=${limit}`);
+    return this.call('profile', { action: 'history', limit });
   }
 
   // Ratings & Leaderboard API
   async getRatings(gameType = 'chess') {
-    return this.call('ratings', { gameType }, 'GET', `/api/ratings/${gameType}`);
+    return this.call('profile', { action: 'ratings', gameType });
   }
 
   async getLeaderboard(gameType = 'chess') {
-    return this.call('leaderboard', { gameType }, 'GET', `/api/leaderboard/${gameType}`);
+    return this.call('leaderboard', { gameType });
   }
 
   // Matchmaking API
   async joinMatchmaking(gameType, timeControl) {
-    return this.call('matchmaking', { action: 'join', gameType, timeControl }, 'POST', '/api/matchmaking/join');
+    return this.call('matchmaking', { action: 'join', gameType, timeControl });
   }
 
   async cancelMatchmaking() {
-    return this.call('matchmaking', { action: 'cancel' }, 'POST', '/api/matchmaking/cancel');
+    return this.call('matchmaking', { action: 'cancel' });
   }
 
   async getMatchmakingStatus() {
-    return this.call('matchmaking', { action: 'status' }, 'GET', '/api/matchmaking/status');
+    return this.call('matchmaking', { action: 'status' });
   }
 
   // Game API
   async getGame(gameId) {
-    return this.call('game', { gameId, action: 'get' }, 'GET', `/api/game/${gameId}`);
+    return this.call('game', { action: 'get', gameId });
   }
 
   async makeMove(gameId, move, version) {
-    return this.call('game', { gameId, action: 'move', move, version }, 'POST', `/api/game/${gameId}/move`);
+    return this.call('game', { action: 'move', gameId, move, version });
   }
 
   async resignGame(gameId) {
-    return this.call('game', { gameId, action: 'resign' }, 'POST', `/api/game/${gameId}/resign`);
+    return this.call('game', { action: 'resign', gameId });
   }
 
   async sendDrawAction(gameId, drawAction) {
-    return this.call('game', { gameId, action: 'draw', drawAction }, 'POST', `/api/game/${gameId}/draw`);
+    return this.call('game', { action: 'draw', gameId, drawAction });
   }
 
   async sendRematchAction(gameId, rematchAction) {
-    return this.call('game', { gameId, action: 'rematch', rematchAction }, 'POST', `/api/game/${gameId}/rematch`);
+    return this.call('game', { action: 'rematch', gameId, rematchAction });
   }
 
   async createInvite(gameType, timeControl) {
-    return this.call('game', { action: 'create_invite', gameType, timeControl }, 'POST', '/api/game/invite');
+    return this.call('game', { action: 'create_invite', gameType, timeControl });
   }
 
   async acceptInvite(gameId) {
-    return this.call('game', { action: 'accept_invite', gameId }, 'POST', `/api/game/${gameId}/accept`);
+    return this.call('game', { action: 'accept_invite', gameId });
   }
 
   // Admin API
   async getAdminStats() {
-    return this.call('admin', { action: 'stats' }, 'GET', '/api/admin/stats');
+    return this.call('admin', { action: 'stats' });
   }
 
   async getAdminUsers(query = '') {
-    return this.call('admin', { action: 'users', query }, 'GET', `/api/admin/users?query=${encodeURIComponent(query)}`);
+    return this.call('admin', { action: 'users', query });
   }
 
   async getAdminActiveGames() {
-    return this.call('admin', { action: 'active_games' }, 'GET', '/api/admin/active_games');
+    return this.call('admin', { action: 'active_games' });
   }
 
   async abortAdminGame(gameId) {
-    return this.call('admin', { action: 'abort_game', gameId }, 'POST', `/api/admin/abort_game`);
+    return this.call('admin', { action: 'abort_game', gameId });
   }
 
   async resetAdminRating(targetUserId, newRating = 1200) {
-    return this.call('admin', { action: 'reset_rating', targetUserId, newRating }, 'POST', `/api/admin/reset_rating`);
+    return this.call('admin', { action: 'reset_rating', targetUserId, newRating });
   }
 
   async setAdminUserBan(targetUserId, isBanned) {
-    return this.call('admin', { action: 'ban', targetUserId, isBanned }, 'POST', '/api/admin/ban');
+    return this.call('admin', { action: 'ban', targetUserId, isBanned });
   }
 }
 

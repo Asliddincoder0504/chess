@@ -38,7 +38,9 @@ import {
   handleMakeMove,
   handleResign,
   handleDrawAction,
-  handleRematchAction
+  handleRematchAction,
+  handleCreateInvite,
+  handleAcceptInvite
 } from './api/games.js';
 import {
   handleGetAdminStats,
@@ -116,6 +118,83 @@ export async function dispatchApiRequest({ method, pathname, query = {}, body = 
       return { error: auth.error, status: auth.status || 401 };
     }
     user = auth.user;
+  }
+
+  // UNIVERSAL /api/profile endpoint (POST or GET)
+  if (pathname === '/api/profile') {
+    const act = body.action || query.action || 'profile';
+    if (act === 'stats') return await handleGetProfileStats(user.id);
+    if (act === 'history') return await handleGetProfileHistory(user.id, parseInt(body.limit || query.limit, 10) || 50);
+    if (act === 'ratings') return await handleGetRatings(user.id, body.gameType || 'chess');
+    return await handleGetProfile(user);
+  }
+
+  // UNIVERSAL /api/leaderboard endpoint (POST or GET)
+  if (pathname === '/api/leaderboard' || pathname.startsWith('/api/leaderboard/')) {
+    const type = body.gameType || query.gameType || (pathname.split('/')[3]) || 'chess';
+    return await handleGetLeaderboard(type, parseInt(body.limit || query.limit, 10) || 100);
+  }
+
+  // UNIVERSAL /api/matchmaking endpoint (POST or GET)
+  if (pathname === '/api/matchmaking') {
+    const act = body.action || query.action || 'status';
+    if (act === 'join') {
+      return await handleJoinMatchmaking(user.id, { gameType: body.gameType, timeControl: body.timeControl });
+    }
+    if (act === 'cancel') {
+      return await handleCancelMatchmaking(user.id);
+    }
+    if (act === 'status') {
+      return await handleGetMatchmakingStatus(user.id);
+    }
+    if (act === 'stats') {
+      return await handleGetQueueStats();
+    }
+  }
+
+  // UNIVERSAL /api/game endpoint (POST or GET)
+  if (pathname === '/api/game') {
+    const { action, gameId } = body;
+    if (action === 'create_invite') {
+      return await handleCreateInvite(user.id, { gameType: body.gameType, timeControl: body.timeControl });
+    }
+    if (action === 'accept_invite') {
+      return await handleAcceptInvite(gameId, user.id);
+    }
+    if (action === 'move') {
+      return await handleMakeMove(gameId, user.id, { move: body.move, clientVersion: body.version });
+    }
+    if (action === 'resign') {
+      return await handleResign(gameId, user.id);
+    }
+    if (action === 'draw') {
+      return await handleDrawAction(gameId, user.id, { action: body.drawAction || body.action });
+    }
+    if (action === 'rematch') {
+      return await handleRematchAction(gameId, user.id, { action: body.rematchAction || body.action });
+    }
+    if (action === 'get' || action === 'state' || !action) {
+      return await handleGetGame(gameId, user.id);
+    }
+  }
+
+  // UNIVERSAL /api/admin endpoint (POST or GET)
+  if (pathname === '/api/admin') {
+    const act = body.action || query.action || 'stats';
+    if (act === 'stats') return await handleGetAdminStats(user.id);
+    if (act === 'users') return await handleGetAdminUsers(user.id, parseInt(body.limit || query.limit, 10) || 100);
+    if (act === 'active_games') return await handleGetAdminActiveGames(user.id);
+    if (act === 'ban') return await handleAdminBanUser(user.id, body.targetUserId, body.isBanned);
+    if (act === 'abort_game') {
+      const { abortGame } = await import('./storage/games.js');
+      await abortGame(body.gameId);
+      return { success: true };
+    }
+    if (act === 'reset_rating') {
+      const { resetUserElo } = await import('./storage/users.js');
+      await resetUserElo(body.targetUserId, body.newRating || 1200);
+      return { success: true };
+    }
   }
 
   // USER endpoints

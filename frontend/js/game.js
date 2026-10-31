@@ -119,8 +119,13 @@ export class GameController {
     }
 
     const user = this.app.currentUser;
-    const isWhite = Number(user.id) === this.gameData.whiteId;
-    this.playerColor = isWhite ? 'white' : 'black';
+    const isWhite = Number(user.id) === Number(this.gameData.whiteId);
+    const isSolo = Number(this.gameData.whiteId) === Number(this.gameData.blackId);
+    if (isSolo) {
+      this.playerColor = this.gameData.currentTurn;
+    } else {
+      this.playerColor = isWhite ? 'white' : 'black';
+    }
 
     const player = isWhite ? this.gameData.whitePlayer : this.gameData.blackPlayer;
     const opponent = isWhite ? this.gameData.blackPlayer : this.gameData.whitePlayer;
@@ -147,7 +152,9 @@ export class GameController {
         onMove: move => this.handlePlayerMove(move)
       });
       this.boardUI.onSelectSquare = sq => {
-        if (this.gameData.currentTurn !== this.playerColor || this.gameData.status !== 'active') return [];
+        if (this.gameData.status !== 'active') return [];
+        const isSolo = Number(this.gameData.whiteId) === Number(this.gameData.blackId);
+        if (!isSolo && this.gameData.currentTurn !== this.playerColor) return [];
         return this.localEngine.getLegalMoves().filter(m => m.from === sq);
       };
       this.boardUI.loadFEN(this.gameData.boardState);
@@ -157,12 +164,14 @@ export class GameController {
       this.boardUI = new CheckersBoardUI(container, {
         orientation: this.playerColor,
         size: is8x8 ? 8 : 10,
-        onMove: move => this.handlePlayerMove(move)
+        onMove: move => this.handlePlayerMove(move),
+        onSelectSquare: sq => {
+          if (this.gameData.status !== 'active') return [];
+          const isSolo = Number(this.gameData.whiteId) === Number(this.gameData.blackId);
+          if (!isSolo && this.gameData.currentTurn !== this.playerColor) return [];
+          return this.localEngine.getLegalMoves().filter(m => Number(m.from) === Number(sq));
+        }
       });
-      this.boardUI.onSelectSquare = sq => {
-        if (this.gameData.currentTurn !== this.playerColor || this.gameData.status !== 'active') return [];
-        return this.localEngine.getLegalMoves().filter(m => m.from === sq);
-      };
       this.boardUI.loadState(this.gameData.boardState);
     }
 
@@ -173,7 +182,8 @@ export class GameController {
 
   async handlePlayerMove(move) {
     if (this.gameData.status !== 'active') return;
-    if (this.gameData.currentTurn !== this.playerColor) {
+    const isSolo = Number(this.gameData.whiteId) === Number(this.gameData.blackId);
+    if (!isSolo && this.gameData.currentTurn !== this.playerColor) {
       this.app.showToast('Navbatingizni kuting!', 'warning');
       return;
     }
@@ -197,6 +207,14 @@ export class GameController {
     const prevStatus = this.gameData.status;
 
     this.gameData = newGame;
+    const isSolo = Number(this.gameData.whiteId) === Number(this.gameData.blackId);
+    if (isSolo) {
+      this.playerColor = newGame.currentTurn;
+      if (this.boardUI && typeof this.boardUI.setOrientation === 'function') {
+        this.boardUI.setOrientation(this.playerColor);
+      }
+    }
+
     this.cachedWhiteTime = newGame.whiteTimeMs;
     this.cachedBlackTime = newGame.blackTimeMs;
     this.lastClockTick = Date.now();

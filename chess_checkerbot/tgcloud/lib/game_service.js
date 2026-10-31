@@ -205,15 +205,15 @@ export async function handleMakeMove(gameId, userId, { move, clientVersion }) {
     return { error: 'Game state version mismatch. Please reload.', status: 409 };
   }
 
-  const isWhite = Number(userId) === game.whiteId;
-  const isBlack = Number(userId) === game.blackId;
+  const isWhite = Number(userId) === Number(game.whiteId);
+  const isBlack = Number(userId) === Number(game.blackId);
 
   if (!isWhite && !isBlack) {
     return { error: 'You are not a participant in this game', status: 403 };
   }
 
-  const expectedTurn = isWhite ? 'white' : 'black';
-  if (game.currentTurn !== expectedTurn) {
+  const isCurrentTurnPlayer = (game.currentTurn === 'white' && isWhite) || (game.currentTurn === 'black' && isBlack);
+  if (!isCurrentTurnPlayer) {
     return { error: 'It is not your turn', status: 400 };
   }
 
@@ -223,8 +223,9 @@ export async function handleMakeMove(gameId, userId, { move, clientVersion }) {
 
   let newWhiteTime = game.whiteTimeMs;
   let newBlackTime = game.blackTimeMs;
+  const isMovingWhite = game.currentTurn === 'white';
 
-  if (isWhite) {
+  if (isMovingWhite) {
     newWhiteTime = game.whiteTimeMs - elapsed;
     if (newWhiteTime <= 0) {
       return await finishGame({ game, winner: 'black', winReason: 'timeout' });
@@ -244,7 +245,7 @@ export async function handleMakeMove(gameId, userId, { move, clientVersion }) {
       const chess = new ChessGame(game.boardState);
       engineResult = chess.makeMove(move);
     } else if (game.gameType === 'checkers' || game.gameType === 'checkers8') {
-      const checkers = new CheckersGame(game.boardState, isWhite ? 'w' : 'b', game.gameType === 'checkers8' ? 8 : 10);
+      const checkers = new CheckersGame(game.boardState, isMovingWhite ? 'w' : 'b', game.gameType === 'checkers8' ? 8 : 10);
       engineResult = checkers.makeMove(move);
     } else {
       return { error: 'Unsupported game type', status: 400 };
