@@ -201,5 +201,30 @@ export const ICONS = {
       <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
     </svg>
+  `,
+
+  // Live / Broadcast / Eye icon
+  live: `
+    <svg class="ui-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  `,
+
+  // Spectate icon
+  spectate: `
+    <svg class="ui-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  `,
+
+  // Challenge / Swords mini icon
+  challenge: `
+    <svg class="ui-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/>
+      <line x1="13" y1="19" x2="19" y2="13"/>
+      <polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/>
+    </svg>
   `
 };

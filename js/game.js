@@ -79,6 +79,7 @@ export class GameController {
     this.playerColor = 'white';
     this.boardUI = null;
     this.localEngine = null;
+    this.isSpectator = false;
 
     this.pollInterval = null;
     this.clockInterval = null;
@@ -87,8 +88,9 @@ export class GameController {
     this.lastClockTick = Date.now();
   }
 
-  async loadGame(gameId) {
+  async loadGame(gameId, isSpectator = false) {
     this.gameId = gameId;
+    this.isSpectator = isSpectator;
     this.stopPolling();
     this.stopClock();
 
@@ -118,23 +120,40 @@ export class GameController {
       modal.style.display = 'none';
     }
 
+    const isSpectator = !!this.isSpectator;
     const user = this.app.currentUser;
     const isWhite = Number(user.id) === Number(this.gameData.whiteId);
-    const isSolo = Number(this.gameData.whiteId) === Number(this.gameData.blackId);
-    if (isSolo) {
+    const isSolo = !isSpectator && Number(this.gameData.whiteId) === Number(this.gameData.blackId);
+    if (isSpectator) {
+      this.playerColor = 'white';
+    } else if (isSolo) {
       this.playerColor = this.gameData.currentTurn;
     } else {
       this.playerColor = isWhite ? 'white' : 'black';
     }
 
-    const player = isWhite ? this.gameData.whitePlayer : this.gameData.blackPlayer;
-    const opponent = isWhite ? this.gameData.blackPlayer : this.gameData.whitePlayer;
+    const player = isSpectator ? this.gameData.whitePlayer : (isWhite ? this.gameData.whitePlayer : this.gameData.blackPlayer);
+    const opponent = isSpectator ? this.gameData.blackPlayer : (isWhite ? this.gameData.blackPlayer : this.gameData.whitePlayer);
 
     // Render player headers
-    document.getElementById('opp-name').textContent = opponent?.firstName || 'Raqib';
+    document.getElementById('opp-name').textContent = opponent?.firstName || (isSpectator ? 'Qoralar' : 'Raqib');
     document.getElementById('opp-elo').textContent = `${opponent?.elo || 1200} ELO`;
-    document.getElementById('player-name').textContent = player?.firstName || 'Siz';
+    document.getElementById('player-name').textContent = player?.firstName || (isSpectator ? 'Oqlar' : 'Siz');
     document.getElementById('player-elo').textContent = `${player?.elo || 1200} ELO`;
+
+    // Toggle Spectator vs Player action buttons
+    const drawBtn = document.getElementById('draw-btn');
+    const resignBtn = document.getElementById('resign-btn');
+    const exitSpectateBtn = document.getElementById('exit-spectate-btn');
+    if (isSpectator) {
+      if (drawBtn) drawBtn.classList.add('hidden');
+      if (resignBtn) resignBtn.classList.add('hidden');
+      if (exitSpectateBtn) exitSpectateBtn.classList.remove('hidden');
+    } else {
+      if (drawBtn) drawBtn.classList.remove('hidden');
+      if (resignBtn) resignBtn.classList.remove('hidden');
+      if (exitSpectateBtn) exitSpectateBtn.classList.add('hidden');
+    }
 
     this.cachedWhiteTime = this.gameData.whiteTimeMs;
     this.cachedBlackTime = this.gameData.blackTimeMs;
@@ -152,7 +171,7 @@ export class GameController {
         onMove: move => this.handlePlayerMove(move)
       });
       this.boardUI.onSelectSquare = sq => {
-        if (this.gameData.status !== 'active') return [];
+        if (this.isSpectator || this.gameData.status !== 'active') return [];
         const isSolo = Number(this.gameData.whiteId) === Number(this.gameData.blackId);
         if (!isSolo && this.gameData.currentTurn !== this.playerColor) return [];
         return this.localEngine.getLegalMoves().filter(m => m.from === sq);
@@ -166,7 +185,7 @@ export class GameController {
         size: is8x8 ? 8 : 10,
         onMove: move => this.handlePlayerMove(move),
         onSelectSquare: sq => {
-          if (this.gameData.status !== 'active') return [];
+          if (this.isSpectator || this.gameData.status !== 'active') return [];
           const isSolo = Number(this.gameData.whiteId) === Number(this.gameData.blackId);
           if (!isSolo && this.gameData.currentTurn !== this.playerColor) return [];
           return this.localEngine.getLegalMoves().filter(m => Number(m.from) === Number(sq));
@@ -358,6 +377,13 @@ export class GameController {
       return;
     }
 
+    if (this.isSpectator) {
+      const turnName = this.gameData.currentTurn === 'white' ? 'Oqlar' : 'Qoralar';
+      banner.textContent = `👁️ Tomosha rejimi: ${turnName} navbati`;
+      banner.className = 'turn-banner own-turn';
+      return;
+    }
+
     const isOwnTurn = this.gameData.currentTurn === this.playerColor;
     const turnName = this.gameData.currentTurn === 'white' ? 'Oqlar' : 'Qoralar';
     banner.textContent = isOwnTurn ? `Sizning navbatingiz (${turnName})` : `Raqib navbati (${turnName})...`;
@@ -402,17 +428,38 @@ export class GameController {
   }
 
   showGameOverModal() {
+    const modal = document.getElementById('game-over-modal');
+    const title = document.getElementById('modal-outcome-title');
+    const desc = document.getElementById('modal-outcome-desc');
+    const ratingChange = document.getElementById('modal-rating-change');
+    const rematchBtn = document.getElementById('rematch-btn');
+
+    if (this.isSpectator) {
+      sounds.move();
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+      }
+      if (title) {
+        if (this.gameData.winner === 'draw') title.textContent = '🤝 Durang!';
+        else if (this.gameData.winner === 'white') title.textContent = `🏆 Oqlar g'alaba qozondi!`;
+        else title.textContent = `🏆 Qoralar g'alaba qozondi!`;
+      }
+      if (desc) desc.textContent = 'Partiya yakunlandi';
+      if (ratingChange) ratingChange.style.display = 'none';
+      if (rematchBtn) rematchBtn.style.display = 'none';
+      return;
+    }
+
+    if (rematchBtn) rematchBtn.style.display = 'flex';
+    if (ratingChange) ratingChange.style.display = 'inline-block';
+
     const isWinner = this.gameData.winner === this.playerColor;
     const isDraw = this.gameData.winner === 'draw';
 
     if (isWinner) sounds.victory();
     else if (isDraw) sounds.move();
     else sounds.defeat();
-
-    const modal = document.getElementById('game-over-modal');
-    const title = document.getElementById('modal-outcome-title');
-    const desc = document.getElementById('modal-outcome-desc');
-    const ratingChange = document.getElementById('modal-rating-change');
 
     const change = this.playerColor === 'white' ? this.gameData.whiteRatingChange : this.gameData.blackRatingChange;
     const changeStr = change > 0 ? `+${change}` : `${change}`;

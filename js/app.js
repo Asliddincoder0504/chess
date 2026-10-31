@@ -2,6 +2,7 @@ import api from './api.js';
 import { GameController, sounds } from './game.js';
 import { MatchmakingController } from './matchmaking.js';
 import { ProfileController } from './profile.js';
+import { LiveController } from './live.js';
 import { ICONS } from '../assets/icons.js';
 
 class WellChessApp {
@@ -19,6 +20,7 @@ class WellChessApp {
     this.gameController = new GameController(this);
     this.matchmakingController = new MatchmakingController(this);
     this.profileController = new ProfileController(this);
+    this.liveController = new LiveController(this);
 
     this.selectedGameType = 'chess';
     this.selectedTimeControl = '3+2';
@@ -75,18 +77,45 @@ class WellChessApp {
     }
   }
 
+  clearGameUrlParam() {
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('gameId')) {
+        url.searchParams.delete('gameId');
+        window.history.replaceState({}, document.title, url.pathname);
+      }
+    } catch {}
+  }
+
   async handleDeepGameLink(gameId) {
     try {
       const res = await api.getGame(gameId);
       if (!res.success || !res.game) {
         this.showToast('O‘yin topilmadi', 'error');
+        this.clearGameUrlParam();
         this.navigate('home');
         return;
       }
 
       const game = res.game;
+
+      // If the game has already finished, DO NOT reopen it!
+      if (game.status === 'completed' || game.status === 'aborted') {
+        this.clearGameUrlParam();
+        this.showToast('Oldingi o‘yin allaqachon yakunlangan. Yangi o‘yin boshlashingiz mumkin!', 'info');
+        this.navigate('home');
+        return;
+      }
+
       if (game.status === 'active') {
-        this.launchGame(gameId);
+        const userId = Number(this.currentUser.id);
+        const isParticipant = userId === Number(game.whiteId) || userId === Number(game.blackId);
+        if (isParticipant) {
+          this.launchGame(gameId);
+        } else {
+          // Open as spectator
+          this.spectateGame(gameId);
+        }
         return;
       }
 
@@ -101,11 +130,39 @@ class WellChessApp {
         return;
       }
 
-      this.launchGame(gameId);
+      this.clearGameUrlParam();
+      this.navigate('home');
     } catch (err) {
+      this.clearGameUrlParam();
       this.showToast(`Xatolik: ${err.message}`, 'error');
       this.navigate('home');
     }
+  }
+
+  spectateGame(gameId) {
+    this.navigate('game');
+    this.gameController.loadGame(gameId, true);
+  }
+
+  closeGameAndReturnHome() {
+    const modal = document.getElementById('game-over-modal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.style.display = 'none';
+    }
+
+    this.clearGameUrlParam();
+    this.gameController.stopPolling();
+    this.gameController.stopClock();
+    this.gameController.gameId = null;
+    this.gameController.gameData = null;
+    this.gameController.isSpectator = false;
+    this.pendingInviteGameId = null;
+
+    const container = document.getElementById('game-board-container');
+    if (container) container.innerHTML = '';
+
+    this.navigate('home');
   }
 
   showAcceptInviteDialog(game) {
@@ -166,6 +223,9 @@ class WellChessApp {
       'icon-search-slot': ICONS.search,
       'icon-admin-search-slot': ICONS.search,
       'icon-nav-home': ICONS.home,
+      'icon-nav-live': ICONS.live,
+      'icon-btn-live': ICONS.live,
+      'icon-btn-exit-spectate': ICONS.live,
       'icon-nav-ranks': ICONS.podium,
       'icon-nav-history': ICONS.history,
       'icon-nav-profile': ICONS.user,
@@ -307,12 +367,16 @@ class WellChessApp {
     });
 
     document.getElementById('modal-close-btn')?.addEventListener('click', () => {
-      const modal = document.getElementById('game-over-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-        modal.style.display = 'none';
-      }
-      this.navigate('home');
+      this.closeGameAndReturnHome();
+    });
+
+    document.getElementById('exit-spectate-btn')?.addEventListener('click', () => {
+      this.closeGameAndReturnHome();
+      this.navigate('live');
+    });
+
+    document.getElementById('btn-quick-live')?.addEventListener('click', () => {
+      this.navigate('live');
     });
 
     // Profile game tabs
@@ -422,6 +486,14 @@ class WellChessApp {
       return;
     }
 
+    if (this.currentView === 'live' && viewName !== 'live') {
+      this.liveController.stop();
+    }
+    if (this.currentView === 'game' && viewName !== 'game') {
+      this.gameController.stopClock();
+      this.gameController.stopPolling();
+    }
+
     this.currentView = viewName;
 
     document.querySelectorAll('.view-panel').forEach(panel => {
@@ -437,7 +509,9 @@ class WellChessApp {
       tab.classList.toggle('active', tab.dataset.view === viewName);
     });
 
-    if (viewName === 'profile') {
+    if (viewName === 'live') {
+      this.liveController.start();
+    } else if (viewName === 'profile') {
       this.profileController.renderProfile();
     } else if (viewName === 'leaderboard') {
       this.profileController.renderLeaderboard(this.profileController.leaderboardType);
