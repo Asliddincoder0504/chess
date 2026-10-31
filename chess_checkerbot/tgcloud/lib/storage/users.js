@@ -59,8 +59,11 @@ export async function getOrCreateUser(tgUser) {
 }
 
 export async function updateUserStats(userId, { gameType, result, newRating }) {
-  const user = await getUserById(userId);
-  if (!user) throw new Error(`User not found: ${userId}`);
+  let user = await getUserById(userId);
+  if (!user) {
+    user = await getOrCreateUser({ id: userId, first_name: 'O‘yinchi' });
+  }
+  if (!user) return null;
 
   const now = Math.floor(Date.now() / 1000);
   const updates = { updatedAt: now };
