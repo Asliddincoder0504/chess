@@ -260,29 +260,25 @@ export class LiveController {
   }
 
   async sendChallenge() {
-    if (!this.challengeTargetUser) return;
+    const targetUser = this.challengeTargetUser;
+    if (!targetUser) return;
 
+    const targetUserId = targetUser.id;
+    const targetName = targetUser.firstName || 'O‘yinchi';
     const gameType = document.getElementById('challenge-game-type')?.value || 'checkers8';
     const timeControl = document.getElementById('challenge-time-control')?.value || '5+0';
 
+    this.closeChallengeModal();
+
     try {
-      const res = await api.createInvite(gameType, timeControl, this.challengeTargetUser.id);
+      const res = await api.createInvite(gameType, timeControl, targetUserId);
       if (!res.success || !res.gameId) {
         throw new Error(res.error || 'Taklif yaratib bo‘lmadi');
       }
 
-      this.closeChallengeModal();
-
-      if (Number(this.challengeTargetUser.id) === 999) {
-        await api.acceptInvite(res.gameId);
-        this.app.launchGame(res.gameId);
-        this.app.showToast('Kompyuter bilan o‘yin boshlandi!', 'success');
-        return;
-      }
-
       // Open existing invite modal with newly generated game
       this.app.openInviteModalWithExisting(res.gameId, gameType, timeControl);
-      this.app.showToast(`${this.challengeTargetUser.firstName} uchun taklif tayyorlandi!`, 'success');
+      this.app.showToast(`${targetName} uchun taklif tayyorlandi! Havolani yuboring.`, 'success');
     } catch (err) {
       this.app.showToast(`Xatolik: ${err.message}`, 'error');
     }

@@ -280,16 +280,6 @@ class WellChessApp {
       this.openFriendInviteModal();
     });
 
-    // Play vs Bot Button on Home
-    document.getElementById('play-vs-bot-btn')?.addEventListener('click', () => {
-      this.startBotGame(this.selectedGameType, this.selectedTimeControl);
-    });
-
-    // Pass and Play 2 Player Button on Home
-    document.getElementById('play-pass-and-play-btn')?.addEventListener('click', () => {
-      this.startPassAndPlayGame(this.selectedGameType, this.selectedTimeControl);
-    });
-
     // Generate Invite Link
     document.getElementById('generate-invite-link-btn')?.addEventListener('click', async () => {
       const gameType = document.getElementById('invite-game-type').value;
@@ -494,49 +484,6 @@ class WellChessApp {
         // Polling retry
       }
     }, 1500);
-  }
-
-  async startBotGame(gameType, timeControl) {
-    try {
-      this.showToast('Kompyuter bilan o‘yin tayyorlanmoqda...', 'info');
-      const res = await api.createInvite(gameType, timeControl);
-      if (res.success && res.gameId) {
-        await api.acceptInvite(res.gameId);
-        this.launchGame(res.gameId);
-        this.showToast('O‘yin boshlandi! Siz oqlarda o‘ynaysiz.', 'success');
-      } else {
-        const localId = `bot_game_${Date.now()}`;
-        const game = api.createLocalGame(localId, gameType, timeControl, this.currentUser.id, 999, 'active');
-        this.launchGame(game.id);
-        this.showToast('O‘yin boshlandi! Siz oqlarda o‘ynaysiz.', 'success');
-      }
-    } catch {
-      const localId = `bot_game_${Date.now()}`;
-      const game = api.createLocalGame(localId, gameType, timeControl, this.currentUser.id, 999, 'active');
-      this.launchGame(game.id);
-      this.showToast('Mashq o‘yini boshlandi!', 'success');
-    }
-  }
-
-  async startPassAndPlayGame(gameType, timeControl) {
-    try {
-      this.showToast('Do‘stona 2 kishilik o‘yin boshlanmoqda...', 'info');
-      const res = await api.createInvite(gameType, timeControl);
-      if (res.success && res.gameId) {
-        await api.acceptInvite(res.gameId);
-        this.launchGame(res.gameId);
-      } else {
-        const localId = `pass_play_${Date.now()}`;
-        const game = api.createLocalGame(localId, gameType, timeControl, this.currentUser.id, this.currentUser.id, 'active');
-        this.launchGame(game.id);
-      }
-      this.showToast('Do‘stona o‘yin boshlandi! Navbatma-navbat yuring.', 'success');
-    } catch {
-      const localId = `pass_play_${Date.now()}`;
-      const game = api.createLocalGame(localId, gameType, timeControl, this.currentUser.id, this.currentUser.id, 'active');
-      this.launchGame(game.id);
-      this.showToast('Do‘stona o‘yin boshlandi!', 'success');
-    }
   }
 
   navigate(viewName) {
