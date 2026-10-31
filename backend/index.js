@@ -1,3 +1,28 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Load .env configuration natively
+try {
+  const envPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env');
+  if (fs.existsSync(envPath)) {
+    const lines = fs.readFileSync(envPath, 'utf8').split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const idx = trimmed.indexOf('=');
+        if (idx !== -1) {
+          const key = trimmed.slice(0, idx).trim();
+          const val = trimmed.slice(idx + 1).trim();
+          if (!process.env[key]) {
+            process.env[key] = val;
+          }
+        }
+      }
+    }
+  }
+} catch {}
+
 import { validateTelegramInitData } from './core/validation.js';
 import { handleGetProfile, handleGetProfileStats, handleGetProfileHistory } from './api/profile.js';
 import { handleGetRatings } from './api/ratings.js';

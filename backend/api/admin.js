@@ -3,8 +3,11 @@ import { getAllActiveGames } from '../storage/games.js';
 import { getQueueStats } from '../core/matchmaking.js';
 
 export function isAdminUser(userId) {
-  const adminIdsStr = process.env.ADMIN_IDS || '12345678,99999999';
-  const adminIds = adminIdsStr.split(',').map(s => Number(s.trim()));
+  const adminIdsStr = process.env.ADMIN_IDS || '6472114736,8455692606';
+  const adminIds = adminIdsStr
+    .split(/[,\s.]+/)
+    .map(s => Number(s.trim()))
+    .filter(n => !isNaN(n) && n > 0);
   return adminIds.includes(Number(userId));
 }
 
