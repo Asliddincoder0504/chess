@@ -1,91 +1,127 @@
 /**
  * WellChess Pure JavaScript Authoritative Checkers Engine
- * Implements complete official International Checkers (10x10 draughts) rules:
- * - 10x10 board with 50 dark playable squares (standard 1-50 notation)
- * - 20 pieces per player (White vs Black)
- * - Men move diagonally forward 1 square
- * - Men capture forward AND backward
- * - Mandatory captures
- * - Maximum capture rule (must choose sequence capturing maximum pieces)
- * - Multi-jump sequences
- * - Promotion to Flying Kings at baseline
- * - Flying Kings: slide any distance along diagonal and jump across distances
- * - Win detection (elimination or blocked opponent)
- * - Draw detection (resignation, agreement, moves limit)
+ * Supports both:
+ * 1. International Checkers (10x10, 50 dark squares, 20 pieces per player)
+ * 2. Classic / Russian Checkers (8x8, 32 dark squares, 12 pieces per player)
  */
 
 export const BOARD_SIZE = 10;
 export const TOTAL_SQUARES = 50;
 
-/**
- * Precompute coordinate to square number mapping (1 to 50) and vice versa.
- * Dark squares are those where (row + col) % 2 === 1.
- */
-const SQUARE_TO_COORDS = {};
-const COORDS_TO_SQUARE = {};
+export const BOARD_SIZE_8 = 8;
+export const TOTAL_SQUARES_8 = 32;
 
-let sqNum = 1;
-for (let r = 0; r < BOARD_SIZE; r++) {
-  for (let c = 0; c < BOARD_SIZE; c++) {
+// Precompute 10x10 coordinate mappings (1-50)
+const SQUARE_TO_COORDS_10 = {};
+const COORDS_TO_SQUARE_10 = {};
+let sqNum10 = 1;
+for (let r = 0; r < 10; r++) {
+  for (let c = 0; c < 10; c++) {
     if ((r + c) % 2 === 1) {
-      SQUARE_TO_COORDS[sqNum] = { row: r, col: c };
-      COORDS_TO_SQUARE[`${r},${c}`] = sqNum;
-      sqNum++;
+      SQUARE_TO_COORDS_10[sqNum10] = { row: r, col: c };
+      COORDS_TO_SQUARE_10[`${r},${c}`] = sqNum10;
+      sqNum10++;
     }
   }
 }
 
-export function squareToRowCol(sq) {
+// Precompute 8x8 coordinate mappings (1-32)
+const SQUARE_TO_COORDS_8 = {};
+const COORDS_TO_SQUARE_8 = {};
+let sqNum8 = 1;
+for (let r = 0; r < 8; r++) {
+  for (let c = 0; c < 8; c++) {
+    if ((r + c) % 2 === 1) {
+      SQUARE_TO_COORDS_8[sqNum8] = { row: r, col: c };
+      COORDS_TO_SQUARE_8[`${r},${c}`] = sqNum8;
+      sqNum8++;
+    }
+  }
+}
+
+export function squareToRowCol(sq, size = 10) {
   const num = parseInt(sq, 10);
-  return SQUARE_TO_COORDS[num] || null;
+  const map = size === 8 ? SQUARE_TO_COORDS_8 : SQUARE_TO_COORDS_10;
+  return map[num] || null;
 }
 
-export function rowColToSquare(r, c) {
-  return COORDS_TO_SQUARE[`${r},${c}`] || null;
+export function rowColToSquare(r, c, size = 10) {
+  const map = size === 8 ? COORDS_TO_SQUARE_8 : COORDS_TO_SQUARE_10;
+  return map[`${r},${c}`] || null;
 }
 
-/**
- * Starting position representation:
- * 50 characters:
- * 'b' = black man, 'B' = black king
- * 'w' = white man, 'W' = white king
- * '.' = empty dark square
- */
+// 10x10 starting position (50 dark squares, 20 black pieces, 20 white pieces)
 export const INITIAL_CHECKERS_STATE =
-  'bbbbbbbbbbbbbbbbbbbb' + // 1-20 (Black pieces)
-  '..........' +           // 21-30 (Empty middle rows)
-  'wwwwwwwwwwwwwwwwwwww';  // 31-50 (White pieces)
+  'bbbbbbbbbbbbbbbbbbbb' + // 1-20
+  '..........' +           // 21-30
+  'wwwwwwwwwwwwwwwwwwww';  // 31-50
+
+// 8x8 starting position (32 dark squares, 12 black pieces, 12 white pieces)
+export const INITIAL_CHECKERS_8_STATE =
+  'bbbbbbbbbbbb' + // 1-12 (Black pieces on rows 0, 1, 2)
+  '........' +     // 13-20 (Empty rows 3, 4)
+  'wwwwwwwwwwww';  // 21-32 (White pieces on rows 5, 6, 7)
 
 export class CheckersGame {
   /**
-   * @param {string} [boardString] 50-char string representing dark squares
-   * @param {'w' | 'b'} [turn='w'] Current turn ('w' for White, 'b' for Black)
+   * @param {string} [boardString] 50-char (10x10) or 32-char (8x8) string
+   * @param {'w' | 'b'} [turn='w'] Current turn
+   * @param {number} [boardSize=null] Optional explicit board size (8 or 10)
    */
-  constructor(boardString = INITIAL_CHECKERS_STATE, turn = 'w') {
-    this.board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
+  constructor(boardString = INITIAL_CHECKERS_STATE, turn = 'w', boardSize = null) {
+    const clean = (boardString || '').replace(/[^bwBW.]/g, '');
+    this.boardSize = boardSize || (clean.length === 32 ? 8 : 10);
+    this.totalSquares = this.boardSize === 8 ? 32 : 50;
+    this.sqToCoords = this.boardSize === 8 ? SQUARE_TO_COORDS_8 : SQUARE_TO_COORDS_10;
+    this.coordsToSq = this.boardSize === 8 ? COORDS_TO_SQUARE_8 : COORDS_TO_SQUARE_10;
+
+    this.board = Array(this.boardSize).fill(null).map(() => Array(this.boardSize).fill(null));
     this.turn = turn;
-    this.halfmoveClock = 0; // Moves since last capture or man advance
+    this.halfmoveClock = 0;
     this.fullmoveNumber = 1;
     this.history = [];
-    this.loadState(boardString, turn);
+
+    const defaultState = this.boardSize === 8 ? INITIAL_CHECKERS_8_STATE : INITIAL_CHECKERS_STATE;
+    this.loadState(clean || defaultState, turn);
   }
 
   get boardMatrix() {
     return this.board;
   }
 
+  squareToRowCol(sq) {
+    const num = parseInt(sq, 10);
+    return this.sqToCoords[num] || null;
+  }
+
+  rowColToSquare(r, c) {
+    return this.coordsToSq[`${r},${c}`] || null;
+  }
+
   loadState(boardString, turn = 'w') {
     const clean = boardString.replace(/[^bwBW.]/g, '');
-    if (clean.length !== TOTAL_SQUARES) {
-      throw new Error(`Invalid checkers state length: expected 50, got ${clean.length}`);
+    if (clean.length !== this.totalSquares) {
+      if (clean.length === 32 && this.boardSize !== 8) {
+        this.boardSize = 8;
+        this.totalSquares = 32;
+        this.sqToCoords = SQUARE_TO_COORDS_8;
+        this.coordsToSq = COORDS_TO_SQUARE_8;
+      } else if (clean.length === 50 && this.boardSize !== 10) {
+        this.boardSize = 10;
+        this.totalSquares = 50;
+        this.sqToCoords = SQUARE_TO_COORDS_10;
+        this.coordsToSq = COORDS_TO_SQUARE_10;
+      } else {
+        throw new Error(`Invalid checkers state length: expected ${this.totalSquares}, got ${clean.length}`);
+      }
     }
 
-    this.board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
+    this.board = Array(this.boardSize).fill(null).map(() => Array(this.boardSize).fill(null));
 
-    for (let i = 1; i <= TOTAL_SQUARES; i++) {
+    for (let i = 1; i <= this.totalSquares; i++) {
       const char = clean[i - 1];
-      const coords = squareToRowCol(i);
-      if (char !== '.') {
+      const coords = this.squareToRowCol(i);
+      if (char !== '.' && coords) {
         this.board[coords.row][coords.col] = char;
       }
     }
@@ -95,16 +131,16 @@ export class CheckersGame {
 
   exportState() {
     let str = '';
-    for (let i = 1; i <= TOTAL_SQUARES; i++) {
-      const coords = squareToRowCol(i);
-      const piece = this.board[coords.row][coords.col];
+    for (let i = 1; i <= this.totalSquares; i++) {
+      const coords = this.squareToRowCol(i);
+      const piece = coords ? this.board[coords.row][coords.col] : null;
       str += piece || '.';
     }
     return str;
   }
 
   clone() {
-    const next = new CheckersGame(this.exportState(), this.turn);
+    const next = new CheckersGame(this.exportState(), this.turn, this.boardSize);
     next.halfmoveClock = this.halfmoveClock;
     next.fullmoveNumber = this.fullmoveNumber;
     next.history = [...this.history];
@@ -120,21 +156,12 @@ export class CheckersGame {
     return piece === 'W' || piece === 'B';
   }
 
-  /**
-   * Generate all capture sequences starting from {row, col}
-   * @param {number} row
-   * @param {number} col
-   * @param {Array<string>} [visitedCoords] Coords of captured pieces already jumped in this chain
-   * @param {Array<number>} [pathSquares] Sequence of square numbers visited
-   * @param {Array<number>} [capturedSquares] Sequence of square numbers captured
-   * @returns {Array<Object>}
-   */
   findCapturesFrom(row, col, visitedCoords = [], pathSquares = null, capturedSquares = null) {
     const piece = this.board[row][col];
     if (!piece) return [];
     const color = this.isPieceColor(piece, 'w') ? 'w' : 'b';
     const king = this.isKing(piece);
-    const originSq = rowColToSquare(row, col);
+    const originSq = this.rowColToSquare(row, col);
 
     if (!pathSquares) pathSquares = [originSq];
     if (!capturedSquares) capturedSquares = [];
@@ -143,56 +170,49 @@ export class CheckersGame {
     const captureChains = [];
 
     if (!king) {
-      // Man can capture in all 4 diagonal directions forward & backward
       for (const [dr, dc] of dirs) {
         const midR = row + dr;
         const midC = col + dc;
         const endR = row + 2 * dr;
         const endC = col + 2 * dc;
 
-        if (endR >= 0 && endR < BOARD_SIZE && endC >= 0 && endC < BOARD_SIZE) {
+        if (endR >= 0 && endR < this.boardSize && endC >= 0 && endC < this.boardSize) {
           const midPiece = this.board[midR][midC];
           const endPiece = this.board[endR][endC];
           const midKey = `${midR},${midC}`;
 
-          // Opponent piece on intermediate square and target square empty
           if (midPiece &&
               !this.isPieceColor(midPiece, color) &&
               !visitedCoords.includes(midKey) &&
-              (!endPiece || (endR === pathSquares[0] && endC === pathSquares[0]))) { // target must be empty
-
+              (!endPiece || (endR === pathSquares[0] && endC === pathSquares[0]))) {
             if (!endPiece) {
-              const capSq = rowColToSquare(midR, midC);
-              const destSq = rowColToSquare(endR, endC);
+              const targetSq = this.rowColToSquare(endR, endC);
+              const capturedSq = this.rowColToSquare(midR, midC);
+              const nextVisited = [...visitedCoords, midKey];
+              const nextPath = [...pathSquares, targetSq];
+              const nextCaps = [...capturedSquares, capturedSq];
 
-              // Recurse for continuation
-              // In draughts, the piece moves along the board, but captured pieces are only removed at end of turn.
-              // We simulate the moving piece at (endR, endC)
-              const savedOrigin = this.board[row][col];
-              this.board[row][col] = null;
-              this.board[endR][endC] = savedOrigin;
+              const cloned = this.clone();
+              cloned.board[row][col] = null;
+              cloned.board[midR][midC] = null;
+              cloned.board[endR][endC] = piece;
 
-              const subChains = this.findCapturesFrom(
-                endR,
-                endC,
-                [...visitedCoords, midKey],
-                [...pathSquares, destSq],
-                [...capturedSquares, capSq]
-              );
+              // King promotion mid-jump or at baseline
+              const baseline = color === 'w' ? 0 : this.boardSize - 1;
+              if (endR === baseline) {
+                cloned.board[endR][endC] = color === 'w' ? 'W' : 'B';
+              }
 
-              // Restore
-              this.board[endR][endC] = null;
-              this.board[row][col] = savedOrigin;
-
-              if (subChains.length > 0) {
-                captureChains.push(...subChains);
+              const further = cloned.findCapturesFrom(endR, endC, nextVisited, nextPath, nextCaps);
+              if (further.length > 0) {
+                captureChains.push(...further);
               } else {
                 captureChains.push({
                   from: pathSquares[0],
-                  to: destSq,
-                  path: [...pathSquares, destSq],
-                  captured: [...capturedSquares, capSq],
-                  capturesCount: capturedSquares.length + 1
+                  to: targetSq,
+                  path: nextPath,
+                  captured: nextCaps,
+                  capturesCount: nextCaps.length
                 });
               }
             }
@@ -200,69 +220,55 @@ export class CheckersGame {
         }
       }
     } else {
-      // Flying King: slides any distance along diagonal, jumps piece, lands on any empty square beyond
+      // Flying King captures
       for (const [dr, dc] of dirs) {
         let r = row + dr;
         let c = col + dc;
-        let foundOpponent = null;
-        let foundOpponentCoord = null;
+        let capturedCoord = null;
+        let capturedSq = null;
 
-        while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+        while (r >= 0 && r < this.boardSize && c >= 0 && c < this.boardSize) {
+          const midKey = `${r},${c}`;
           const currentPiece = this.board[r][c];
-          const key = `${r},${c}`;
 
-          if (currentPiece) {
-            if (this.isPieceColor(currentPiece, color)) {
-              // Friendly piece blocks diagonal
-              break;
-            } else {
-              // Opponent piece
-              if (visitedCoords.includes(key)) {
-                // Cannot jump over already jumped piece
+          if (!capturedCoord) {
+            if (currentPiece) {
+              if (this.isPieceColor(currentPiece, color) || visitedCoords.includes(midKey)) {
                 break;
+              } else {
+                capturedCoord = midKey;
+                capturedSq = this.rowColToSquare(r, c);
               }
-              if (foundOpponent) {
-                // Cannot jump two opponent pieces in a row
-                break;
-              }
-              foundOpponent = currentPiece;
-              foundOpponentCoord = { r, c, key, sq: rowColToSquare(r, c) };
             }
           } else {
-            // Empty square
-            if (foundOpponent) {
-              // Valid landing square!
-              const destSq = rowColToSquare(r, c);
+            if (currentPiece) {
+              break;
+            } else {
+              const targetSq = this.rowColToSquare(r, c);
+              const nextVisited = [...visitedCoords, capturedCoord];
+              const nextPath = [...pathSquares, targetSq];
+              const nextCaps = [...capturedSquares, capturedSq];
 
-              const savedOrigin = this.board[row][col];
-              this.board[row][col] = null;
-              this.board[r][c] = savedOrigin;
+              const [capR, capC] = capturedCoord.split(',').map(Number);
+              const cloned = this.clone();
+              cloned.board[row][col] = null;
+              cloned.board[capR][capC] = null;
+              cloned.board[r][c] = piece;
 
-              const subChains = this.findCapturesFrom(
-                r,
-                c,
-                [...visitedCoords, foundOpponentCoord.key],
-                [...pathSquares, destSq],
-                [...capturedSquares, foundOpponentCoord.sq]
-              );
-
-              this.board[r][c] = null;
-              this.board[row][col] = savedOrigin;
-
-              if (subChains.length > 0) {
-                captureChains.push(...subChains);
+              const further = cloned.findCapturesFrom(r, c, nextVisited, nextPath, nextCaps);
+              if (further.length > 0) {
+                captureChains.push(...further);
               } else {
                 captureChains.push({
                   from: pathSquares[0],
-                  to: destSq,
-                  path: [...pathSquares, destSq],
-                  captured: [...capturedSquares, foundOpponentCoord.sq],
-                  capturesCount: capturedSquares.length + 1
+                  to: targetSq,
+                  path: nextPath,
+                  captured: nextCaps,
+                  capturesCount: nextCaps.length
                 });
               }
             }
           }
-
           r += dr;
           c += dc;
         }
@@ -272,29 +278,22 @@ export class CheckersGame {
     return captureChains;
   }
 
-  /**
-   * Generate simple non-capturing moves for piece at {row, col}
-   * @param {number} row
-   * @param {number} col
-   * @returns {Array<Object>}
-   */
   findSimpleMovesFrom(row, col) {
     const piece = this.board[row][col];
     if (!piece) return [];
     const color = this.isPieceColor(piece, 'w') ? 'w' : 'b';
     const king = this.isKing(piece);
-    const originSq = rowColToSquare(row, col);
+    const originSq = this.rowColToSquare(row, col);
     const moves = [];
 
     if (!king) {
-      // Man moves forward only
       const forwardDir = color === 'w' ? -1 : 1;
       for (const dc of [-1, 1]) {
         const nr = row + forwardDir;
         const nc = col + dc;
-        if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
+        if (nr >= 0 && nr < this.boardSize && nc >= 0 && nc < this.boardSize) {
           if (!this.board[nr][nc]) {
-            const destSq = rowColToSquare(nr, nc);
+            const destSq = this.rowColToSquare(nr, nc);
             moves.push({
               from: originSq,
               to: destSq,
@@ -306,14 +305,13 @@ export class CheckersGame {
         }
       }
     } else {
-      // King slides any number of vacant squares along all 4 diagonals
       const dirs = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
       for (const [dr, dc] of dirs) {
         let r = row + dr;
         let c = col + dc;
-        while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+        while (r >= 0 && r < this.boardSize && c >= 0 && c < this.boardSize) {
           if (!this.board[r][c]) {
-            const destSq = rowColToSquare(r, c);
+            const destSq = this.rowColToSquare(r, c);
             moves.push({
               from: originSq,
               to: destSq,
@@ -322,7 +320,7 @@ export class CheckersGame {
               capturesCount: 0
             });
           } else {
-            break; // Blocked
+            break;
           }
           r += dr;
           c += dc;
@@ -333,16 +331,11 @@ export class CheckersGame {
     return moves;
   }
 
-  /**
-   * Get all strictly legal moves for current player turn,
-   * enforcing Mandatory Capture and Maximum Capture rules.
-   * @returns {Array<Object>}
-   */
   getLegalMoves() {
     const allCaptures = [];
 
-    for (let r = 0; r < BOARD_SIZE; r++) {
-      for (let c = 0; c < BOARD_SIZE; c++) {
+    for (let r = 0; r < this.boardSize; r++) {
+      for (let c = 0; c < this.boardSize; c++) {
         const piece = this.board[r][c];
         if (piece && this.isPieceColor(piece, this.turn)) {
           const caps = this.findCapturesFrom(r, c);
@@ -353,36 +346,34 @@ export class CheckersGame {
 
     // Mandatory capture rule
     if (allCaptures.length > 0) {
-      // Maximum capture rule: find max captures count
-      let maxCount = 0;
-      for (const cap of allCaptures) {
-        if (cap.capturesCount > maxCount) {
-          maxCount = cap.capturesCount;
+      // In International Checkers (10x10), maximum captures rule is strictly required
+      if (this.boardSize === 10) {
+        let maxCount = 0;
+        for (const cap of allCaptures) {
+          if (cap.capturesCount > maxCount) {
+            maxCount = cap.capturesCount;
+          }
         }
+        return allCaptures.filter(c => c.capturesCount === maxCount);
       }
-      return allCaptures.filter(c => c.capturesCount === maxCount);
+      // In 8x8 checkers, any capture chain is allowed
+      return allCaptures;
     }
 
-    // No captures available: gather regular simple moves
-    const simpleMoves = [];
-    for (let r = 0; r < BOARD_SIZE; r++) {
-      for (let c = 0; c < BOARD_SIZE; c++) {
+    // If no captures, simple forward moves
+    const allSimpleMoves = [];
+    for (let r = 0; r < this.boardSize; r++) {
+      for (let c = 0; c < this.boardSize; c++) {
         const piece = this.board[r][c];
         if (piece && this.isPieceColor(piece, this.turn)) {
-          const moves = this.findSimpleMovesFrom(r, c);
-          simpleMoves.push(...moves);
+          allSimpleMoves.push(...this.findSimpleMovesFrom(r, c));
         }
       }
     }
 
-    return simpleMoves;
+    return allSimpleMoves;
   }
 
-  /**
-   * Execute a move on the checkers board
-   * @param {Object | string} moveInput e.g. { from: 31, to: 27 } or "31-27" / "31x22x13"
-   * @returns {Object} Result of move
-   */
   makeMove(moveInput) {
     if (this.isGameOver().gameOver) {
       throw new Error('Cannot make a move in a finished checkers game');
@@ -403,8 +394,6 @@ export class CheckersGame {
       throw new Error('No legal moves available');
     }
 
-    // Match legal move by from and to
-    // If multiple multi-jump paths exist with same from & to, choose matching path or first
     const matched = legalMoves.find(m => {
       if (m.from !== parsedFrom || m.to !== parsedTo) return false;
       if (moveInput.path && Array.isArray(moveInput.path)) {
@@ -417,39 +406,32 @@ export class CheckersGame {
       throw new Error(`Illegal checkers move: ${parsedFrom}->${parsedTo}`);
     }
 
-    const fromCoords = squareToRowCol(matched.from);
-    const toCoords = squareToRowCol(matched.to);
+    const fromCoords = this.squareToRowCol(matched.from);
+    const toCoords = this.squareToRowCol(matched.to);
     const movingPiece = this.board[fromCoords.row][fromCoords.col];
     const isMan = movingPiece === 'w' || movingPiece === 'b';
 
-    // Move piece from origin to destination
     this.board[fromCoords.row][fromCoords.col] = null;
     this.board[toCoords.row][toCoords.col] = movingPiece;
 
-    // Remove all captured pieces
     for (const capSq of matched.captured) {
-      const capCoords = squareToRowCol(capSq);
-      this.board[capCoords.row][capCoords.col] = null;
-    }
-
-    // Promotion check at final landing square
-    let promoted = false;
-    if (isMan) {
-      if (this.turn === 'w' && toCoords.row === 0) {
-        this.board[toCoords.row][toCoords.col] = 'W';
-        promoted = true;
-      } else if (this.turn === 'b' && toCoords.row === 9) {
-        this.board[toCoords.row][toCoords.col] = 'B';
-        promoted = true;
+      const capCoords = this.squareToRowCol(capSq);
+      if (capCoords) {
+        this.board[capCoords.row][capCoords.col] = null;
       }
     }
 
-    // Notation formatting: e.g. "31-27" or "32x21x12"
+    let promoted = false;
+    const baseline = this.turn === 'w' ? 0 : this.boardSize - 1;
+    if (isMan && toCoords.row === baseline) {
+      this.board[toCoords.row][toCoords.col] = this.turn === 'w' ? 'W' : 'B';
+      promoted = true;
+    }
+
     const notation = matched.captured.length > 0
       ? matched.path.join('x')
       : `${matched.from}-${matched.to}`;
 
-    // Update clocks
     if (matched.captured.length > 0 || isMan) {
       this.halfmoveClock = 0;
     } else {
@@ -460,9 +442,7 @@ export class CheckersGame {
       this.fullmoveNumber++;
     }
 
-    // Switch turn
     this.turn = this.turn === 'w' ? 'b' : 'w';
-
     const gameOver = this.isGameOver();
 
     return {
@@ -480,14 +460,10 @@ export class CheckersGame {
     };
   }
 
-  /**
-   * Count remaining pieces for each color
-   * @returns {{ white: number, black: number, whiteKings: number, blackKings: number }}
-   */
   countPieces() {
     let white = 0, black = 0, whiteKings = 0, blackKings = 0;
-    for (let r = 0; r < BOARD_SIZE; r++) {
-      for (let c = 0; c < BOARD_SIZE; c++) {
+    for (let r = 0; r < this.boardSize; r++) {
+      for (let c = 0; c < this.boardSize; c++) {
         const piece = this.board[r][c];
         if (piece === 'w') white++;
         else if (piece === 'W') { white++; whiteKings++; }
@@ -498,10 +474,6 @@ export class CheckersGame {
     return { white, black, whiteKings, blackKings };
   }
 
-  /**
-   * Check for game over (elimination, blocked, or 25 king moves draw rule)
-   * @returns {{ gameOver: boolean, winner: 'white' | 'black' | 'draw' | null, reason: string | null }}
-   */
   isGameOver() {
     const counts = this.countPieces();
 
@@ -512,14 +484,12 @@ export class CheckersGame {
       return { gameOver: true, winner: 'white', reason: 'elimination' };
     }
 
-    // Check if player to move has legal moves
     const legalMoves = this.getLegalMoves();
     if (legalMoves.length === 0) {
       const winner = this.turn === 'w' ? 'black' : 'white';
       return { gameOver: true, winner, reason: 'blocked' };
     }
 
-    // 25 King-moves draw rule (50 halfmoves without capture or man advancement)
     if (this.halfmoveClock >= 50) {
       return { gameOver: true, winner: 'draw', reason: 'twenty_five_moves_rule' };
     }
