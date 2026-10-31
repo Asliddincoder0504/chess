@@ -266,12 +266,19 @@ export class LiveController {
     const timeControl = document.getElementById('challenge-time-control')?.value || '5+0';
 
     try {
-      const res = await api.createInvite(gameType, timeControl);
+      const res = await api.createInvite(gameType, timeControl, this.challengeTargetUser.id);
       if (!res.success || !res.gameId) {
         throw new Error(res.error || 'Taklif yaratib bo‘lmadi');
       }
 
       this.closeChallengeModal();
+
+      if (Number(this.challengeTargetUser.id) === 999) {
+        await api.acceptInvite(res.gameId);
+        this.app.launchGame(res.gameId);
+        this.app.showToast('Kompyuter bilan o‘yin boshlandi!', 'success');
+        return;
+      }
 
       // Open existing invite modal with newly generated game
       this.app.openInviteModalWithExisting(res.gameId, gameType, timeControl);

@@ -170,12 +170,6 @@ export class ChessBoardUI {
   }
 
   handleCellClick(sq, r, c) {
-    const clickedPiece = this.boardState ? this.boardState[r][c] : null;
-    const isPlayerPiece = clickedPiece && (
-      (this.orientation === 'white' && clickedPiece === clickedPiece.toUpperCase()) ||
-      (this.orientation === 'black' && clickedPiece === clickedPiece.toLowerCase())
-    );
-
     // 1. If clicking a valid destination for currently selected piece
     if (this.selectedSquare && this.validMoves.some(m => m.to === sq)) {
       const selectedCoords = this.squareToCoords(this.selectedSquare);
@@ -195,23 +189,27 @@ export class ChessBoardUI {
       return;
     }
 
-    // 2. If clicking own piece: select it
-    if (isPlayerPiece) {
-      if (this.selectedSquare === sq) {
-        // Deselect
-        this.selectedSquare = null;
-        this.validMoves = [];
-      } else {
-        this.selectedSquare = sq;
-        if (this.onSelectSquare) {
-          this.validMoves = this.onSelectSquare(sq) || [];
-        }
-      }
+    // Deselect if clicked the same square
+    if (this.selectedSquare === sq) {
+      this.selectedSquare = null;
+      this.validMoves = [];
       this.renderHighlights();
       return;
     }
 
-    // 3. Clicking empty square or opponent without valid move: clear selection
+    // 2. If clicking a piece: check if it has valid legal moves
+    const clickedPiece = this.boardState ? this.boardState[r][c] : null;
+    if (clickedPiece && this.onSelectSquare) {
+      const candidateMoves = this.onSelectSquare(sq) || [];
+      if (candidateMoves.length > 0) {
+        this.selectedSquare = sq;
+        this.validMoves = candidateMoves;
+        this.renderHighlights();
+        return;
+      }
+    }
+
+    // 3. Clicking empty square or piece with no legal moves: clear selection
     this.selectedSquare = null;
     this.validMoves = [];
     this.renderHighlights();
