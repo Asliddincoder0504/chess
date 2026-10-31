@@ -98,7 +98,12 @@ body {
   animation: fadeIn 0.2s ease-in-out;
 }
 
-.view-panel.hidden {
+.hidden,
+.view-panel.hidden,
+.modal-overlay.hidden,
+.nav-tab.hidden,
+.toast.hidden,
+.draw-offer-banner.hidden {
   display: none !important;
 }
 
