@@ -1,4 +1,4 @@
-import { EndpointError } from 'sdk';
+import { EndpointError, api } from 'sdk';
 import {
   handleGetGame,
   handleMakeMove,
@@ -39,20 +39,36 @@ export default async function (input, ctx) {
     return res;
   }
 
-  // State-modifying actions require authenticated user
-  if (!rawUser || !rawUser.id) {
-    // If testing in dev, allow fallback dev user
-    if (!input?.devUser) {
-      // Still allow if devUser provided
-    }
-  }
-
   if (action === 'create_invite') {
+    const targetId = input.targetUserId ? Number(input.targetUserId) : null;
     const res = await handleCreateInvite(userId, {
       gameType: input.gameType || 'chess',
-      timeControl: input.timeControl || '5+0',
-      targetUserId: input.targetUserId ? Number(input.targetUserId) : null
+      timeControl: input.timeControl || '5+0'
     });
+
+    if (targetId && res.success && res.gameId) {
+      try {
+        const MINI_APP_URL = 'https://app9223102562.tgcloud.ai/';
+        const challengerName = user.first_name || user.firstName || 'Do‘stingiz';
+        let gName = 'Shaxmat (8x8)';
+        if (input.gameType === 'checkers8') gName = 'Klassik shashka (8x8, 12 tosh)';
+        else if (input.gameType === 'checkers') gName = 'Xalqaro shashka (10x10, 20 tosh)';
+
+        await api.sendMessage({
+          chat_id: targetId,
+          text: `⚔️ *${challengerName} sizni o‘yinga taklif qildi!*\n\nO‘yin turi: *${gName}*\nVaqt: *${input.timeControl || '5+0'}*\n\nPastdagi tugmani bosing va o‘yinga qo‘shiling:`,
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '⚔️ O‘yinga qo‘shilish va boshlash', web_app: { url: `${MINI_APP_URL}?gameId=${res.gameId}` } }]
+            ]
+          }
+        });
+      } catch (err) {
+        console.warn('[Direct Challenge Telegram Notification]:', err.message);
+      }
+    }
+
     return res;
   }
 

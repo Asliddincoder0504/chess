@@ -55,11 +55,6 @@ export class MatchmakingController {
       const formatted = `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
       const timerEl = document.getElementById('mm-elapsed-timer');
       if (timerEl) timerEl.textContent = formatted;
-
-      // If searching for > 5 seconds and no human opponent in queue, auto-pair with practice bot
-      if (totalSecs >= 5 && !this.isMatched) {
-        this.onMatchFoundWithBot();
-      }
     }, 1000);
   }
 
@@ -120,28 +115,6 @@ export class MatchmakingController {
     setTimeout(() => {
       this.app.launchGame(gameId);
     }, 800);
-  }
-
-  async onMatchFoundWithBot() {
-    if (this.isMatched) return;
-    this.isMatched = true;
-    this.stopElapsedTimer();
-    this.stopStatusPolling();
-
-    document.getElementById('mm-status-text').textContent = 'Raqib topildi! O‘yinga ulanmoqda...';
-
-    try {
-      const res = await api.createInvite(this.gameType, this.timeControl);
-      if (res.success && res.gameId) {
-        await api.acceptInvite(res.gameId);
-        setTimeout(() => this.app.launchGame(res.gameId), 800);
-        return;
-      }
-    } catch {}
-
-    const localId = `bot_game_${Date.now()}`;
-    const game = api.createLocalGame(localId, this.gameType, this.timeControl, this.app.currentUser?.id || 1001, 999, 'active');
-    setTimeout(() => this.app.launchGame(game.id), 800);
   }
 
   async cancel() {

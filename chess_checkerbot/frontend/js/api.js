@@ -234,9 +234,10 @@ class ApiClient {
           success: true,
           players: [
             { id: 6472114736, firstName: 'Asliddin Norqobilov', username: 'asliddincoder0504', chessElo: 1350, checkers8Elo: 1320, checkersElo: 1300, isPlaying: false },
+            { id: 8455692606, firstName: 'Hamkor O‘yinchi', username: 'chess_friend', chessElo: 1280, checkers8Elo: 1250, checkersElo: 1240, isPlaying: false },
             { id: 1002, firstName: 'Rustam Qosimov', username: 'rustam_gm', chessElo: 1290, checkers8Elo: 1240, checkersElo: 1210, isPlaying: false },
             { id: 1003, firstName: 'Javohir Sindarov', username: 'sindarov_uz', chessElo: 1275, checkers8Elo: 1200, checkersElo: 1200, isPlaying: true },
-            { id: 999, firstName: 'Kompyuter (Bot)', username: 'ai_bot', chessElo: 1200, checkers8Elo: 1200, checkersElo: 1200, isPlaying: false }
+            { id: 1004, firstName: 'Nodirbek Abdusattorov', username: 'nodirbek', chessElo: 1260, checkers8Elo: 1250, checkersElo: 1230, isPlaying: false }
           ]
         };
       }
@@ -250,11 +251,12 @@ class ApiClient {
       if (action === 'accept_invite') {
         const gameId = payload.gameId;
         let game = localGames[gameId];
+        const secondPlayerId = Number(user.id) === 6472114736 ? 8455692606 : 6472114736;
         if (!game) {
-          game = this.createLocalGame(gameId, 'checkers8', '5+0', user.id, user.id, 'active');
+          game = this.createLocalGame(gameId, 'checkers8', '5+0', user.id, secondPlayerId, 'active');
         } else {
           game.status = 'active';
-          game.blackId = user.id;
+          game.blackId = Number(user.id) === Number(game.whiteId) ? secondPlayerId : Number(user.id);
           localGames[gameId] = game;
           this.saveLocalGames(localGames);
         }

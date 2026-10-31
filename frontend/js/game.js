@@ -273,45 +273,6 @@ export class GameController {
       this.showGameOverModal();
       return;
     }
-
-    // Trigger Bot move if playing against AI bot
-    if (newGame.status === 'active' && newGame.currentTurn === 'black' && Number(newGame.blackId) === 999) {
-      setTimeout(() => this.makeBotMove(), 500);
-    }
-  }
-
-  async makeBotMove() {
-    if (!this.gameData || this.gameData.status !== 'active' || this.gameData.currentTurn !== 'black') return;
-    if (Number(this.gameData.blackId) !== 999) return;
-
-    try {
-      let botMove = null;
-      if (this.gameData.gameType === 'chess') {
-        const moves = this.localEngine.getLegalMoves();
-        if (!moves || moves.length === 0) return;
-        const captures = moves.filter(m => m.captured);
-        botMove = captures.length > 0 ? captures[Math.floor(Math.random() * captures.length)] : moves[Math.floor(Math.random() * moves.length)];
-      } else {
-        const moves = this.localEngine.getLegalMoves();
-        if (!moves || moves.length === 0) return;
-        const maxCaps = Math.max(...moves.map(m => (m.captured ? m.captured.length : 0)));
-        let bestMoves = moves;
-        if (maxCaps > 0) {
-          bestMoves = moves.filter(m => (m.captured ? m.captured.length : 0) === maxCaps);
-        }
-        botMove = bestMoves[Math.floor(Math.random() * bestMoves.length)];
-      }
-
-      if (botMove) {
-        const res = await api.makeMove(this.gameId, botMove, this.gameData.version);
-        if (res.success && res.game) {
-          sounds.move();
-          await this.syncGameState(res.game);
-        }
-      }
-    } catch (err) {
-      console.warn('[Bot Move Exception]:', err.message);
-    }
   }
 
   startPolling() {
