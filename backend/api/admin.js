@@ -1,0 +1,59 @@
+import { getAllUsers, setUserBanStatus, getUserById } from '../storage/users.js';
+import { getAllActiveGames } from '../storage/games.js';
+import { getQueueStats } from '../core/matchmaking.js';
+
+export function isAdminUser(userId) {
+  const adminIdsStr = process.env.ADMIN_IDS || '12345678,99999999';
+  const adminIds = adminIdsStr.split(',').map(s => Number(s.trim()));
+  return adminIds.includes(Number(userId));
+}
+
+export async function handleGetAdminStats(requestingUserId) {
+  if (!isAdminUser(requestingUserId)) {
+    return { error: 'Unauthorized: Admin access required', status: 403 };
+  }
+
+  const allUsers = await getAllUsers(500);
+  const activeGames = await getAllActiveGames();
+  const queueStats = await getQueueStats();
+
+  const totalUsers = allUsers.length;
+  const bannedUsers = allUsers.filter(u => u.isBanned === 1).length;
+
+  return {
+    success: true,
+    stats: {
+      totalUsers,
+      bannedUsers,
+      activeGamesCount: activeGames.length,
+      matchmakingQueue: queueStats
+    }
+  };
+}
+
+export async function handleGetAdminUsers(requestingUserId, limit = 100) {
+  if (!isAdminUser(requestingUserId)) {
+    return { error: 'Unauthorized: Admin access required', status: 403 };
+  }
+
+  const users = await getAllUsers(limit);
+  return { success: true, users };
+}
+
+export async function handleAdminBanUser(requestingUserId, targetUserId, isBanned) {
+  if (!isAdminUser(requestingUserId)) {
+    return { error: 'Unauthorized: Admin access required', status: 403 };
+  }
+
+  const user = await setUserBanStatus(targetUserId, isBanned);
+  return { success: true, user };
+}
+
+export async function handleGetAdminActiveGames(requestingUserId) {
+  if (!isAdminUser(requestingUserId)) {
+    return { error: 'Unauthorized: Admin access required', status: 403 };
+  }
+
+  const games = await getAllActiveGames();
+  return { success: true, games };
+}

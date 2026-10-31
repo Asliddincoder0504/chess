@@ -1,0 +1,25 @@
+{
+  "name": "wellchess",
+  "version": "1.0.0",
+  "description": "Telegram Multiplayer Chess & Checkers Platform",
+  "type": "module",
+  "main": "backend/index.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js",
+    "test": "node tests/runner.js",
+    "push": "npx tgcloud push",
+    "migrate": "npx tgcloud migrate"
+  },
+  "keywords": [
+    "telegram",
+    "serverless",
+    "mini-app",
+    "chess",
+    "checkers",
+    "multiplayer",
+    "elo"
+  ],
+  "author": "WellChess Team",
+  "license": "MIT"
+}

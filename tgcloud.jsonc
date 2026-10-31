@@ -1,0 +1,23 @@
+{
+  "$schema": "https://core.telegram.org/bots/serverless/schema.json",
+  "name": "wellchess",
+  "version": "1.0.0",
+  "description": "WellChess Telegram Multiplayer Chess and Checkers Platform",
+  "schema": "schema.js",
+  "handlers": {
+    "message": "tgcloud/handlers/message.js",
+    "callback_query": "tgcloud/handlers/callback_query.js"
+  },
+  "endpoints": {
+    "profile": "tgcloud/endpoints/profile.js",
+    "matchmaking": "tgcloud/endpoints/matchmaking.js",
+    "game": "tgcloud/endpoints/game.js",
+    "leaderboard": "tgcloud/endpoints/leaderboard.js",
+    "ratings": "tgcloud/endpoints/ratings.js",
+    "admin": "tgcloud/endpoints/admin.js"
+  },
+  "miniApp": {
+    "source": "frontend",
+    "output": "frontend"
+  }
+}
