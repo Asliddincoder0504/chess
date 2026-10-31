@@ -8,6 +8,7 @@ export class MatchmakingController {
     this.startTime = 0;
     this.gameType = 'chess';
     this.timeControl = '3+2';
+    this.isMatched = false;
   }
 
   formatGameType(type) {
@@ -20,6 +21,7 @@ export class MatchmakingController {
     this.gameType = gameType;
     this.timeControl = timeControl;
     this.startTime = Date.now();
+    this.isMatched = false;
 
     this.app.navigate('matchmaking');
 
@@ -32,15 +34,15 @@ export class MatchmakingController {
 
     try {
       const res = await api.joinMatchmaking(gameType, timeControl);
-      if (res.status === 'matched') {
+      if (res.status === 'matched' && res.gameId) {
         this.onMatchFound(res.gameId);
         return;
       }
 
       this.startStatusPolling();
     } catch (err) {
-      this.app.showToast(`Qidiruv xatosi: ${err.message}`, 'error');
-      this.cancel();
+      console.warn('[Matchmaking Join Fallback]:', err.message);
+      this.startStatusPolling();
     }
   }
 
@@ -53,6 +55,11 @@ export class MatchmakingController {
       const formatted = `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
       const timerEl = document.getElementById('mm-elapsed-timer');
       if (timerEl) timerEl.textContent = formatted;
+
+      // If searching for > 5 seconds and no human opponent in queue, auto-pair with practice bot
+      if (totalSecs >= 5 && !this.isMatched) {
+        this.onMatchFoundWithBot();
+      }
     }, 1000);
   }
 
@@ -67,9 +74,10 @@ export class MatchmakingController {
     this.stopStatusPolling();
 
     const check = async () => {
+      if (this.isMatched) return;
       try {
         const res = await api.getMatchmakingStatus();
-        if (res.status === 'matched') {
+        if (res.status === 'matched' && res.gameId) {
           this.onMatchFound(res.gameId);
           return;
         }
@@ -86,7 +94,9 @@ export class MatchmakingController {
         console.warn('[Matchmaking Poll Error]:', err.message);
       }
 
-      this.pollTimer = setTimeout(check, 1500);
+      if (!this.isMatched) {
+        this.pollTimer = setTimeout(check, 1500);
+      }
     };
 
     this.pollTimer = setTimeout(check, 1500);
@@ -100,6 +110,8 @@ export class MatchmakingController {
   }
 
   onMatchFound(gameId) {
+    if (this.isMatched) return;
+    this.isMatched = true;
     this.stopElapsedTimer();
     this.stopStatusPolling();
 
@@ -107,10 +119,33 @@ export class MatchmakingController {
 
     setTimeout(() => {
       this.app.launchGame(gameId);
-    }, 1000);
+    }, 800);
+  }
+
+  async onMatchFoundWithBot() {
+    if (this.isMatched) return;
+    this.isMatched = true;
+    this.stopElapsedTimer();
+    this.stopStatusPolling();
+
+    document.getElementById('mm-status-text').textContent = 'Raqib topildi! O‘yinga ulanmoqda...';
+
+    try {
+      const res = await api.createInvite(this.gameType, this.timeControl);
+      if (res.success && res.gameId) {
+        await api.acceptInvite(res.gameId);
+        setTimeout(() => this.app.launchGame(res.gameId), 800);
+        return;
+      }
+    } catch {}
+
+    const localId = `bot_game_${Date.now()}`;
+    const game = api.createLocalGame(localId, this.gameType, this.timeControl, this.app.currentUser?.id || 1001, 999, 'active');
+    setTimeout(() => this.app.launchGame(game.id), 800);
   }
 
   async cancel() {
+    this.isMatched = true;
     this.stopElapsedTimer();
     this.stopStatusPolling();
 

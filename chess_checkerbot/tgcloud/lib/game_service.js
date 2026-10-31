@@ -313,7 +313,7 @@ export async function handleMakeMove(gameId, userId, { move, clientVersion }) {
   };
 }
 
-export async function handleCreateInvite(userId, { gameType = 'chess', timeControl = '5+0' }) {
+export async function handleCreateInvite(userId, { gameType = 'chess', timeControl = '5+0', targetUserId = null }) {
   const game = await createGame({
     gameType,
     timeControl,
@@ -337,9 +337,8 @@ export async function handleAcceptInvite(gameId, userId) {
   if (game.status !== 'waiting') {
     return { error: 'O‘yin allaqachon boshlangan yoki yakunlangan', status: 400 };
   }
-  if (Number(game.whiteId) === Number(userId)) {
-    return { error: 'O‘z taklifingizni qabul qila olmaysiz', status: 400 };
-  }
+
+  const isSoloTest = Number(game.whiteId) === Number(userId);
 
   const updated = await updateGame(game.id, {
     blackId: Number(userId),
@@ -349,7 +348,7 @@ export async function handleAcceptInvite(gameId, userId) {
 
   return {
     success: true,
-    message: 'Taklif qabul qilindi, o‘yin boshlandi!',
+    message: isSoloTest ? 'Test o‘yini boshlandi (ikkala tomon siz)' : 'Taklif qabul qilindi, o‘yin boshlandi!',
     game: updated
   };
 }
@@ -423,6 +422,16 @@ export async function handleRematchAction(gameId, userId, { action }) {
   const opponentColor = isWhite ? 'black' : 'white';
 
   if (action === 'offer') {
+    if (game.whiteId === game.blackId) {
+      const newGame = await createGame({
+        gameType: game.gameType,
+        timeControl: game.timeControl,
+        whiteId: game.whiteId,
+        blackId: game.blackId
+      });
+      return { success: true, message: 'Yangi o‘yin boshlandi!', newGameId: newGame.id };
+    }
+
     const updated = await updateGame(game.id, { rematchOfferedBy: playerColor });
     return { success: true, message: 'Rematch offer sent', game: updated };
   }

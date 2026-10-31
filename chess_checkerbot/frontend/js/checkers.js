@@ -156,14 +156,11 @@ export class CheckersBoardUI {
   }
 
   handleCellClick(sq, row, col, event) {
-    const piece = this.boardMatrix[row]?.[col];
-    const playerColor = this.orientation === 'white' ? 'w' : 'b';
-    const isOwnPiece = piece && (playerColor === 'w' ? (piece === 'w' || piece === 'W') : (piece === 'b' || piece === 'B'));
+    const numSq = Number(sq);
 
     // 1. If currently a piece is selected and player clicks a destination square
     if (this.selectedSquare !== null) {
       const numSel = Number(this.selectedSquare);
-      const numSq = Number(sq);
 
       const matchedMove = this.validMoves.find(m => Number(m.from) === numSel && Number(m.to) === numSq);
       if (matchedMove) {
@@ -191,19 +188,21 @@ export class CheckersBoardUI {
       }
     }
 
-    // 2. If clicking an own piece: select it and calculate its valid moves
-    if (isOwnPiece) {
-      this.selectedSquare = Number(sq);
+    // 2. If clicking a piece on the board: check if it has valid legal moves
+    const piece = this.boardMatrix[row]?.[col];
+    if (piece) {
       if (typeof this.onSelectSquare === 'function') {
-        this.validMoves = this.onSelectSquare(this.selectedSquare) || [];
-      } else {
-        this.validMoves = [];
+        const candidateMoves = this.onSelectSquare(numSq) || [];
+        if (candidateMoves.length > 0) {
+          this.selectedSquare = numSq;
+          this.validMoves = candidateMoves;
+          this.renderHighlights();
+          return;
+        }
       }
-      this.renderHighlights();
-      return;
     }
 
-    // 3. Clicked empty square or opponent piece with no valid move: clear selection
+    // 3. Clicked empty square or piece with no valid moves: clear selection
     this.selectedSquare = null;
     this.validMoves = [];
     this.renderHighlights();
