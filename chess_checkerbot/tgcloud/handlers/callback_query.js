@@ -1,7 +1,7 @@
 import { api } from 'sdk';
 import { getOrCreateUser, getLeaderboard } from '../lib/storage/users.js';
 
-const MINI_APP_URL = 'https://asliddincoder0504.github.io/chess/';
+const MINI_APP_URL = 'https://app9223102562.tgcloud.ai/';
 
 export default async function (callbackQuery, ctx) {
   const data = callbackQuery.data;
