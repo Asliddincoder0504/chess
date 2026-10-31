@@ -1,11 +1,15 @@
 import { getUserById, getOrCreateUser } from '../storage/users.js';
 import { getUserGameHistory } from '../storage/games.js';
+import { isAdminUser } from './admin.js';
 
 export async function handleGetProfile(user) {
   const dbUser = await getOrCreateUser(user);
   return {
     success: true,
-    user: dbUser
+    user: {
+      ...dbUser,
+      isAdmin: isAdminUser(dbUser.id)
+    }
   };
 }
 

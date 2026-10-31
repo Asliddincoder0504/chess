@@ -83,6 +83,16 @@ class WellChessApp {
     if (nameEl) nameEl.textContent = this.currentUser.firstName || 'Player';
     if (chessEloEl) chessEloEl.textContent = `${this.currentUser.chessElo || 1000} ELO`;
     if (checkersEloEl) checkersEloEl.textContent = `${this.currentUser.checkersElo || 1000} ELO`;
+
+    // Only show admin tab if user ID is in ADMIN_IDS
+    const adminTab = document.getElementById('nav-tab-admin');
+    if (adminTab) {
+      if (this.currentUser.isAdmin) {
+        adminTab.classList.remove('hidden');
+      } else {
+        adminTab.classList.add('hidden');
+      }
+    }
   }
 
   renderIcons() {
@@ -116,7 +126,7 @@ class WellChessApp {
   bindEvents() {
     // Navigation bar tabs
     document.querySelectorAll('.nav-tab').forEach(tab => {
-      tab.addEventListener('click', e => {
+      tab.addEventListener('click', () => {
         const targetView = tab.dataset.view;
         this.navigate(targetView);
       });
@@ -197,6 +207,12 @@ class WellChessApp {
   }
 
   navigate(viewName) {
+    // Prevent non-admins from opening admin view
+    if (viewName === 'admin' && !this.currentUser.isAdmin) {
+      this.showToast('Access restricted: Admins only', 'error');
+      return;
+    }
+
     this.currentView = viewName;
 
     // Hide all view panels

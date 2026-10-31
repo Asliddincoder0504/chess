@@ -29,9 +29,10 @@ export const BOT_TOKEN = process.env.BOT_TOKEN || 'test_bot_token';
  * Authorize and authenticate incoming request using Telegram initData
  */
 export function authenticateRequest(headers = {}, body = {}) {
-  // Allow test / dev mock bypass if explicit in test environment
-  if (process.env.NODE_ENV === 'test' && (headers['x-test-user-id'] || body?._testUser)) {
-    const testUser = body?._testUser || { id: Number(headers['x-test-user-id']), username: 'testuser', firstName: 'Test' };
+  // Allow test / dev mock bypass in development or test environments
+  if (process.env.NODE_ENV !== 'production' && (headers['x-test-user-id'] || body?._testUser)) {
+    const userId = Number(headers['x-test-user-id']) || 1001;
+    const testUser = body?._testUser || { id: userId, username: `user_${userId}`, firstName: `Player ${userId}` };
     return { authenticated: true, user: testUser };
   }
 
