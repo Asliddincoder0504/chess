@@ -41,9 +41,29 @@ class ApiClient {
     // 1. If running natively inside Telegram Serverless runtime with Serverless.call
     if (this.tg?.Serverless?.call) {
       try {
-        return await this.tg.Serverless.call(endpoint, payload);
+        const res = await new Promise((resolve, reject) => {
+          let resolved = false;
+          try {
+            const ret = this.tg.Serverless.call(endpoint, payload, (err, result) => {
+              if (resolved) return;
+              resolved = true;
+              if (err) {
+                reject(new Error(err.message || err.description || 'Serverless error'));
+              } else {
+                resolve(result);
+              }
+            });
+            if (ret && typeof ret.then === 'function') {
+              ret.then(r => { if (!resolved) { resolved = true; resolve(r); } })
+                 .catch(e => { if (!resolved) { resolved = true; reject(e); } });
+            }
+          } catch (e) {
+            reject(e);
+          }
+        });
+        if (res !== undefined) return res;
       } catch (err) {
-        console.warn(`[Serverless.call error on ${endpoint}]:`, err);
+        console.warn(`[Serverless.call fallback on ${endpoint}]:`, err);
         // Fallback to fetch below
       }
     }

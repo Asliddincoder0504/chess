@@ -3,3 +3,6 @@ node_modules/
 data/wellchess_db.json*
 *.log
 .DS_Store
+.tgcloud/
+**/node_modules/
+**/.tgcloud/

@@ -1,0 +1,52 @@
+import { EndpointError } from 'sdk';
+import {
+  joinMatchmaking,
+  pollMatchmakingStatus,
+  cancelMatchmaking,
+  getQueueStats
+} from '../lib/core/matchmaking.js';
+import { isValidGameType, isValidTimeControl } from '../lib/core/validation.js';
+
+export default async function (input, ctx) {
+  const user = ctx.initData?.user || input?.devUser;
+  if (!user || !user.id) {
+    throw new EndpointError('Authentication required', { code: 'UNAUTHORIZED' });
+  }
+
+  const userId = Number(user.id);
+  const action = input.action || 'poll';
+
+  if (action === 'join') {
+    const { gameType, timeControl } = input;
+    if (!isValidGameType(gameType)) {
+      throw new EndpointError(`Invalid game type: ${gameType}`, { code: 'INVALID_GAME_TYPE' });
+    }
+    if (!isValidTimeControl(timeControl)) {
+      throw new EndpointError(`Invalid time control: ${timeControl}`, { code: 'INVALID_TIME_CONTROL' });
+    }
+
+    try {
+      const result = await joinMatchmaking({ userId, gameType, timeControl });
+      return { success: true, ...result };
+    } catch (err) {
+      throw new EndpointError(err.message, { code: 'MATCHMAKING_ERROR' });
+    }
+  }
+
+  if (action === 'poll' || action === 'status') {
+    const result = await pollMatchmakingStatus(userId);
+    return { success: true, ...result };
+  }
+
+  if (action === 'cancel') {
+    const result = await cancelMatchmaking(userId);
+    return { success: true, ...result };
+  }
+
+  if (action === 'stats') {
+    const stats = await getQueueStats();
+    return { success: true, stats };
+  }
+
+  return { error: 'Unknown action' };
+}
