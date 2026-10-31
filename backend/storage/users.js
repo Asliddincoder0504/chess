@@ -15,7 +15,6 @@ export async function getOrCreateUser(tgUser) {
   const now = Math.floor(Date.now() / 1000);
 
   if (existing) {
-    // Update profile info if changed
     await db.update(users)
       .set({
         username: tgUser.username || existing.username,
@@ -35,16 +34,20 @@ export async function getOrCreateUser(tgUser) {
     username: tgUser.username || null,
     firstName: tgUser.firstName || tgUser.first_name || 'Player',
     lastName: tgUser.lastName || tgUser.last_name || '',
-    languageCode: tgUser.languageCode || tgUser.language_code || 'en',
+    languageCode: tgUser.languageCode || tgUser.language_code || 'uz',
     photoUrl: tgUser.photoUrl || tgUser.photo_url || null,
     chessElo: DEFAULT_STARTING_ELO,
     checkersElo: DEFAULT_STARTING_ELO,
+    checkers8Elo: DEFAULT_STARTING_ELO,
     chessWins: 0,
     chessLosses: 0,
     chessDraws: 0,
     checkersWins: 0,
     checkersLosses: 0,
     checkersDraws: 0,
+    checkers8Wins: 0,
+    checkers8Losses: 0,
+    checkers8Draws: 0,
     isBanned: 0,
     createdAt: now,
     updatedAt: now
@@ -66,6 +69,11 @@ export async function updateUserStats(userId, { gameType, result, newRating }) {
     if (result === 'win') updates.chessWins = (user.chessWins || 0) + 1;
     else if (result === 'loss') updates.chessLosses = (user.chessLosses || 0) + 1;
     else if (result === 'draw') updates.chessDraws = (user.chessDraws || 0) + 1;
+  } else if (gameType === 'checkers8') {
+    if (newRating !== undefined) updates.checkers8Elo = newRating;
+    if (result === 'win') updates.checkers8Wins = (user.checkers8Wins || 0) + 1;
+    else if (result === 'loss') updates.checkers8Losses = (user.checkers8Losses || 0) + 1;
+    else if (result === 'draw') updates.checkers8Draws = (user.checkers8Draws || 0) + 1;
   } else if (gameType === 'checkers') {
     if (newRating !== undefined) updates.checkersElo = newRating;
     if (result === 'win') updates.checkersWins = (user.checkersWins || 0) + 1;
@@ -82,7 +90,10 @@ export async function updateUserStats(userId, { gameType, result, newRating }) {
 }
 
 export async function getLeaderboard(gameType = 'chess', limit = 100) {
-  const orderCol = gameType === 'checkers' ? users.checkersElo : users.chessElo;
+  let orderCol = users.chessElo;
+  if (gameType === 'checkers8') orderCol = users.checkers8Elo || users.checkersElo;
+  else if (gameType === 'checkers') orderCol = users.checkersElo;
+
   const rows = await db.select()
     .from(users)
     .orderBy(desc(orderCol))
@@ -90,36 +101,40 @@ export async function getLeaderboard(gameType = 'chess', limit = 100) {
     .all();
 
   return rows.map((u, index) => {
-    const isChess = gameType === 'chess';
-    const wins = isChess ? u.chessWins : u.checkersWins;
-    const losses = isChess ? u.chessLosses : u.checkersLosses;
-    const draws = isChess ? u.chessDraws : u.checkersDraws;
+    let wins = u.chessWins || 0;
+    let losses = u.chessLosses || 0;
+    let draws = u.chessDraws || 0;
+    let elo = u.chessElo || 1200;
+
+    if (gameType === 'checkers8') {
+      wins = u.checkers8Wins || 0;
+      losses = u.checkers8Losses || 0;
+      draws = u.checkers8Draws || 0;
+      elo = u.checkers8Elo || u.checkersElo || 1200;
+    } else if (gameType === 'checkers') {
+      wins = u.checkersWins || 0;
+      losses = u.checkersLosses || 0;
+      draws = u.checkersDraws || 0;
+      elo = u.checkersElo || 1200;
+    }
+
     const total = wins + losses + draws;
     const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
 
     return {
       rank: index + 1,
       id: u.id,
-      username: u.username,
       firstName: u.firstName,
-      lastName: u.lastName,
+      username: u.username,
       photoUrl: u.photoUrl,
-      elo: isChess ? u.chessElo : u.checkersElo,
+      elo,
       wins,
       losses,
       draws,
-      totalMatches: total,
+      total,
       winRate
     };
   });
-}
-
-export async function setUserBanStatus(userId, isBanned) {
-  await db.update(users)
-    .set({ isBanned: isBanned ? 1 : 0, updatedAt: Math.floor(Date.now() / 1000) })
-    .where(eq(users.id, Number(userId)))
-    .run();
-  return await getUserById(userId);
 }
 
 export async function getAllUsers(limit = 100) {
@@ -128,4 +143,13 @@ export async function getAllUsers(limit = 100) {
     .orderBy(desc(users.createdAt))
     .limit(limit)
     .all();
+}
+
+export async function setUserBanStatus(userId, isBanned) {
+  const val = isBanned ? 1 : 0;
+  await db.update(users)
+    .set({ isBanned: val, updatedAt: Math.floor(Date.now() / 1000) })
+    .where(eq(users.id, Number(userId)))
+    .run();
+  return await getUserById(userId);
 }

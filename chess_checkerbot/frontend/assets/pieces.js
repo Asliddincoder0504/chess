@@ -1,33 +1,148 @@
 /**
  * Inlined Vector SVG Pieces for Chess & Checkers
- * Guarantees zero network latency, no broken images, crisp rendering on Retina/High-DPI displays.
+ * Large, crisp, tactile designs optimized for mobile touchscreens.
  */
 
 export const CHESS_SVGS = {
-  // White Pieces
-  P: `<svg viewBox="0 0 45 45"><path d="m 22.5,9 c -2.21,0 -4,1.79 -4,4 0,0.89 0.29,1.71 0.78,2.38 C 17.33,16.5 16,18.59 16,21 c 0,2.03 0.94,3.84 2.41,5.03 C 15.41,27.09 11,31.58 11,39.5 l 23,0 c 0,-7.92 -4.41,-12.41 -7.41,-13.47 C 28.06,24.84 29,23.03 29,21 29,18.59 27.67,16.5 25.72,15.38 26.21,14.71 26.5,13.89 26.5,13 c 0,-2.21 -1.79,-4 -4,-4 z" fill="#fff" stroke="#1a1a1a" stroke-width="1.5" stroke-linejoin="round"/></svg>`,
-  R: `<svg viewBox="0 0 45 45"><g fill="#fff" stroke="#1a1a1a" stroke-width="1.5" stroke-linejoin="round"><path d="M 9,39 L 36,39 L 36,36 L 9,36 L 9,39 z"/><path d="M 12,36 L 12,32 L 33,32 L 33,36 L 12,36 z"/><path d="M 11,14 L 11,9 L 15,9 L 15,11 L 20,11 L 20,9 L 25,9 L 25,11 L 30,11 L 30,9 L 34,9 L 34,14"/><path d="M 34,14 L 31,17 L 14,17 L 11,14"/><path d="M 14,17 L 14,29.5 L 31,29.5 L 31,17 L 14,17 z"/></g></svg>`,
-  N: `<svg viewBox="0 0 45 45"><path d="M 22,10 C 32.5,11 38.5,18 38,39 L 15,39 C 15,30 25,32.5 23,18" fill="#fff" stroke="#1a1a1a" stroke-width="1.5"/><path d="M 24,18 C 24.38,20.91 18.45,25.37 16,27 C 13,29 13.18,31.34 11,31 C 9.958,30.06 12.41,27.96 11,28 C 10,28 11.19,29.23 10,30 C 9,30 5.997,31 6,26 C 6,24 12,14 12,14 C 12,14 13.89,12.1 14,10.5 C 13.27,7.4 17.5,7 18,10 C 18,10 20.89,11.1 22,10 z" fill="#fff" stroke="#1a1a1a" stroke-width="1.5" stroke-linejoin="round"/><circle cx="15" cy="15" r="1.5" fill="#1a1a1a"/></svg>`,
-  B: `<svg viewBox="0 0 45 45"><g fill="#fff" stroke="#1a1a1a" stroke-width="1.5" stroke-linejoin="round"><path d="M 9,36 C 12.39,35.03 19.11,36.43 22.5,34 C 25.89,36.43 32.61,35.03 36,36 C 36,36 37.65,36.54 39,38 C 38.32,38.97 37.35,38.99 36,38.5 C 32.61,37.53 25.89,38.96 22.5,37.5 C 19.11,38.96 12.39,37.53 9,38.5 C 7.646,38.99 6.677,38.97 6,38 C 7.354,36.54 9,36 9,36 z"/><path d="M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,30 30,30 C 30,27.5 27.5,26 27.5,26 C 33,24.5 33.5,14.5 22.5,10.5 C 11.5,14.5 12,24.5 17.5,26 C 17.5,26 15,27.5 15,30 C 15,30 14.5,30.5 15,32 z"/><path d="M 25 8 A 2.5 2.5 0 1 1 20 8 A 2.5 2.5 0 1 1 25 8 Z"/></g><path d="M 17.5,26 L 27.5,26 M 15,30 L 30,30 M 22.5,15.5 L 22.5,20.5 M 20,18 L 25,18" stroke="#1a1a1a" stroke-width="1.5"/></svg>`,
-  Q: `<svg viewBox="0 0 45 45"><g fill="#fff" stroke="#1a1a1a" stroke-width="1.5" stroke-linejoin="round"><path d="M 9,26 C 17.5,24.5 30,24.5 36,26 L 38,14 L 31,25 L 31,11 L 25.5,24.5 L 22.5,10 L 19.5,24.5 L 14,11 L 14,25 L 7,14 L 9,26 z"/><path d="M 9,26 C 9,28 10.5,28 11.5,30 C 12.5,31.5 12.5,31 12,33.5 C 10.5,34.5 10.5,36 10,38.5 L 35,38.5 C 34.5,36 34.5,34.5 33,33.5 C 32.5,31 32.5,31.5 33.5,30 C 34.5,28 36,28 36,26 C 27.5,24.5 17.5,24.5 9,26 z"/></g><circle cx="6" cy="12" r="2" fill="#fff" stroke="#1a1a1a" stroke-width="1.5"/><circle cx="14" cy="9" r="2" fill="#fff" stroke="#1a1a1a" stroke-width="1.5"/><circle cx="22.5" cy="8" r="2" fill="#fff" stroke="#1a1a1a" stroke-width="1.5"/><circle cx="31" cy="9" r="2" fill="#fff" stroke="#1a1a1a" stroke-width="1.5"/><circle cx="39" cy="12" r="2" fill="#fff" stroke="#1a1a1a" stroke-width="1.5"/></svg>`,
-  K: `<svg viewBox="0 0 45 45"><g fill="#fff" stroke="#1a1a1a" stroke-width="1.5" stroke-linejoin="round"><path d="M 22.5,11.63 L 22.5,6 M 20,8 L 25,8"/><path d="M 22.5,25 C 22.5,25 27,17.5 25.5,14.5 C 24,11.5 21,11.5 22.5,25 z"/><path d="M 11.5,37 C 17,40.5 28,40.5 33.5,37 C 36.5,34 36.5,28.5 33,24 C 29.5,19.5 25,23 22.5,25 C 20,23 15.5,19.5 12,24 C 8.5,28.5 8.5,34 11.5,37 z"/></g></svg>`,
+  // White Pieces (Crisp white with sharp dark outlines and inner depth)
+  P: `<svg viewBox="0 0 45 45">
+    <path d="M 22.5,7 C 19.8,7 17.5,9.2 17.5,12 C 17.5,13.2 18,14.2 18.7,15.1 C 16.5,16.8 15,19.4 15,22.5 C 15,25 16.2,27.2 18,28.6 C 14.5,29.9 9.5,35 9.5,41.5 L 35.5,41.5 C 35.5,35 30.5,29.9 27,28.6 C 28.8,27.2 30,25 30,22.5 C 30,19.4 28.5,16.8 26.3,15.1 C 27,14.2 27.5,13.2 27.5,12 C 27.5,9.2 25.2,7 22.5,7 Z" fill="#ffffff" stroke="#181818" stroke-width="1.8" stroke-linejoin="round"/>
+  </svg>`,
 
-  // Black Pieces
-  p: `<svg viewBox="0 0 45 45"><path d="m 22.5,9 c -2.21,0 -4,1.79 -4,4 0,0.89 0.29,1.71 0.78,2.38 C 17.33,16.5 16,18.59 16,21 c 0,2.03 0.94,3.84 2.41,5.03 C 15.41,27.09 11,31.58 11,39.5 l 23,0 c 0,-7.92 -4.41,-12.41 -7.41,-13.47 C 28.06,24.84 29,23.03 29,21 29,18.59 27.67,16.5 25.72,15.38 26.21,14.71 26.5,13.89 26.5,13 c 0,-2.21 -1.79,-4 -4,-4 z" fill="#242424" stroke="#e0e0e0" stroke-width="1.5" stroke-linejoin="round"/></svg>`,
-  r: `<svg viewBox="0 0 45 45"><g fill="#242424" stroke="#e0e0e0" stroke-width="1.5" stroke-linejoin="round"><path d="M 9,39 L 36,39 L 36,36 L 9,36 L 9,39 z"/><path d="M 12,36 L 12,32 L 33,32 L 33,36 L 12,36 z"/><path d="M 11,14 L 11,9 L 15,9 L 15,11 L 20,11 L 20,9 L 25,9 L 25,11 L 30,11 L 30,9 L 34,9 L 34,14"/><path d="M 34,14 L 31,17 L 14,17 L 11,14"/><path d="M 14,17 L 14,29.5 L 31,29.5 L 31,17 L 14,17 z"/></g></svg>`,
-  n: `<svg viewBox="0 0 45 45"><path d="M 22,10 C 32.5,11 38.5,18 38,39 L 15,39 C 15,30 25,32.5 23,18" fill="#242424" stroke="#e0e0e0" stroke-width="1.5"/><path d="M 24,18 C 24.38,20.91 18.45,25.37 16,27 C 13,29 13.18,31.34 11,31 C 9.958,30.06 12.41,27.96 11,28 C 10,28 11.19,29.23 10,30 C 9,30 5.997,31 6,26 C 6,24 12,14 12,14 C 12,14 13.89,12.1 14,10.5 C 13.27,7.4 17.5,7 18,10 C 18,10 20.89,11.1 22,10 z" fill="#242424" stroke="#e0e0e0" stroke-width="1.5" stroke-linejoin="round"/><circle cx="15" cy="15" r="1.5" fill="#e0e0e0"/></svg>`,
-  b: `<svg viewBox="0 0 45 45"><g fill="#242424" stroke="#e0e0e0" stroke-width="1.5" stroke-linejoin="round"><path d="M 9,36 C 12.39,35.03 19.11,36.43 22.5,34 C 25.89,36.43 32.61,35.03 36,36 C 36,36 37.65,36.54 39,38 C 38.32,38.97 37.35,38.99 36,38.5 C 32.61,37.53 25.89,38.96 22.5,37.5 C 19.11,38.96 12.39,37.53 9,38.5 C 7.646,38.99 6.677,38.97 6,38 C 7.354,36.54 9,36 9,36 z"/><path d="M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,30 30,30 C 30,27.5 27.5,26 27.5,26 C 33,24.5 33.5,14.5 22.5,10.5 C 11.5,14.5 12,24.5 17.5,26 C 17.5,26 15,27.5 15,30 C 15,30 14.5,30.5 15,32 z"/><path d="M 25 8 A 2.5 2.5 0 1 1 20 8 A 2.5 2.5 0 1 1 25 8 Z"/></g><path d="M 17.5,26 L 27.5,26 M 15,30 L 30,30 M 22.5,15.5 L 22.5,20.5 M 20,18 L 25,18" stroke="#e0e0e0" stroke-width="1.5"/></svg>`,
-  q: `<svg viewBox="0 0 45 45"><g fill="#242424" stroke="#e0e0e0" stroke-width="1.5" stroke-linejoin="round"><path d="M 9,26 C 17.5,24.5 30,24.5 36,26 L 38,14 L 31,25 L 31,11 L 25.5,24.5 L 22.5,10 L 19.5,24.5 L 14,11 L 14,25 L 7,14 L 9,26 z"/><path d="M 9,26 C 9,28 10.5,28 11.5,30 C 12.5,31.5 12.5,31 12,33.5 C 10.5,34.5 10.5,36 10,38.5 L 35,38.5 C 34.5,36 34.5,34.5 33,33.5 C 32.5,31 32.5,31.5 33.5,30 C 34.5,28 36,28 36,26 C 27.5,24.5 17.5,24.5 9,26 z"/></g><circle cx="6" cy="12" r="2" fill="#242424" stroke="#e0e0e0" stroke-width="1.5"/><circle cx="14" cy="9" r="2" fill="#242424" stroke="#e0e0e0" stroke-width="1.5"/><circle cx="22.5" cy="8" r="2" fill="#242424" stroke="#e0e0e0" stroke-width="1.5"/><circle cx="31" cy="9" r="2" fill="#242424" stroke="#e0e0e0" stroke-width="1.5"/><circle cx="39" cy="12" r="2" fill="#242424" stroke="#e0e0e0" stroke-width="1.5"/></svg>`,
-  k: `<svg viewBox="0 0 45 45"><g fill="#242424" stroke="#e0e0e0" stroke-width="1.5" stroke-linejoin="round"><path d="M 22.5,11.63 L 22.5,6 M 20,8 L 25,8"/><path d="M 22.5,25 C 22.5,25 27,17.5 25.5,14.5 C 24,11.5 21,11.5 22.5,25 z"/><path d="M 11.5,37 C 17,40.5 28,40.5 33.5,37 C 36.5,34 36.5,28.5 33,24 C 29.5,19.5 25,23 22.5,25 C 20,23 15.5,19.5 12,24 C 8.5,28.5 8.5,34 11.5,37 z"/></g></svg>`
+  R: `<svg viewBox="0 0 45 45">
+    <g fill="#ffffff" stroke="#181818" stroke-width="1.8" stroke-linejoin="round">
+      <path d="M 7,41.5 L 38,41.5 L 38,37.5 L 7,37.5 Z"/>
+      <path d="M 10,37.5 L 10,33 L 35,33 L 35,37.5 Z"/>
+      <path d="M 9,12 L 9,6.5 L 14,6.5 L 14,9 L 20,9 L 20,6.5 L 25,6.5 L 25,9 L 31,9 L 31,6.5 L 36,6.5 L 36,12"/>
+      <path d="M 36,12 L 32.5,16 L 12.5,16 L 9,12"/>
+      <path d="M 12.5,16 L 12.5,30.5 L 32.5,30.5 L 32.5,16 Z"/>
+    </g>
+  </svg>`,
+
+  N: `<svg viewBox="0 0 45 45">
+    <path d="M 22,7 C 34,8.5 40,16 39.5,41.5 L 13.5,41.5 C 13.5,31 24.5,33.5 22.5,17" fill="#ffffff" stroke="#181818" stroke-width="1.8"/>
+    <path d="M 24,17 C 24.5,20.5 17.5,25.5 15,27.5 C 11.5,30 11.8,32.5 9.5,32 C 8.3,31 11,28.7 9.5,28.8 C 8.5,28.8 9.8,30.1 8.5,31 C 7.5,31 4,32 4,26.5 C 4,24.2 11,12.5 11,12.5 C 11,12.5 13,10.2 13.2,8.5 C 12.5,4.8 17.5,4.2 18,7.8 C 18,7.8 21,9 22,7 Z" fill="#ffffff" stroke="#181818" stroke-width="1.8" stroke-linejoin="round"/>
+    <circle cx="14" cy="13.5" r="1.8" fill="#181818"/>
+  </svg>`,
+
+  B: `<svg viewBox="0 0 45 45">
+    <g fill="#ffffff" stroke="#181818" stroke-width="1.8" stroke-linejoin="round">
+      <path d="M 7,38.5 C 10.8,37.3 18.5,39 22.5,36 C 26.5,39 34.2,37.3 38,38.5 C 38,38.5 39.8,39.1 41.2,40.8 C 40.5,41.9 39.4,41.9 38,41.4 C 34.2,40.3 26.5,42 22.5,40.3 C 18.5,42 10.8,40.3 7,41.4 C 5.6,41.9 4.5,41.9 3.8,40.8 C 5.2,39.1 7,38.5 7,38.5 Z"/>
+      <path d="M 13.5,33.5 C 16.5,36.5 28.5,36.5 31.5,33.5 C 32,31.8 31.5,31.2 31.5,31.2 C 31.5,28.5 28.5,26.8 28.5,26.8 C 35,25.2 35.5,13.5 22.5,8.8 C 9.5,13.5 10,25.2 16.5,26.8 C 16.5,26.8 13.5,28.5 13.5,31.2 C 13.5,31.2 13,31.8 13.5,33.5 Z"/>
+      <circle cx="22.5" cy="6" r="2.8"/>
+    </g>
+    <path d="M 16.5,26.8 L 28.5,26.8 M 13.5,31.2 L 31.5,31.2 M 22.5,14 L 22.5,20 M 19.5,17 L 25.5,17" stroke="#181818" stroke-width="1.8"/>
+  </svg>`,
+
+  Q: `<svg viewBox="0 0 45 45">
+    <g fill="#ffffff" stroke="#181818" stroke-width="1.8" stroke-linejoin="round">
+      <path d="M 7,27 C 16.5,25.2 28.5,25.2 38,27 L 41,13.5 L 33,26 L 33,9.5 L 26.5,25 L 22.5,8 L 18.5,25 L 12,9.5 L 12,26 L 4,13.5 Z"/>
+      <path d="M 7,27 C 7,29.5 9,29.5 10.2,31.8 C 11.5,33.5 11.5,33 11,35.8 C 9.2,37 9.2,38.8 8.5,41.5 L 36.5,41.5 C 35.8,38.8 35.8,37 34,35.8 C 33.5,33 33.5,33.5 34.8,31.8 C 36,29.5 38,29.5 38,27 C 28.5,25.2 16.5,25.2 7,27 Z"/>
+    </g>
+    <circle cx="3" cy="11.5" r="2.2" fill="#ffffff" stroke="#181818" stroke-width="1.8"/>
+    <circle cx="12" cy="7.5" r="2.2" fill="#ffffff" stroke="#181818" stroke-width="1.8"/>
+    <circle cx="22.5" cy="6" r="2.2" fill="#ffffff" stroke="#181818" stroke-width="1.8"/>
+    <circle cx="33" cy="7.5" r="2.2" fill="#ffffff" stroke="#181818" stroke-width="1.8"/>
+    <circle cx="42" cy="11.5" r="2.2" fill="#ffffff" stroke="#181818" stroke-width="1.8"/>
+  </svg>`,
+
+  K: `<svg viewBox="0 0 45 45">
+    <g fill="#ffffff" stroke="#181818" stroke-width="1.8" stroke-linejoin="round">
+      <path d="M 22.5,10 L 22.5,4 M 19.5,6.5 L 25.5,6.5"/>
+      <path d="M 22.5,26 C 22.5,26 28,18 26,14.5 C 24,11 21,11 22.5,26 Z"/>
+      <path d="M 9.5,39 C 16,43 29,43 35.5,39 C 39,35.5 39,29.5 35,24.5 C 31,19.5 25.5,23.5 22.5,26 C 19.5,23.5 14,19.5 10,24.5 C 6,29.5 6,35.5 9.5,39 Z"/>
+      <path d="M 8.5,41.5 L 36.5,41.5"/>
+    </g>
+  </svg>`,
+
+  // Black Pieces (Rich obsidian with silver contour and bold silhouette)
+  p: `<svg viewBox="0 0 45 45">
+    <path d="M 22.5,7 C 19.8,7 17.5,9.2 17.5,12 C 17.5,13.2 18,14.2 18.7,15.1 C 16.5,16.8 15,19.4 15,22.5 C 15,25 16.2,27.2 18,28.6 C 14.5,29.9 9.5,35 9.5,41.5 L 35.5,41.5 C 35.5,35 30.5,29.9 27,28.6 C 28.8,27.2 30,25 30,22.5 C 30,19.4 28.5,16.8 26.3,15.1 C 27,14.2 27.5,13.2 27.5,12 C 27.5,9.2 25.2,7 22.5,7 Z" fill="#202228" stroke="#f1f3f5" stroke-width="1.8" stroke-linejoin="round"/>
+  </svg>`,
+
+  r: `<svg viewBox="0 0 45 45">
+    <g fill="#202228" stroke="#f1f3f5" stroke-width="1.8" stroke-linejoin="round">
+      <path d="M 7,41.5 L 38,41.5 L 38,37.5 L 7,37.5 Z"/>
+      <path d="M 10,37.5 L 10,33 L 35,33 L 35,37.5 Z"/>
+      <path d="M 9,12 L 9,6.5 L 14,6.5 L 14,9 L 20,9 L 20,6.5 L 25,6.5 L 25,9 L 31,9 L 31,6.5 L 36,6.5 L 36,12"/>
+      <path d="M 36,12 L 32.5,16 L 12.5,16 L 9,12"/>
+      <path d="M 12.5,16 L 12.5,30.5 L 32.5,30.5 L 32.5,16 Z"/>
+    </g>
+  </svg>`,
+
+  n: `<svg viewBox="0 0 45 45">
+    <path d="M 22,7 C 34,8.5 40,16 39.5,41.5 L 13.5,41.5 C 13.5,31 24.5,33.5 22.5,17" fill="#202228" stroke="#f1f3f5" stroke-width="1.8"/>
+    <path d="M 24,17 C 24.5,20.5 17.5,25.5 15,27.5 C 11.5,30 11.8,32.5 9.5,32 C 8.3,31 11,28.7 9.5,28.8 C 8.5,28.8 9.8,30.1 8.5,31 C 7.5,31 4,32 4,26.5 C 4,24.2 11,12.5 11,12.5 C 11,12.5 13,10.2 13.2,8.5 C 12.5,4.8 17.5,4.2 18,7.8 C 18,7.8 21,9 22,7 Z" fill="#202228" stroke="#f1f3f5" stroke-width="1.8" stroke-linejoin="round"/>
+    <circle cx="14" cy="13.5" r="1.8" fill="#f1f3f5"/>
+  </svg>`,
+
+  b: `<svg viewBox="0 0 45 45">
+    <g fill="#202228" stroke="#f1f3f5" stroke-width="1.8" stroke-linejoin="round">
+      <path d="M 7,38.5 C 10.8,37.3 18.5,39 22.5,36 C 26.5,39 34.2,37.3 38,38.5 C 38,38.5 39.8,39.1 41.2,40.8 C 40.5,41.9 39.4,41.9 38,41.4 C 34.2,40.3 26.5,42 22.5,40.3 C 18.5,42 10.8,40.3 7,41.4 C 5.6,41.9 4.5,41.9 3.8,40.8 C 5.2,39.1 7,38.5 7,38.5 Z"/>
+      <path d="M 13.5,33.5 C 16.5,36.5 28.5,36.5 31.5,33.5 C 32,31.8 31.5,31.2 31.5,31.2 C 31.5,28.5 28.5,26.8 28.5,26.8 C 35,25.2 35.5,13.5 22.5,8.8 C 9.5,13.5 10,25.2 16.5,26.8 C 16.5,26.8 13.5,28.5 13.5,31.2 C 13.5,31.2 13,31.8 13.5,33.5 Z"/>
+      <circle cx="22.5" cy="6" r="2.8"/>
+    </g>
+    <path d="M 16.5,26.8 L 28.5,26.8 M 13.5,31.2 L 31.5,31.2 M 22.5,14 L 22.5,20 M 19.5,17 L 25.5,17" stroke="#f1f3f5" stroke-width="1.8"/>
+  </svg>`,
+
+  q: `<svg viewBox="0 0 45 45">
+    <g fill="#202228" stroke="#f1f3f5" stroke-width="1.8" stroke-linejoin="round">
+      <path d="M 7,27 C 16.5,25.2 28.5,25.2 38,27 L 41,13.5 L 33,26 L 33,9.5 L 26.5,25 L 22.5,8 L 18.5,25 L 12,9.5 L 12,26 L 4,13.5 Z"/>
+      <path d="M 7,27 C 7,29.5 9,29.5 10.2,31.8 C 11.5,33.5 11.5,33 11,35.8 C 9.2,37 9.2,38.8 8.5,41.5 L 36.5,41.5 C 35.8,38.8 35.8,37 34,35.8 C 33.5,33 33.5,33.5 34.8,31.8 C 36,29.5 38,29.5 38,27 C 28.5,25.2 16.5,25.2 7,27 Z"/>
+    </g>
+    <circle cx="3" cy="11.5" r="2.2" fill="#202228" stroke="#f1f3f5" stroke-width="1.8"/>
+    <circle cx="12" cy="7.5" r="2.2" fill="#202228" stroke="#f1f3f5" stroke-width="1.8"/>
+    <circle cx="22.5" cy="6" r="2.2" fill="#202228" stroke="#f1f3f5" stroke-width="1.8"/>
+    <circle cx="33" cy="7.5" r="2.2" fill="#202228" stroke="#f1f3f5" stroke-width="1.8"/>
+    <circle cx="42" cy="11.5" r="2.2" fill="#202228" stroke="#f1f3f5" stroke-width="1.8"/>
+  </svg>`,
+
+  k: `<svg viewBox="0 0 45 45">
+    <g fill="#202228" stroke="#f1f3f5" stroke-width="1.8" stroke-linejoin="round">
+      <path d="M 22.5,10 L 22.5,4 M 19.5,6.5 L 25.5,6.5"/>
+      <path d="M 22.5,26 C 22.5,26 28,18 26,14.5 C 24,11 21,11 22.5,26 Z"/>
+      <path d="M 9.5,39 C 16,43 29,43 35.5,39 C 39,35.5 39,29.5 35,24.5 C 31,19.5 25.5,23.5 22.5,26 C 19.5,23.5 14,19.5 10,24.5 C 6,29.5 6,35.5 9.5,39 Z"/>
+      <path d="M 8.5,41.5 L 36.5,41.5"/>
+    </g>
+  </svg>`
 };
 
 export const CHECKERS_SVGS = {
-  // White Man
-  w: `<svg viewBox="0 0 45 45"><circle cx="22.5" cy="22.5" r="18" fill="#f8f9fa" stroke="#adb5bd" stroke-width="2"/><circle cx="22.5" cy="22.5" r="13" fill="#e9ecef" stroke="#ced4da" stroke-width="1.5"/></svg>`,
-  // White King
-  W: `<svg viewBox="0 0 45 45"><circle cx="22.5" cy="22.5" r="18" fill="#f8f9fa" stroke="#e5b73b" stroke-width="2.5"/><circle cx="22.5" cy="22.5" r="13" fill="#e9ecef" stroke="#e5b73b" stroke-width="1.5"/><path d="M 15,26 L 15,18 L 19,22 L 22.5,15 L 26,22 L 30,18 L 30,26 Z" fill="#e5b73b" stroke="#b08819" stroke-width="1"/></svg>`,
-  // Black Man
-  b: `<svg viewBox="0 0 45 45"><circle cx="22.5" cy="22.5" r="18" fill="#212529" stroke="#495057" stroke-width="2"/><circle cx="22.5" cy="22.5" r="13" fill="#343a40" stroke="#495057" stroke-width="1.5"/></svg>`,
-  // Black King
-  B: `<svg viewBox="0 0 45 45"><circle cx="22.5" cy="22.5" r="18" fill="#212529" stroke="#e5b73b" stroke-width="2.5"/><circle cx="22.5" cy="22.5" r="13" fill="#343a40" stroke="#e5b73b" stroke-width="1.5"/><path d="M 15,26 L 15,18 L 19,22 L 22.5,15 L 26,22 L 30,18 L 30,26 Z" fill="#e5b73b" stroke="#b08819" stroke-width="1"/></svg>`
+  // White Man (Full 41px diameter, pearl white with distinct tactile ridges)
+  w: `<svg viewBox="0 0 45 45">
+    <circle cx="22.5" cy="22.5" r="20.5" fill="#f8f9fa" stroke="#c0c5ca" stroke-width="2.2"/>
+    <circle cx="22.5" cy="22.5" r="16.5" fill="none" stroke="#dee2e6" stroke-width="1.5"/>
+    <circle cx="22.5" cy="22.5" r="12" fill="#edf2f7" stroke="#ced4da" stroke-width="2"/>
+    <circle cx="22.5" cy="22.5" r="6" fill="#f8f9fa" stroke="#adb5bd" stroke-width="1"/>
+  </svg>`,
+
+  // White King (Dama - with shining golden crown)
+  W: `<svg viewBox="0 0 45 45">
+    <circle cx="22.5" cy="22.5" r="20.5" fill="#fdfbf7" stroke="#e5b73b" stroke-width="2.8"/>
+    <circle cx="22.5" cy="22.5" r="16.5" fill="none" stroke="#f6e05e" stroke-width="1.5"/>
+    <circle cx="22.5" cy="22.5" r="12" fill="#fffaf0" stroke="#d69e2e" stroke-width="2"/>
+    <path d="M 13,28 L 13,18 L 18,23 L 22.5,14 L 27,23 L 32,18 L 32,28 Z" fill="#e5b73b" stroke="#975a16" stroke-width="1.4" stroke-linejoin="round"/>
+    <circle cx="13" cy="17" r="1.5" fill="#f6e05e"/>
+    <circle cx="22.5" cy="13" r="1.8" fill="#f6e05e"/>
+    <circle cx="32" cy="17" r="1.5" fill="#f6e05e"/>
+  </svg>`,
+
+  // Black Man (Obsidian black with metallic relief ridges)
+  b: `<svg viewBox="0 0 45 45">
+    <circle cx="22.5" cy="22.5" r="20.5" fill="#1e2229" stroke="#4a5568" stroke-width="2.2"/>
+    <circle cx="22.5" cy="22.5" r="16.5" fill="none" stroke="#2d3748" stroke-width="1.5"/>
+    <circle cx="22.5" cy="22.5" r="12" fill="#2d3748" stroke="#4a5568" stroke-width="2"/>
+    <circle cx="22.5" cy="22.5" r="6" fill="#1a202c" stroke="#718096" stroke-width="1"/>
+  </svg>`,
+
+  // Black King (Dama - with shining golden crown)
+  B: `<svg viewBox="0 0 45 45">
+    <circle cx="22.5" cy="22.5" r="20.5" fill="#1a202c" stroke="#e5b73b" stroke-width="2.8"/>
+    <circle cx="22.5" cy="22.5" r="16.5" fill="none" stroke="#b7791f" stroke-width="1.5"/>
+    <circle cx="22.5" cy="22.5" r="12" fill="#2d3748" stroke="#d69e2e" stroke-width="2"/>
+    <path d="M 13,28 L 13,18 L 18,23 L 22.5,14 L 27,23 L 32,18 L 32,28 Z" fill="#e5b73b" stroke="#744210" stroke-width="1.4" stroke-linejoin="round"/>
+    <circle cx="13" cy="17" r="1.5" fill="#f6e05e"/>
+    <circle cx="22.5" cy="13" r="1.8" fill="#f6e05e"/>
+    <circle cx="32" cy="17" r="1.5" fill="#f6e05e"/>
+  </svg>`
 };

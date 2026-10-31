@@ -147,13 +147,33 @@ class ApiClient {
     return this.call('game', { gameId, action: 'rematch', rematchAction }, 'POST', `/api/game/${gameId}/rematch`);
   }
 
+  async createInvite(gameType, timeControl) {
+    return this.call('game', { action: 'create_invite', gameType, timeControl }, 'POST', '/api/game/invite');
+  }
+
+  async acceptInvite(gameId) {
+    return this.call('game', { action: 'accept_invite', gameId }, 'POST', `/api/game/${gameId}/accept`);
+  }
+
   // Admin API
   async getAdminStats() {
     return this.call('admin', { action: 'stats' }, 'GET', '/api/admin/stats');
   }
 
-  async getAdminUsers() {
-    return this.call('admin', { action: 'users' }, 'GET', '/api/admin/users');
+  async getAdminUsers(query = '') {
+    return this.call('admin', { action: 'users', query }, 'GET', `/api/admin/users?query=${encodeURIComponent(query)}`);
+  }
+
+  async getAdminActiveGames() {
+    return this.call('admin', { action: 'active_games' }, 'GET', '/api/admin/active_games');
+  }
+
+  async abortAdminGame(gameId) {
+    return this.call('admin', { action: 'abort_game', gameId }, 'POST', `/api/admin/abort_game`);
+  }
+
+  async resetAdminRating(targetUserId, newRating = 1200) {
+    return this.call('admin', { action: 'reset_rating', targetUserId, newRating }, 'POST', `/api/admin/reset_rating`);
   }
 
   async setAdminUserBan(targetUserId, isBanned) {

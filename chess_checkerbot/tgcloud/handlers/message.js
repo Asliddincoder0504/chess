@@ -8,20 +8,24 @@ function getMainMenuKeyboard() {
     inline_keyboard: [
       [
         {
-          text: '♟️ Open WellChess Mini App',
+          text: '♟️ WellChess Mini App ni ochish',
           web_app: { url: MINI_APP_URL }
         }
       ],
       [
-        { text: '⚔️ Play Chess', web_app: { url: `${MINI_APP_URL}?game=chess` } },
-        { text: '🔴 Play Checkers', web_app: { url: `${MINI_APP_URL}?game=checkers` } }
+        { text: '♟️ Shaxmat (8x8)', web_app: { url: `${MINI_APP_URL}?game=chess` } },
+        { text: '🔴 Shashka (8x8, 12 tosh)', web_app: { url: `${MINI_APP_URL}?game=checkers8` } }
       ],
       [
-        { text: '👑 Leaderboard', callback_data: 'btn_leaderboard' },
-        { text: '👤 My Profile', callback_data: 'btn_profile' }
+        { text: '⚪ Shashka (10x10, 20 tosh)', web_app: { url: `${MINI_APP_URL}?game=checkers` } },
+        { text: '⚡ Tezkor o‘yin', web_app: { url: `${MINI_APP_URL}?quick=1` } }
       ],
       [
-        { text: 'ℹ️ How to Play', callback_data: 'btn_help' }
+        { text: '👑 Reyting jadvali', callback_data: 'btn_leaderboard' },
+        { text: '👤 Mening profilim', callback_data: 'btn_profile' }
+      ],
+      [
+        { text: 'ℹ️ O‘yin qoidalari va ma‘lumot', callback_data: 'btn_help' }
       ]
     ]
   };
@@ -37,7 +41,7 @@ export default async function (message, ctx) {
     try {
       dbUser = await getOrCreateUser(tgUser);
     } catch (e) {
-      console.error('Failed to get or create user:', e);
+      console.error('Foydalanuvchini yaratishda xatolik:', e);
     }
   }
 
@@ -48,29 +52,31 @@ export default async function (message, ctx) {
       const gameId = parts[1];
       await api.sendMessage({
         chat_id: chatId,
-        text: `🎮 *You received an invite to join game ${gameId}!*\n\nClick below to enter the match:`,
+        text: `🎮 *Siz o‘yinga taklif qilindingiz!*\n\nO‘yin ID: \`${gameId}\`\nPastdagi tugmani bosing va o‘yinga qo‘shiling:`,
         parse_mode: 'Markdown',
         reply_markup: {
           inline_keyboard: [
-            [{ text: '⚔️ Join Game Now', web_app: { url: `${MINI_APP_URL}?gameId=${gameId}` } }]
+            [{ text: '⚔️ O‘yinga qo‘shilish va boshlash', web_app: { url: `${MINI_APP_URL}?gameId=${gameId}` } }]
           ]
         }
       });
       return;
     }
 
-    const name = dbUser?.firstName || tgUser?.first_name || 'Player';
+    const name = dbUser?.firstName || tgUser?.first_name || 'O‘yinchi';
     const chessElo = dbUser?.chessElo || 1200;
+    const checkers8Elo = dbUser?.checkers8Elo || dbUser?.checkersElo || 1200;
     const checkersElo = dbUser?.checkersElo || 1200;
 
     const welcomeText = [
-      `*Welcome to WellChess, ${name}!* ♟️🏆\n`,
-      `The premier Telegram multiplayer platform for *Chess* and *Checkers*.\n`,
-      `✨ *Your Ratings:*`,
-      `• Chess ELO: *${chessElo}*`,
-      `• Checkers ELO: *${checkersElo}*\n`,
-      `🎮 Real-time multiplayer with official FIDE Chess and International 10x10 Checkers rules.`,
-      `Tap below to launch the Mini App!`
+      `*Xush kelibsiz, ${name}!* ♟️🏆\n`,
+      `*WellChess* — Telegramdagi Shaxmat va Shashka bo‘yicha rasmiy onlayn platforma.\n`,
+      `✨ *Sizning joriy reytinglaringiz:*`,
+      `• ♟️ Shaxmat (8x8): *${chessElo} ELO*`,
+      `• 🔴 Klassik shashka (8x8, 12 tosh): *${checkers8Elo} ELO*`,
+      `• ⚪ Xalqaro shashka (10x10, 20 tosh): *${checkersElo} ELO*\n`,
+      `🎮 Do‘stingiz bilan yoki global onlayn raqiblar bilan real vaqt rejimida bellashing!`,
+      `O‘ynash uchun pastdagi tugmani bosing:`
     ].join('\n');
 
     await api.sendMessage({
@@ -84,19 +90,19 @@ export default async function (message, ctx) {
 
   // /play, /chess, /checkers
   if (text.startsWith('/play') || text.startsWith('/chess') || text.startsWith('/checkers')) {
-    const defaultGame = text.includes('checkers') ? 'checkers' : 'chess';
     await api.sendMessage({
       chat_id: chatId,
-      text: `*Ready for a game?* 🎮\n\nChoose your game mode:`,
+      text: `*O‘yin rejimini tanlang:* 🎮`,
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
           [
-            { text: '⚔️ Play Chess (8x8)', web_app: { url: `${MINI_APP_URL}?game=chess` } },
-            { text: '🔴 Play Checkers (10x10)', web_app: { url: `${MINI_APP_URL}?game=checkers` } }
+            { text: '♟️ Shaxmat (8x8 FIDE)', web_app: { url: `${MINI_APP_URL}?game=chess` } },
+            { text: '🔴 Shashka 8x8 (12 tosh)', web_app: { url: `${MINI_APP_URL}?game=checkers8` } }
           ],
           [
-            { text: '⚡ Quick Match', web_app: { url: `${MINI_APP_URL}?quick=1` } }
+            { text: '⚪ Shashka 10x10 (20 tosh)', web_app: { url: `${MINI_APP_URL}?game=checkers` } },
+            { text: '⚡ Tezkor o‘yin', web_app: { url: `${MINI_APP_URL}?quick=1` } }
           ]
         ]
       }
@@ -107,25 +113,25 @@ export default async function (message, ctx) {
   // /profile
   if (text.startsWith('/profile') || text.startsWith('/stats') || text.startsWith('/rating')) {
     if (!dbUser) {
-      await api.sendMessage({ chat_id: chatId, text: 'Profile not found. Please send /start first.' });
+      await api.sendMessage({ chat_id: chatId, text: 'Profil topilmadi. Iltimos, avval /start buyrug‘ini bosing.' });
       return;
     }
 
     const chessTotal = (dbUser.chessWins || 0) + (dbUser.chessLosses || 0) + (dbUser.chessDraws || 0);
+    const checkers8Total = (dbUser.checkers8Wins || 0) + (dbUser.checkers8Losses || 0) + (dbUser.checkers8Draws || 0);
     const checkersTotal = (dbUser.checkersWins || 0) + (dbUser.checkersLosses || 0) + (dbUser.checkersDraws || 0);
-    const chessWinRate = chessTotal > 0 ? Math.round((dbUser.chessWins / chessTotal) * 100) : 0;
-    const checkersWinRate = checkersTotal > 0 ? Math.round((dbUser.checkersWins / checkersTotal) * 100) : 0;
 
     const profileText = [
-      `👤 *Player Profile: ${dbUser.firstName}* (@${dbUser.username || 'n/a'})\n`,
-      `♟️ *Chess:*`,
-      `• ELO Rating: *${dbUser.chessElo}*`,
-      `• Record: ${chessTotal} matches (${dbUser.chessWins}W / ${dbUser.chessLosses}L / ${dbUser.chessDraws}D)`,
-      `• Win Rate: *${chessWinRate}%*\n`,
-      `🔴 *Checkers (10x10):*`,
-      `• ELO Rating: *${dbUser.checkersElo}*`,
-      `• Record: ${checkersTotal} matches (${dbUser.checkersWins}W / ${dbUser.checkersLosses}L / ${dbUser.checkersDraws}D)`,
-      `• Win Rate: *${checkersWinRate}%*`
+      `👤 *O‘yinchi profili: ${dbUser.firstName}* (@${dbUser.username || 'n/a'})\n`,
+      `♟️ *Shaxmat (8x8 FIDE):*`,
+      `• ELO: *${dbUser.chessElo || 1200}*`,
+      `• O‘yinlar: ${chessTotal} (${dbUser.chessWins || 0}G' / ${dbUser.chessLosses || 0}M / ${dbUser.chessDraws || 0}D)\n`,
+      `🔴 *Klassik shashka (8x8, 12 tosh):*`,
+      `• ELO: *${dbUser.checkers8Elo || dbUser.checkersElo || 1200}*`,
+      `• O‘yinlar: ${checkers8Total} (${dbUser.checkers8Wins || 0}G' / ${dbUser.checkers8Losses || 0}M / ${dbUser.checkers8Draws || 0}D)\n`,
+      `⚪ *Xalqaro shashka (10x10, 20 tosh):*`,
+      `• ELO: *${dbUser.checkersElo || 1200}*`,
+      `• O‘yinlar: ${checkersTotal} (${dbUser.checkersWins || 0}G' / ${dbUser.checkersLosses || 0}M / ${dbUser.checkersDraws || 0}D)`
     ].join('\n');
 
     await api.sendMessage({
@@ -134,7 +140,7 @@ export default async function (message, ctx) {
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '♟️ Open WellChess App', web_app: { url: MINI_APP_URL } }]
+          [{ text: '♟️ Mini App ni ochish', web_app: { url: MINI_APP_URL } }]
         ]
       }
     });
@@ -146,16 +152,16 @@ export default async function (message, ctx) {
     const topChess = await getLeaderboard('chess', 5);
     const topCheckers = await getLeaderboard('checkers', 5);
 
-    let lbText = `🏆 *Top WellChess Players*\n\n♟️ *Chess Top 5:*\n`;
+    let lbText = `🏆 *Top WellChess o‘yinchilari*\n\n♟️ *Shaxmat Top 5:*\n`;
     topChess.forEach((p, i) => {
       const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
-      lbText += `${medal} *${p.firstName}* - ${p.elo} ELO (${p.wins}W / ${p.losses}L)\n`;
+      lbText += `${medal} *${p.firstName}* — ${p.elo} ELO (${p.wins}G' / ${p.losses}M)\n`;
     });
 
-    lbText += `\n🔴 *Checkers Top 5:*\n`;
+    lbText += `\n🔴 *Shashka Top 5:*\n`;
     topCheckers.forEach((p, i) => {
       const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
-      lbText += `${medal} *${p.firstName}* - ${p.elo} ELO (${p.wins}W / ${p.losses}L)\n`;
+      lbText += `${medal} *${p.firstName}* — ${p.elo} ELO (${p.wins}G' / ${p.losses}M)\n`;
     });
 
     await api.sendMessage({
@@ -164,7 +170,7 @@ export default async function (message, ctx) {
       parse_mode: 'Markdown',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '👑 View Full Leaderboard', web_app: { url: `${MINI_APP_URL}#leaderboard` } }]
+          [{ text: '👑 To‘liq reytingni ko‘rish', web_app: { url: `${MINI_APP_URL}#leaderboard` } }]
         ]
       }
     });
@@ -174,19 +180,18 @@ export default async function (message, ctx) {
   // /help
   if (text.startsWith('/help')) {
     const helpText = [
-      `ℹ️ *About WellChess Platform*\n`,
-      `WellChess is a fast, serverless multiplayer game platform inside Telegram.\n`,
-      `*Rules & Fair Play:*`,
-      `• *Chess:* Official FIDE rules with check, checkmate, stalemate, castling, en passant, and promotion.`,
-      `• *Checkers:* International 10x10 rules with 50 dark squares, mandatory capture, maximum capture rule, and flying kings.`,
-      `• *Clocks:* Authoritative server-side clocks with increment.`,
-      `• *Ratings:* FIDE-standard ELO system with adaptive K-factors.\n`,
-      `*Commands:*`,
-      `/start - Launch the bot and main menu`,
-      `/play - Quick start a game`,
-      `/profile - View your stats & ELO`,
-      `/leaderboard - View top players`,
-      `/help - Rules and info`
+      `ℹ️ *WellChess platformasi qoidalari:*\n`,
+      `• *Shaxmat:* Rasmiy 8x8 FIDE qoidalari (mot, pat, rokirovka, o‘tkinchi piyoda urish va so‘nggi chiziqda sipohni almashtirish).`,
+      `• *Klassik shashka (8x8):* Har bir o‘yinchida 12 tadan tosh, orqaga tosh urish mumkin, Dama (Uchuvchi Dama) qoidalari.`,
+      `• *Xalqaro shashka (10x10):* 50 ta qora katak, 20 tadan tosh, maksimal tosh urish majburiy.`,
+      `• *Server soati:* Server tomonidan aniq boshqariladigan shaxmat soatlari va vaqt qo‘shilishi (increment).`,
+      `• *ELO reytingi:* Rasmiy FIDE koeffitsientlari asosida avtomatik hisoblanadi.\n`,
+      `*Buyruqlar:*`,
+      `/start — Botni ishga tushirish va bosh menyu`,
+      `/play — O‘yin boshlash`,
+      `/profile — Shaxsiy reyting va statistika`,
+      `/leaderboard — Yetakchilar jadvali`,
+      `/help — Qoidalar va yordam`
     ].join('\n');
 
     await api.sendMessage({
@@ -201,7 +206,7 @@ export default async function (message, ctx) {
   // Default fallback
   await api.sendMessage({
     chat_id: chatId,
-    text: `*WellChess:* Tap below to play Chess or Checkers in real time!`,
+    text: `*WellChess:* Shaxmat yoki Shashka o‘ynash uchun pastdagi tugmani bosing!`,
     parse_mode: 'Markdown',
     reply_markup: getMainMenuKeyboard()
   });

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uz">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>WellChess - Telegram Multiplayer Chess & Checkers</title>
+  <title>WellChess — Shaxmat va Shashka Platformasi</title>
   <link rel="stylesheet" href="./css/style.css">
   <!-- Telegram Mini App WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -16,59 +16,71 @@
         <span class="brand-icon" id="icon-brand-logo"></span>
         <span>WellChess</span>
       </div>
-      <div class="header-user" id="home-user-name">Player</div>
+      <div class="header-user" id="home-user-name">O'yinchi</div>
     </header>
 
     <!-- Main Content Panes -->
     <main class="main-content">
-      <!-- 1. HOME VIEW -->
+      <!-- 1. HOME VIEW (BOSH SAHIFA) -->
       <section id="view-home" class="view-panel">
         <div class="hero-card">
           <div class="hero-profile">
             <div class="hero-avatar" id="icon-hero-trophy"></div>
             <div class="hero-details">
-              <h2>Ready to Challenge?</h2>
+              <h2>G'alabaga tayyormisiz?</h2>
               <div class="hero-ratings-row">
-                <span class="rating-badge" id="home-chess-elo">1000 ELO (Chess)</span>
-                <span class="rating-badge" id="home-checkers-elo">1000 ELO (Checkers)</span>
+                <span class="rating-badge" id="home-chess-elo">1200 ELO (Shaxmat)</span>
+                <span class="rating-badge" id="home-checkers8-elo">1200 ELO (Shashka 8x8)</span>
+                <span class="rating-badge" id="home-checkers-elo">1200 ELO (Shashka 10x10)</span>
               </div>
             </div>
           </div>
         </div>
 
-        <h3 class="section-title">Select Game Mode</h3>
-        <div class="game-selector-grid">
+        <h3 class="section-title">O'yin turini tanlang</h3>
+        <div class="game-selector-grid-3">
           <div class="game-type-card selected" data-game="chess">
             <span class="game-icon" id="icon-game-chess"></span>
-            <span class="game-name">Chess</span>
-            <span class="game-desc">Standard 8x8 FIDE</span>
+            <span class="game-name">Shaxmat</span>
+            <span class="game-desc">8x8 FIDE (16 tosh)</span>
+          </div>
+          <div class="game-type-card" data-game="checkers8">
+            <span class="game-icon" id="icon-game-checkers8"></span>
+            <span class="game-name">Klassik shashka</span>
+            <span class="game-desc">8x8 taxta (12 tosh)</span>
           </div>
           <div class="game-type-card" data-game="checkers">
             <span class="game-icon" id="icon-game-checkers"></span>
-            <span class="game-name">Checkers</span>
-            <span class="game-desc">International 10x10</span>
+            <span class="game-name">Xalqaro shashka</span>
+            <span class="game-desc">10x10 taxta (20 tosh)</span>
           </div>
         </div>
 
-        <h3 class="section-title">Time Control</h3>
+        <h3 class="section-title">Vaqt me'yori (Time Control)</h3>
         <div class="tc-selector">
-          <div class="tc-pill" data-tc="1+0">1+0</div>
-          <div class="tc-pill" data-tc="2+1">2+1</div>
-          <div class="tc-pill" data-tc="3+0">3+0</div>
-          <div class="tc-pill selected" data-tc="3+2">3+2</div>
-          <div class="tc-pill" data-tc="5+0">5+0</div>
-          <div class="tc-pill" data-tc="10+0">10+0</div>
-          <div class="tc-pill" data-tc="10+5">10+5</div>
-          <div class="tc-pill" data-tc="15+10">15+10</div>
+          <div class="tc-pill" data-tc="1+0">1+0 (Bullet)</div>
+          <div class="tc-pill" data-tc="2+1">2+1 (Bullet)</div>
+          <div class="tc-pill" data-tc="3+0">3+0 (Blitz)</div>
+          <div class="tc-pill selected" data-tc="3+2">3+2 (Blitz)</div>
+          <div class="tc-pill" data-tc="5+0">5+0 (Blitz)</div>
+          <div class="tc-pill" data-tc="10+0">10+0 (Rapid)</div>
+          <div class="tc-pill" data-tc="15+10">15+10 (Rapid)</div>
         </div>
 
-        <button class="btn-primary" id="start-matchmaking-btn">
-          <span class="btn-icon" id="icon-btn-lightning"></span>
-          <span>Find Opponent</span>
-        </button>
+        <div class="home-actions-group">
+          <button class="btn-primary" id="start-matchmaking-btn">
+            <span class="btn-icon" id="icon-btn-lightning"></span>
+            <span>Raqib qidirish</span>
+          </button>
+
+          <button class="btn-secondary btn-outline" id="friend-invite-btn">
+            <span class="btn-icon" id="icon-btn-friends"></span>
+            <span>Do'st bilan o'ynash</span>
+          </button>
+        </div>
       </section>
 
-      <!-- 2. MATCHMAKING VIEW -->
+      <!-- 2. MATCHMAKING VIEW (RAQIB QIDIRISH) -->
       <section id="view-matchmaking" class="view-panel hidden">
         <div class="matchmaking-container">
           <div class="radar-wrapper">
@@ -78,31 +90,31 @@
             <div class="radar-center-icon" id="icon-radar-swords"></div>
           </div>
 
-          <div class="mm-status-title" id="mm-status-text">Searching for an opponent...</div>
+          <div class="mm-status-title" id="mm-status-text">Raqib qidirilmoqda...</div>
           <div class="mm-details">
-            <span id="mm-game-type">CHESS</span> • <span id="mm-time-control">3+2</span>
+            <span id="mm-game-type">SHAXMAT</span> • <span id="mm-time-control">3+2</span>
           </div>
-          <div class="mm-details" id="mm-elo-range">ELO Range: 900 - 1100 (±100)</div>
+          <div class="mm-details" id="mm-elo-range">ELO diapazoni: 1100 - 1300 (±100)</div>
           <div class="mm-timer" id="mm-elapsed-timer">00:00</div>
 
-          <button class="btn-secondary" id="cancel-matchmaking-btn">Cancel Search</button>
+          <button class="btn-secondary" id="cancel-matchmaking-btn">Qidiruvni bekor qilish</button>
         </div>
       </section>
 
-      <!-- 3. GAME VIEW -->
+      <!-- 3. GAME VIEW (O'YIN MAYDONI) -->
       <section id="view-game" class="view-panel hidden">
         <div class="game-view-container">
           <!-- Opponent Strip -->
           <div class="player-strip">
             <div class="player-meta">
-              <span class="player-name" id="opp-name">Opponent</span>
-              <span class="player-elo-tag" id="opp-elo">1000 ELO</span>
+              <span class="player-name" id="opp-name">Raqib</span>
+              <span class="player-elo-tag" id="opp-elo">1200 ELO</span>
             </div>
             <div class="game-clock" id="opp-clock">3:00</div>
           </div>
 
           <!-- Turn Banner -->
-          <div class="turn-banner" id="turn-banner">Your Turn</div>
+          <div class="turn-banner" id="turn-banner">Sizning navbatingiz</div>
 
           <!-- Board Container -->
           <div id="game-board-container"></div>
@@ -110,18 +122,18 @@
           <!-- Player Strip -->
           <div class="player-strip">
             <div class="player-meta">
-              <span class="player-name" id="player-name">You</span>
-              <span class="player-elo-tag" id="player-elo">1000 ELO</span>
+              <span class="player-name" id="player-name">Siz</span>
+              <span class="player-elo-tag" id="player-elo">1200 ELO</span>
             </div>
             <div class="game-clock" id="player-clock">3:00</div>
           </div>
 
           <!-- Incoming Draw Offer Banner -->
           <div class="draw-offer-banner hidden" id="draw-offer-banner">
-            <span>Opponent offered a draw</span>
+            <span>Raqib durang taklif qildi</span>
             <div class="draw-offer-actions">
-              <button class="btn-small btn-accept" id="accept-draw-btn">Accept</button>
-              <button class="btn-small btn-decline" id="decline-draw-btn">Decline</button>
+              <button class="btn-small btn-accept" id="accept-draw-btn">Qabul qilish</button>
+              <button class="btn-small btn-decline" id="decline-draw-btn">Rad etish</button>
             </div>
           </div>
 
@@ -132,106 +144,177 @@
           <div class="game-controls-strip">
             <button class="btn-secondary btn-with-icon" id="draw-btn">
               <span class="btn-ctrl-icon" id="icon-btn-draw"></span>
-              <span>Offer Draw</span>
+              <span>Durang taklif qilish</span>
             </button>
             <button class="btn-secondary btn-with-icon" id="resign-btn">
               <span class="btn-ctrl-icon" id="icon-btn-resign"></span>
-              <span>Resign</span>
+              <span>Taslim bo'lish</span>
             </button>
           </div>
         </div>
       </section>
 
-      <!-- 4. PROFILE VIEW -->
+      <!-- 4. PROFILE VIEW (PROFIL) -->
       <section id="view-profile" class="view-panel hidden">
         <div class="hero-card">
           <div class="hero-profile">
             <div class="hero-avatar" id="icon-profile-user"></div>
             <div class="hero-details">
-              <h2 id="profile-name">Player</h2>
+              <h2 id="profile-name">O'yinchi</h2>
               <div class="text-muted" id="profile-username">@username</div>
+              <div class="profile-tier-badge" id="profile-tier">Boshlovchi (1200)</div>
             </div>
           </div>
         </div>
 
-        <h3 class="section-title">Chess Statistics</h3>
-        <div class="hero-card">
-          <div class="hero-ratings-row">
-            <span class="rating-badge">ELO: <b id="profile-chess-elo">1000</b></span>
-            <span class="rating-badge">Win Rate: <b id="profile-chess-winrate">0%</b></span>
-          </div>
-          <div class="text-muted">Matches: <span id="profile-chess-matches">0</span> (<span id="profile-chess-record">0W / 0L / 0D</span>)</div>
+        <div class="profile-stats-tabs">
+          <div class="profile-tab active" data-profile-game="chess">♟️ Shaxmat (8x8)</div>
+          <div class="profile-tab" data-profile-game="checkers8">🔴 Shashka (8x8)</div>
+          <div class="profile-tab" data-profile-game="checkers">⚪ Shashka (10x10)</div>
         </div>
 
-        <h3 class="section-title">Checkers (10x10) Statistics</h3>
-        <div class="hero-card">
+        <!-- Dynamic Profile Stat Card -->
+        <div class="hero-card" id="profile-stat-card">
           <div class="hero-ratings-row">
-            <span class="rating-badge">ELO: <b id="profile-checkers-elo">1000</b></span>
-            <span class="rating-badge">Win Rate: <b id="profile-checkers-winrate">0%</b></span>
+            <span class="rating-badge">ELO: <b id="stat-active-elo">1200</b></span>
+            <span class="rating-badge">G'alaba: <b id="stat-active-winrate">0%</b></span>
           </div>
-          <div class="text-muted">Matches: <span id="profile-checkers-matches">0</span> (<span id="profile-checkers-record">0W / 0L / 0D</span>)</div>
+          <div class="text-muted" style="margin-top: 6px;">
+            Jami o'yinlar: <span id="stat-active-matches">0</span> (<span id="stat-active-record">0G' / 0M / 0D</span>)
+          </div>
+          <div class="winrate-bar-container">
+            <div class="winrate-bar-fill" id="stat-active-bar" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <h3 class="section-title" style="margin-top: 14px;">Sozlamalar</h3>
+        <div class="hero-card">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span>🔊 Ovoz effektlari</span>
+            <input type="checkbox" id="sound-toggle" checked style="width: 22px; height: 22px; cursor: pointer;">
+          </div>
         </div>
       </section>
 
-      <!-- 5. LEADERBOARD VIEW -->
+      <!-- 5. LEADERBOARD VIEW (REYTING) -->
       <section id="view-leaderboard" class="view-panel hidden">
         <div class="lb-tabs">
           <div class="lb-tab active" data-game="chess">
             <span class="tab-svg-icon" id="icon-lb-chess"></span>
-            <span>Chess</span>
+            <span>Shaxmat</span>
+          </div>
+          <div class="lb-tab" data-game="checkers8">
+            <span class="tab-svg-icon" id="icon-lb-checkers8"></span>
+            <span>Shashka 8x8</span>
           </div>
           <div class="lb-tab" data-game="checkers">
             <span class="tab-svg-icon" id="icon-lb-checkers"></span>
-            <span>Checkers</span>
+            <span>Shashka 10x10</span>
           </div>
         </div>
 
         <div class="search-box-wrapper">
           <span class="search-icon-slot" id="icon-search-slot"></span>
-          <input type="text" class="search-input" id="lb-search-input" placeholder="Search players by name or username...">
+          <input type="text" class="search-input" id="lb-search-input" placeholder="O'yinchini ism yoki username bo'yicha qidirish...">
         </div>
 
         <div class="leaderboard-list" id="leaderboard-list"></div>
       </section>
 
-      <!-- 6. HISTORY VIEW -->
+      <!-- 6. HISTORY VIEW (TARIX) -->
       <section id="view-history" class="view-panel hidden">
-        <h3 class="section-title">Recent Matches</h3>
+        <h3 class="section-title">O'yinlar tarixi</h3>
         <div id="history-list"></div>
       </section>
 
-      <!-- 7. SETTINGS VIEW -->
-      <section id="view-settings" class="view-panel hidden">
-        <h3 class="section-title">Preferences</h3>
-        <div class="hero-card">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span>Sound Effects</span>
-            <input type="checkbox" id="sound-toggle" checked style="width: 20px; height: 20px;">
-          </div>
-        </div>
-      </section>
-
-      <!-- 8. ADMIN VIEW -->
+      <!-- 7. ADMIN VIEW (ADMIN PANEL) -->
       <section id="view-admin" class="view-panel hidden">
-        <h3 class="section-title">Platform Administration</h3>
+        <h3 class="section-title">Platforma boshqaruvi</h3>
         <div class="admin-stats-grid" id="admin-stats-container"></div>
 
-        <h3 class="section-title" style="margin-top: 14px;">User Management</h3>
+        <h3 class="section-title" style="margin-top: 16px;">Faol o'yinlar monitoringi</h3>
+        <div id="admin-active-games-list" class="admin-games-container"></div>
+
+        <h3 class="section-title" style="margin-top: 16px;">Foydalanuvchilarni boshqarish</h3>
+        <div class="search-box-wrapper" style="margin-bottom: 12px;">
+          <span class="search-icon-slot" id="icon-admin-search-slot"></span>
+          <input type="text" class="search-input" id="admin-user-search" placeholder="Foydalanuvchi qidirish (ID, ism yoki @username)...">
+        </div>
         <div id="admin-users-list"></div>
       </section>
     </main>
 
+    <!-- Friend Invite Creation Modal -->
+    <div class="modal-overlay hidden" id="friend-invite-modal" style="display: none;">
+      <div class="modal-dialog">
+        <div class="outcome-title">🤝 Do'st bilan o'ynash</div>
+        <div class="text-muted">Do'stingizga havola yuboring va u qabul qilishi bilan o'yin boshlanadi!</div>
+
+        <div class="invite-modal-controls">
+          <label class="modal-label">O'yin turi:</label>
+          <select id="invite-game-type" class="modal-select">
+            <option value="chess">♟️ Shaxmat (8x8 FIDE)</option>
+            <option value="checkers8" selected>🔴 Klassik shashka (8x8, 12 tosh)</option>
+            <option value="checkers">⚪ Xalqaro shashka (10x10, 20 tosh)</option>
+          </select>
+
+          <label class="modal-label" style="margin-top: 10px;">Vaqt nazorati:</label>
+          <select id="invite-time-control" class="modal-select">
+            <option value="3+0">3+0 (Blitz)</option>
+            <option value="3+2">3+2 (Blitz)</option>
+            <option value="5+0" selected>5+0 (Blitz)</option>
+            <option value="10+0">10+0 (Rapid)</option>
+            <option value="15+10">15+10 (Rapid)</option>
+          </select>
+        </div>
+
+        <button class="btn-primary" id="generate-invite-link-btn" style="margin-top: 10px;">
+          <span>Havola yaratish</span>
+        </button>
+
+        <div id="invite-share-box" class="hidden" style="width: 100%; margin-top: 12px;">
+          <div class="invite-link-wrapper">
+            <input type="text" id="invite-link-input" readonly class="invite-link-field">
+            <button class="btn-small btn-primary" id="copy-invite-link-btn">Nusxalash</button>
+          </div>
+          <button class="btn-primary tg-share-btn" id="share-telegram-btn" style="margin-top: 8px;">
+            <span>Telegram orqali yuborish ✈️</span>
+          </button>
+          <div class="invite-waiting-msg">
+            <div class="loader-spinner-sm"></div>
+            <span>Do'stingiz qabul qilishi kutilmoqda...</span>
+          </div>
+        </div>
+
+        <button class="btn-secondary" id="close-invite-modal-btn" style="margin-top: 8px;">Yopish</button>
+      </div>
+    </div>
+
+    <!-- Accept Invite Dialog (When joining through a friend's link) -->
+    <div class="modal-overlay hidden" id="accept-invite-modal" style="display: none;">
+      <div class="modal-dialog">
+        <div class="outcome-title">🎮 O'yinga taklif</div>
+        <div class="text-muted" id="accept-invite-desc">Do'stingiz sizni o'yinga taklif qildi!</div>
+        <div class="rating-change-badge" id="accept-invite-meta">Shashka 8x8 • 5+0</div>
+
+        <button class="btn-primary" id="confirm-accept-invite-btn">
+          <span>Qabul qilish va o'ynash!</span>
+        </button>
+        <button class="btn-secondary" id="decline-invite-btn">Rad etish</button>
+      </div>
+    </div>
+
     <!-- Game Over Modal -->
     <div class="modal-overlay hidden" id="game-over-modal" style="display: none;">
       <div class="modal-dialog">
-        <div class="outcome-title" id="modal-outcome-title">Victory</div>
-        <div class="text-muted" id="modal-outcome-desc">Checkmate</div>
+        <div class="outcome-title" id="modal-outcome-title">G'alaba!</div>
+        <div class="text-muted" id="modal-outcome-desc">Mot</div>
         <div class="rating-change-badge" id="modal-rating-change">+16 ELO</div>
         <button class="btn-primary" id="rematch-btn">
           <span id="icon-modal-rematch"></span>
-          <span>Rematch</span>
+          <span>Qaytadan o'ynash</span>
         </button>
-        <button class="btn-secondary" id="modal-close-btn">Return to Home</button>
+        <button class="btn-secondary" id="modal-close-btn">Bosh sahifaga qaytish</button>
       </div>
     </div>
 
@@ -242,19 +325,19 @@
     <nav class="bottom-nav">
       <div class="nav-tab active" data-view="home">
         <span class="tab-icon" id="icon-nav-home"></span>
-        <span>Home</span>
+        <span>Bosh sahifa</span>
       </div>
       <div class="nav-tab" data-view="leaderboard">
         <span class="tab-icon" id="icon-nav-ranks"></span>
-        <span>Ranks</span>
+        <span>Reyting</span>
       </div>
       <div class="nav-tab" data-view="history">
         <span class="tab-icon" id="icon-nav-history"></span>
-        <span>History</span>
+        <span>Tarix</span>
       </div>
       <div class="nav-tab" data-view="profile">
         <span class="tab-icon" id="icon-nav-profile"></span>
-        <span>Profile</span>
+        <span>Profil</span>
       </div>
       <div class="nav-tab hidden" data-view="admin" id="nav-tab-admin">
         <span class="tab-icon" id="icon-nav-admin"></span>

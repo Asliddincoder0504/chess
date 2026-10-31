@@ -5,6 +5,8 @@ import {
   handleResign,
   handleDrawAction,
   handleRematchAction,
+  handleCreateInvite,
+  handleAcceptInvite,
   syncGameClocks
 } from '../lib/game_service.js';
 import { getGameById } from '../lib/storage/games.js';
@@ -17,6 +19,21 @@ export default async function (input, ctx) {
 
   const userId = Number(user.id);
   const { action, gameId } = input;
+
+  if (action === 'create_invite') {
+    const res = await handleCreateInvite(userId, {
+      gameType: input.gameType || 'chess',
+      timeControl: input.timeControl || '5+0'
+    });
+    return res;
+  }
+
+  if (action === 'accept_invite') {
+    if (!gameId) throw new EndpointError('Missing gameId', { code: 'MISSING_GAME_ID' });
+    const res = await handleAcceptInvite(gameId, userId);
+    if (res.error) throw new EndpointError(res.error, { code: 'INVITE_ERROR' });
+    return res;
+  }
 
   if (!gameId) {
     throw new EndpointError('Missing gameId', { code: 'MISSING_GAME_ID' });

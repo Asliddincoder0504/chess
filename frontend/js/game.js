@@ -10,68 +10,62 @@ class SoundEffects {
     this.enabled = true;
   }
 
-  getAudioContext() {
-    if (!this.ctx && typeof window !== 'undefined') {
+  init() {
+    if (!this.ctx && (window.AudioContext || window.webkitAudioContext)) {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtx) {
-        this.ctx = new AudioCtx();
-      }
+      this.ctx = new AudioCtx();
     }
-    if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
-    }
-    return this.ctx;
   }
 
-  playTone(freq, type = 'sine', duration = 0.1, gainVal = 0.2) {
+  playTone(freq, type = 'sine', duration = 0.1, gainVal = 0.15) {
     if (!this.enabled) return;
     try {
-      const ctx = this.getAudioContext();
-      if (!ctx) return;
+      this.init();
+      if (!this.ctx) return;
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
 
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
 
       osc.type = type;
-      osc.frequency.setValueAtTime(freq, ctx.currentTime);
-
-      gain.gain.setValueAtTime(gainVal, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+      osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+      gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.ctx.destination);
 
       osc.start();
-      osc.stop(ctx.currentTime + duration);
+      osc.stop(this.ctx.currentTime + duration);
     } catch {
-      // Audio autoplay block fallback
+      // AudioContext unavailable or blocked
     }
   }
 
   move() {
-    this.playTone(480, 'sine', 0.08, 0.25);
+    this.playTone(320, 'triangle', 0.08, 0.2);
   }
 
   capture() {
-    this.playTone(320, 'triangle', 0.12, 0.35);
+    this.playTone(480, 'square', 0.12, 0.25);
   }
 
   check() {
-    this.playTone(750, 'sawtooth', 0.15, 0.2);
+    this.playTone(600, 'sawtooth', 0.18, 0.2);
   }
 
-  win() {
-    const tones = [523.25, 659.25, 783.99, 1046.50]; // C E G C
-    tones.forEach((f, idx) => {
-      setTimeout(() => this.playTone(f, 'sine', 0.2, 0.3), idx * 120);
-    });
+  victory() {
+    setTimeout(() => this.playTone(440, 'triangle', 0.15, 0.25), 0);
+    setTimeout(() => this.playTone(554, 'triangle', 0.15, 0.25), 150);
+    setTimeout(() => this.playTone(659, 'triangle', 0.3, 0.3), 300);
   }
 
   defeat() {
-    const tones = [440, 392, 349.23, 293.66];
-    tones.forEach((f, idx) => {
-      setTimeout(() => this.playTone(f, 'sawtooth', 0.25, 0.25), idx * 150);
-    });
+    setTimeout(() => this.playTone(400, 'sine', 0.2, 0.25), 0);
+    setTimeout(() => this.playTone(320, 'sine', 0.2, 0.25), 180);
+    setTimeout(() => this.playTone(260, 'sine', 0.35, 0.3), 360);
   }
 }
 
@@ -82,11 +76,12 @@ export class GameController {
     this.app = app;
     this.gameId = null;
     this.gameData = null;
+    this.playerColor = 'white';
     this.boardUI = null;
     this.localEngine = null;
-    this.playerColor = 'white'; // 'white' or 'black'
-    this.pollIntervalId = null;
-    this.clockIntervalId = null;
+
+    this.pollInterval = null;
+    this.clockInterval = null;
     this.cachedWhiteTime = 0;
     this.cachedBlackTime = 0;
     this.lastClockTick = Date.now();
@@ -111,7 +106,7 @@ export class GameController {
       this.startClock();
       this.startPolling();
     } catch (err) {
-      this.app.showToast(`Error: ${err.message}`, 'error');
+      this.app.showToast(`Xatolik: ${err.message}`, 'error');
       this.app.navigate('home');
     }
   }
@@ -131,10 +126,10 @@ export class GameController {
     const opponent = isWhite ? this.gameData.blackPlayer : this.gameData.whitePlayer;
 
     // Render player headers
-    document.getElementById('opp-name').textContent = opponent?.firstName || 'Opponent';
-    document.getElementById('opp-elo').textContent = `${opponent?.elo || 1000} ELO`;
-    document.getElementById('player-name').textContent = player?.firstName || 'You';
-    document.getElementById('player-elo').textContent = `${player?.elo || 1000} ELO`;
+    document.getElementById('opp-name').textContent = opponent?.firstName || 'Raqib';
+    document.getElementById('opp-elo').textContent = `${opponent?.elo || 1200} ELO`;
+    document.getElementById('player-name').textContent = player?.firstName || 'Siz';
+    document.getElementById('player-elo').textContent = `${player?.elo || 1200} ELO`;
 
     this.cachedWhiteTime = this.gameData.whiteTimeMs;
     this.cachedBlackTime = this.gameData.blackTimeMs;
@@ -157,9 +152,11 @@ export class GameController {
       };
       this.boardUI.loadFEN(this.gameData.boardState);
     } else {
-      this.localEngine = new CheckersGame(this.gameData.boardState, this.gameData.currentTurn === 'white' ? 'w' : 'b');
+      const is8x8 = this.gameData.gameType === 'checkers8';
+      this.localEngine = new CheckersGame(this.gameData.boardState, this.gameData.currentTurn === 'white' ? 'w' : 'b', is8x8 ? 8 : 10);
       this.boardUI = new CheckersBoardUI(container, {
         orientation: this.playerColor,
+        size: is8x8 ? 8 : 10,
         onMove: move => this.handlePlayerMove(move)
       });
       this.boardUI.onSelectSquare = sq => {
@@ -177,7 +174,7 @@ export class GameController {
   async handlePlayerMove(move) {
     if (this.gameData.status !== 'active') return;
     if (this.gameData.currentTurn !== this.playerColor) {
-      this.app.showToast('Wait for your turn!', 'warning');
+      this.app.showToast('Navbatingizni kuting!', 'warning');
       return;
     }
 
@@ -190,8 +187,7 @@ export class GameController {
       sounds.move();
       await this.syncGameState(res.game);
     } catch (err) {
-      this.app.showToast(`Move failed: ${err.message}`, 'error');
-      // Reload authoritative game state
+      this.app.showToast(`Yurish xatosi: ${err.message}`, 'error');
       this.refreshGame();
     }
   }
@@ -219,18 +215,39 @@ export class GameController {
         this.boardUI.setCheckSquare(null);
       }
     } else {
-      this.localEngine = new CheckersGame(this.gameData.boardState, this.gameData.currentTurn === 'white' ? 'w' : 'b');
+      const is8x8 = this.gameData.gameType === 'checkers8';
+      this.localEngine = new CheckersGame(this.gameData.boardState, this.gameData.currentTurn === 'white' ? 'w' : 'b', is8x8 ? 8 : 10);
       this.boardUI.loadState(this.gameData.boardState);
     }
 
-    this.updateClockDisplay();
-    this.updateTurnIndicator();
+    // Play move sound if opponent just made a move
+    if (prevTurn !== newGame.currentTurn && newGame.currentTurn === this.playerColor) {
+      sounds.move();
+    }
+
     this.updateMoveHistory();
+    this.updateTurnIndicator();
     this.checkDrawOffers();
 
-    // Check if game just ended
-    if (prevStatus === 'active' && newGame.status === 'completed') {
-      this.handleGameOver();
+    // Check game completion
+    if (newGame.status === 'completed' && prevStatus !== 'completed') {
+      this.stopClock();
+      this.stopPolling();
+      this.showGameOverModal();
+    }
+  }
+
+  startPolling() {
+    this.stopPolling();
+    this.pollInterval = setInterval(async () => {
+      await this.refreshGame();
+    }, 1500);
+  }
+
+  stopPolling() {
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+      this.pollInterval = null;
     }
   }
 
@@ -239,41 +256,22 @@ export class GameController {
       const res = await api.getGame(this.gameId);
       if (res.success && res.game) {
         if (res.game.version !== this.gameData.version || res.game.status !== this.gameData.status) {
-          sounds.move();
           await this.syncGameState(res.game);
+        } else {
+          // Sync clocks
+          this.cachedWhiteTime = res.game.whiteTimeMs;
+          this.cachedBlackTime = res.game.blackTimeMs;
         }
       }
-    } catch (err) {
-      console.warn('[Poll Error]:', err.message);
-    }
-  }
-
-  startPolling() {
-    this.stopPolling();
-    const pollLoop = async () => {
-      if (this.gameData?.status !== 'active') return;
-
-      await this.refreshGame();
-
-      // Adaptive polling rate: 1000ms if waiting for opponent, 3000ms if own turn
-      const delay = this.gameData?.currentTurn === this.playerColor ? 3000 : 1000;
-      this.pollIntervalId = setTimeout(pollLoop, delay);
-    };
-
-    this.pollIntervalId = setTimeout(pollLoop, 1500);
-  }
-
-  stopPolling() {
-    if (this.pollIntervalId) {
-      clearTimeout(this.pollIntervalId);
-      this.pollIntervalId = null;
+    } catch {
+      // Background poll failure
     }
   }
 
   startClock() {
     this.stopClock();
-    this.clockIntervalId = setInterval(() => {
-      if (this.gameData?.status !== 'active') return;
+    this.clockInterval = setInterval(() => {
+      if (this.gameData.status !== 'active') return;
 
       const now = Date.now();
       const delta = now - this.lastClockTick;
@@ -281,100 +279,115 @@ export class GameController {
 
       if (this.gameData.currentTurn === 'white') {
         this.cachedWhiteTime = Math.max(0, this.cachedWhiteTime - delta);
+        if (this.cachedWhiteTime <= 0) {
+          this.stopClock();
+          this.refreshGame();
+        }
       } else {
         this.cachedBlackTime = Math.max(0, this.cachedBlackTime - delta);
+        if (this.cachedBlackTime <= 0) {
+          this.stopClock();
+          this.refreshGame();
+        }
       }
 
       this.updateClockDisplay();
-
-      // Check timeout
-      if (this.cachedWhiteTime <= 0 || this.cachedBlackTime <= 0) {
-        this.refreshGame();
-      }
-    }, 250);
+    }, 100);
   }
 
   stopClock() {
-    if (this.clockIntervalId) {
-      clearInterval(this.clockIntervalId);
-      this.clockIntervalId = null;
+    if (this.clockInterval) {
+      clearInterval(this.clockInterval);
+      this.clockInterval = null;
     }
-  }
-
-  formatTime(ms) {
-    const totalSecs = Math.max(0, Math.floor(ms / 1000));
-    const mins = Math.floor(totalSecs / 60);
-    const secs = totalSecs % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   }
 
   updateClockDisplay() {
-    const whiteEl = document.getElementById(this.playerColor === 'white' ? 'player-clock' : 'opp-clock');
-    const blackEl = document.getElementById(this.playerColor === 'black' ? 'player-clock' : 'opp-clock');
+    const isWhite = this.playerColor === 'white';
+    const playerTime = isWhite ? this.cachedWhiteTime : this.cachedBlackTime;
+    const oppTime = isWhite ? this.cachedBlackTime : this.cachedWhiteTime;
 
-    if (whiteEl) whiteEl.textContent = this.formatTime(this.cachedWhiteTime);
-    if (blackEl) blackEl.textContent = this.formatTime(this.cachedBlackTime);
+    const formatTime = ms => {
+      const totalSec = Math.floor(ms / 1000);
+      const mins = Math.floor(totalSec / 60);
+      const secs = totalSec % 60;
+      return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    };
 
-    // Active clock highlight
-    const isWhiteTurn = this.gameData.currentTurn === 'white';
-    whiteEl?.classList.toggle('active-clock', isWhiteTurn);
-    blackEl?.classList.toggle('active-clock', !isWhiteTurn);
-  }
+    const playerClockEl = document.getElementById('player-clock');
+    const oppClockEl = document.getElementById('opp-clock');
 
-  updateTurnIndicator() {
-    const isOwnTurn = this.gameData.currentTurn === this.playerColor;
-    const banner = document.getElementById('turn-banner');
-    if (banner) {
-      banner.textContent = isOwnTurn ? 'Your Turn' : "Opponent's Turn";
-      banner.className = `turn-banner ${isOwnTurn ? 'own-turn' : 'opp-turn'}`;
+    if (playerClockEl) {
+      playerClockEl.textContent = formatTime(playerTime);
+      playerClockEl.classList.toggle('active', this.gameData?.currentTurn === this.playerColor);
+      playerClockEl.classList.toggle('low-time', playerTime < 30000);
+    }
+
+    if (oppClockEl) {
+      oppClockEl.textContent = formatTime(oppTime);
+      oppClockEl.classList.toggle('active', this.gameData?.currentTurn !== this.playerColor);
+      oppClockEl.classList.toggle('low-time', oppTime < 30000);
     }
   }
 
-  updateMoveHistory() {
-    const list = document.getElementById('move-history-list');
-    if (!list) return;
+  updateTurnIndicator() {
+    const banner = document.getElementById('turn-banner');
+    if (!banner) return;
 
-    const moves = JSON.parse(this.gameData.history || '[]');
-    list.innerHTML = '';
+    if (this.gameData.status === 'completed') {
+      banner.textContent = 'O‘yin yakunlandi';
+      banner.className = 'turn-banner';
+      return;
+    }
+
+    const isOwnTurn = this.gameData.currentTurn === this.playerColor;
+    const turnName = this.gameData.currentTurn === 'white' ? 'Oqlar' : 'Qoralar';
+    banner.textContent = isOwnTurn ? `Sizning navbatingiz (${turnName})` : `Raqib navbati (${turnName})...`;
+    banner.className = `turn-banner ${isOwnTurn ? 'own-turn' : 'opp-turn'}`;
+  }
+
+  updateMoveHistory() {
+    const historyList = document.getElementById('move-history-list');
+    if (!historyList) return;
+
+    const moves = this.gameData.moves || [];
+    historyList.innerHTML = '';
 
     for (let i = 0; i < moves.length; i += 2) {
       const moveNum = Math.floor(i / 2) + 1;
-      const whiteMove = moves[i]?.move || '';
-      const blackMove = moves[i + 1]?.move || '';
+      const whiteMove = moves[i]?.moveNotation || '';
+      const blackMove = moves[i + 1]?.moveNotation || '';
 
       const row = document.createElement('div');
-      row.className = 'move-history-row';
+      row.className = 'move-row';
       row.innerHTML = `
         <span class="move-num">${moveNum}.</span>
         <span class="move-white">${whiteMove}</span>
         <span class="move-black">${blackMove}</span>
       `;
-      list.appendChild(row);
+      historyList.appendChild(row);
     }
 
-    list.scrollTop = list.scrollHeight;
+    historyList.scrollTop = historyList.scrollHeight;
   }
 
   checkDrawOffers() {
-    const drawBanner = document.getElementById('draw-offer-banner');
-    if (!drawBanner) return;
+    const banner = document.getElementById('draw-offer-banner');
+    if (!banner) return;
 
-    const opponentColor = this.playerColor === 'white' ? 'black' : 'white';
-    if (this.gameData.drawOfferedBy === opponentColor) {
-      drawBanner.classList.remove('hidden');
+    const oppColor = this.playerColor === 'white' ? 'black' : 'white';
+    if (this.gameData.drawOfferedBy === oppColor && this.gameData.status === 'active') {
+      banner.classList.remove('hidden');
     } else {
-      drawBanner.classList.add('hidden');
+      banner.classList.add('hidden');
     }
   }
 
-  handleGameOver() {
-    this.stopPolling();
-    this.stopClock();
-
+  showGameOverModal() {
     const isWinner = this.gameData.winner === this.playerColor;
     const isDraw = this.gameData.winner === 'draw';
 
-    if (isWinner) sounds.win();
+    if (isWinner) sounds.victory();
     else if (isDraw) sounds.move();
     else sounds.defeat();
 
@@ -386,18 +399,27 @@ export class GameController {
     const change = this.playerColor === 'white' ? this.gameData.whiteRatingChange : this.gameData.blackRatingChange;
     const changeStr = change > 0 ? `+${change}` : `${change}`;
 
+    let reasonUz = this.gameData.winReason;
+    if (reasonUz === 'checkmate') reasonUz = 'Mot qilish orqali';
+    else if (reasonUz === 'timeout') reasonUz = 'Vaqt tugashi orqali';
+    else if (reasonUz === 'resignation') reasonUz = 'Taslim bo‘lish orqali';
+    else if (reasonUz === 'draw_agreement') reasonUz = 'O‘zaro kelishuv orqali';
+    else if (reasonUz === 'stalemate') reasonUz = 'Pat (Durang)';
+    else if (reasonUz === 'elimination') reasonUz = 'Barcha toshlar yutildi';
+    else if (reasonUz === 'blocked') reasonUz = 'Yurish yo‘li to‘silgan';
+
     if (isWinner) {
-      title.textContent = '🏆 Victory!';
+      title.textContent = '🏆 G‘alaba!';
       title.className = 'outcome-title win';
-      desc.textContent = `Won by ${this.gameData.winReason}`;
+      desc.textContent = reasonUz;
     } else if (isDraw) {
-      title.textContent = '🤝 Draw!';
+      title.textContent = '🤝 Durang!';
       title.className = 'outcome-title draw';
-      desc.textContent = `Drawn by ${this.gameData.winReason}`;
+      desc.textContent = reasonUz;
     } else {
-      title.textContent = '💔 Defeat';
+      title.textContent = '💔 Mag‘lubiyat';
       title.className = 'outcome-title loss';
-      desc.textContent = `Lost by ${this.gameData.winReason}`;
+      desc.textContent = reasonUz;
     }
 
     ratingChange.textContent = `${changeStr} ELO`;
@@ -408,7 +430,7 @@ export class GameController {
   }
 
   async resign() {
-    if (confirm('Are you sure you want to resign this match?')) {
+    if (confirm('Haqiqatan ham ushbu o‘yinda taslim bo‘lmoqchimisiz?')) {
       const res = await api.resignGame(this.gameId);
       if (res.success) {
         await this.syncGameState(res.game);
@@ -419,7 +441,8 @@ export class GameController {
   async offerDraw() {
     const res = await api.sendDrawAction(this.gameId, 'offer');
     if (res.success) {
-      this.app.showToast('Draw offer sent to opponent', 'info');
+      this.app.showToast('Raqibga durang taklifi yuborildi', 'info');
+      await this.refreshGame();
     }
   }
 
@@ -440,8 +463,8 @@ export class GameController {
   async offerRematch() {
     const res = await api.sendRematchAction(this.gameId, 'offer');
     if (res.success) {
-      this.app.showToast('Rematch invitation sent!', 'info');
-      document.getElementById('rematch-btn').textContent = 'Waiting for opponent...';
+      this.app.showToast('Qaytadan o‘ynash taklifi yuborildi!', 'info');
+      document.getElementById('rematch-btn').textContent = 'Raqib kutilmoqda...';
       document.getElementById('rematch-btn').disabled = true;
     }
   }

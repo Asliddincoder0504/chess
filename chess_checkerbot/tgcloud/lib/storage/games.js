@@ -3,7 +3,7 @@ import { eq, and, or, desc } from 'sdk/db';
 import { games, moves } from '../../schema.js';
 import { parseTimeControl } from '../core/validation.js';
 import { INITIAL_FEN } from '../core/chess.js';
-import { INITIAL_CHECKERS_STATE } from '../core/checkers.js';
+import { INITIAL_CHECKERS_STATE, INITIAL_CHECKERS_8_STATE } from '../core/checkers.js';
 
 function generateGameId() {
   const rand = typeof crypto !== 'undefined' && crypto.randomUUID
@@ -16,21 +16,28 @@ export async function createGame({
   gameType,
   timeControl,
   whiteId,
-  blackId,
-  customId = null
+  blackId = null,
+  customId = null,
+  status = 'active'
 }) {
   const tc = parseTimeControl(timeControl);
   const id = customId || generateGameId();
   const now = Date.now();
-  const initialBoard = gameType === 'chess' ? INITIAL_FEN : INITIAL_CHECKERS_STATE;
+
+  let initialBoard = INITIAL_FEN;
+  if (gameType === 'checkers8') {
+    initialBoard = INITIAL_CHECKERS_8_STATE;
+  } else if (gameType === 'checkers') {
+    initialBoard = INITIAL_CHECKERS_STATE;
+  }
 
   const newGame = {
     id,
     gameType,
     timeControl,
     whiteId: Number(whiteId),
-    blackId: Number(blackId),
-    status: 'active',
+    blackId: blackId !== null ? Number(blackId) : null,
+    status: blackId === null ? 'waiting' : status,
     currentTurn: 'white',
     boardState: initialBoard,
     history: JSON.stringify([]),

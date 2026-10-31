@@ -25,25 +25,34 @@ export default async function (input, ctx) {
   if (action === 'stats') {
     const chessTotal = (dbUser.chessWins || 0) + (dbUser.chessLosses || 0) + (dbUser.chessDraws || 0);
     const checkersTotal = (dbUser.checkersWins || 0) + (dbUser.checkersLosses || 0) + (dbUser.checkersDraws || 0);
+    const checkers8Total = (dbUser.checkers8Wins || 0) + (dbUser.checkers8Losses || 0) + (dbUser.checkers8Draws || 0);
 
     return {
       success: true,
       stats: {
         chess: {
-          elo: dbUser.chessElo,
-          wins: dbUser.chessWins,
-          losses: dbUser.chessLosses,
-          draws: dbUser.chessDraws,
+          elo: dbUser.chessElo || 1200,
+          wins: dbUser.chessWins || 0,
+          losses: dbUser.chessLosses || 0,
+          draws: dbUser.chessDraws || 0,
           total: chessTotal,
           winRate: chessTotal > 0 ? Math.round((dbUser.chessWins / chessTotal) * 100) : 0
         },
         checkers: {
-          elo: dbUser.checkersElo,
-          wins: dbUser.checkersWins,
-          losses: dbUser.checkersLosses,
-          draws: dbUser.checkersDraws,
+          elo: dbUser.checkersElo || 1200,
+          wins: dbUser.checkersWins || 0,
+          losses: dbUser.checkersLosses || 0,
+          draws: dbUser.checkersDraws || 0,
           total: checkersTotal,
           winRate: checkersTotal > 0 ? Math.round((dbUser.checkersWins / checkersTotal) * 100) : 0
+        },
+        checkers8: {
+          elo: dbUser.checkers8Elo || dbUser.checkersElo || 1200,
+          wins: dbUser.checkers8Wins || 0,
+          losses: dbUser.checkers8Losses || 0,
+          draws: dbUser.checkers8Draws || 0,
+          total: checkers8Total,
+          winRate: checkers8Total > 0 ? Math.round((dbUser.checkers8Wins / checkers8Total) * 100) : 0
         }
       }
     };

@@ -14,11 +14,24 @@ import { CheckersGame } from '../core/checkers.js';
 import { calculateNewRatings } from '../core/elo.js';
 import { parseTimeControl } from '../core/validation.js';
 
-/**
- * Recalculate clocks based on server timestamps and check for flag falls (timeouts)
- * @param {Object} game
- * @returns {Promise<Object>} Updated game
- */
+function getPlayerElo(user, gameType) {
+  if (!user) return 1200;
+  if (gameType === 'checkers8') return user.checkers8Elo || user.checkersElo || 1200;
+  if (gameType === 'checkers') return user.checkersElo || 1200;
+  return user.chessElo || 1200;
+}
+
+function getPlayerTotalGames(user, gameType) {
+  if (!user) return 0;
+  if (gameType === 'checkers8') {
+    return (user.checkers8Wins || 0) + (user.checkers8Losses || 0) + (user.checkers8Draws || 0);
+  }
+  if (gameType === 'checkers') {
+    return (user.checkersWins || 0) + (user.checkersLosses || 0) + (user.checkersDraws || 0);
+  }
+  return (user.chessWins || 0) + (user.chessLosses || 0) + (user.chessDraws || 0);
+}
+
 export async function syncGameClocks(game) {
   if (game.status !== 'active') return game;
 
@@ -31,7 +44,6 @@ export async function syncGameClocks(game) {
   if (game.currentTurn === 'white') {
     whiteTime -= elapsed;
     if (whiteTime <= 0) {
-      // White timed out!
       whiteTime = 0;
       return await finishGame({
         game,
@@ -44,7 +56,6 @@ export async function syncGameClocks(game) {
   } else {
     blackTime -= elapsed;
     if (blackTime <= 0) {
-      // Black timed out!
       blackTime = 0;
       return await finishGame({
         game,
@@ -63,9 +74,6 @@ export async function syncGameClocks(game) {
   };
 }
 
-/**
- * Handle game completion: calculate and persist ELO changes
- */
 export async function finishGame({
   game,
   winner,
@@ -74,22 +82,17 @@ export async function finishGame({
   finalBlackTime = game.blackTimeMs
 }) {
   if (game.status === 'completed') {
-    return game; // Prevent duplicate completion
+    return game;
   }
 
   const whiteUser = await getUserById(game.whiteId);
   const blackUser = await getUserById(game.blackId);
 
-  const whiteRating = game.gameType === 'chess' ? (whiteUser?.chessElo || 1000) : (whiteUser?.checkersElo || 1000);
-  const blackRating = game.gameType === 'chess' ? (blackUser?.chessElo || 1000) : (blackUser?.checkersElo || 1000);
+  const whiteRating = getPlayerElo(whiteUser, game.gameType);
+  const blackRating = getPlayerElo(blackUser, game.gameType);
 
-  const whiteGames = game.gameType === 'chess'
-    ? ((whiteUser?.chessWins || 0) + (whiteUser?.chessLosses || 0) + (whiteUser?.chessDraws || 0))
-    : ((whiteUser?.checkersWins || 0) + (whiteUser?.checkersLosses || 0) + (whiteUser?.checkersDraws || 0));
-
-  const blackGames = game.gameType === 'chess'
-    ? ((blackUser?.chessWins || 0) + (blackUser?.chessLosses || 0) + (blackUser?.chessDraws || 0))
-    : ((blackUser?.checkersWins || 0) + (blackUser?.checkersLosses || 0) + (blackUser?.checkersDraws || 0));
+  const whiteGames = getPlayerTotalGames(whiteUser, game.gameType);
+  const blackGames = getPlayerTotalGames(blackUser, game.gameType);
 
   const eloResult = calculateNewRatings({
     whiteRating,
@@ -99,20 +102,31 @@ export async function finishGame({
     blackGames
   });
 
-  // Update user stats and ELO ratings
   await updateUserStats(game.whiteId, {
     gameType: game.gameType,
     result: winner === 'white' ? 'win' : (winner === 'black' ? 'loss' : 'draw'),
     newRating: eloResult.white.newRating
   });
 
-  await updateUserStats(game.blackId, {
-    gameType: game.gameType,
-    result: winner === 'black' ? 'win' : (winner === 'white' ? 'loss' : 'draw'),
-    newRating: eloResult.black.newRating
-  });
+  if (game.blackId) {
+    await updateUserStats(game.blackId, {
+      gameType: game.gameType,
+      result: winner === 'black' ? 'win' : (winner === 'white' ? 'loss' : 'draw'),
+      newRating: eloResult.black.newRating
+    });
 
-  // Record rating histories
+    await recordRatingHistory({
+      userId: game.blackId,
+      gameType: game.gameType,
+      gameId: game.id,
+      oldRating: eloResult.black.oldRating,
+      newRating: eloResult.black.newRating,
+      change: eloResult.black.change,
+      result: winner === 'black' ? 'win' : (winner === 'white' ? 'loss' : 'draw'),
+      opponentId: game.whiteId
+    });
+  }
+
   await recordRatingHistory({
     userId: game.whiteId,
     gameType: game.gameType,
@@ -121,21 +135,9 @@ export async function finishGame({
     newRating: eloResult.white.newRating,
     change: eloResult.white.change,
     result: winner === 'white' ? 'win' : (winner === 'black' ? 'loss' : 'draw'),
-    opponentId: game.blackId
+    opponentId: game.blackId || 0
   });
 
-  await recordRatingHistory({
-    userId: game.blackId,
-    gameType: game.gameType,
-    gameId: game.id,
-    oldRating: eloResult.black.oldRating,
-    newRating: eloResult.black.newRating,
-    change: eloResult.black.change,
-    result: winner === 'black' ? 'win' : (winner === 'white' ? 'loss' : 'draw'),
-    opponentId: game.whiteId
-  });
-
-  // Update game row in database
   const updated = await updateGame(game.id, {
     status: 'completed',
     winner,
@@ -152,21 +154,18 @@ export async function finishGame({
   };
 }
 
-/**
- * GET /api/game/:id handler
- */
-export async function handleGetGame(gameId, requestingUserId) {
+export async function handleGetGame(gameId) {
   let game = await getGameById(gameId);
   if (!game) {
     return { error: 'Game not found', status: 404 };
   }
 
-  // Update clock state & flag falls
-  game = await syncGameClocks(game);
+  if (game.status === 'active') {
+    game = await syncGameClocks(game);
+  }
 
-  // Fetch player profiles
   const whiteUser = await getUserById(game.whiteId);
-  const blackUser = await getUserById(game.blackId);
+  const blackUser = game.blackId ? await getUserById(game.blackId) : null;
   const moves = await getGameMoves(game.id);
 
   return {
@@ -178,23 +177,20 @@ export async function handleGetGame(gameId, requestingUserId) {
         username: whiteUser?.username,
         firstName: whiteUser?.firstName,
         photoUrl: whiteUser?.photoUrl,
-        elo: game.gameType === 'chess' ? whiteUser?.chessElo : whiteUser?.checkersElo
+        elo: getPlayerElo(whiteUser, game.gameType)
       },
-      blackPlayer: {
+      blackPlayer: blackUser ? {
         id: blackUser?.id,
         username: blackUser?.username,
         firstName: blackUser?.firstName,
         photoUrl: blackUser?.photoUrl,
-        elo: game.gameType === 'chess' ? blackUser?.chessElo : blackUser?.checkersElo
-      },
+        elo: getPlayerElo(blackUser, game.gameType)
+      } : null,
       moves
     }
   };
 }
 
-/**
- * POST /api/game/:id/move handler
- */
 export async function handleMakeMove(gameId, userId, { move, clientVersion }) {
   let game = await getGameById(gameId);
   if (!game) {
@@ -205,12 +201,10 @@ export async function handleMakeMove(gameId, userId, { move, clientVersion }) {
     return { error: 'Game is already completed', status: 400 };
   }
 
-  // Version check (concurrency protection)
   if (clientVersion !== undefined && clientVersion !== null && clientVersion !== game.version) {
     return { error: 'Game state version mismatch. Please reload.', status: 409 };
   }
 
-  // Verify player identity and turn
   const isWhite = Number(userId) === game.whiteId;
   const isBlack = Number(userId) === game.blackId;
 
@@ -223,7 +217,6 @@ export async function handleMakeMove(gameId, userId, { move, clientVersion }) {
     return { error: 'It is not your turn', status: 400 };
   }
 
-  // Authoritative server clock calculation
   const now = Date.now();
   const elapsed = Math.max(0, now - game.lastMoveTimestamp);
   const tc = parseTimeControl(game.timeControl);
@@ -245,14 +238,13 @@ export async function handleMakeMove(gameId, userId, { move, clientVersion }) {
     newBlackTime += tc.incrementMs;
   }
 
-  // Execute move via authoritative game engine
   let engineResult;
   try {
     if (game.gameType === 'chess') {
       const chess = new ChessGame(game.boardState);
       engineResult = chess.makeMove(move);
-    } else if (game.gameType === 'checkers') {
-      const checkers = new CheckersGame(game.boardState, isWhite ? 'w' : 'b');
+    } else if (game.gameType === 'checkers' || game.gameType === 'checkers8') {
+      const checkers = new CheckersGame(game.boardState, isWhite ? 'w' : 'b', game.gameType === 'checkers8' ? 8 : 10);
       engineResult = checkers.makeMove(move);
     } else {
       return { error: 'Unsupported game type', status: 400 };
@@ -261,7 +253,6 @@ export async function handleMakeMove(gameId, userId, { move, clientVersion }) {
     return { error: err.message, status: 400 };
   }
 
-  // Append move history
   const parsedHistory = JSON.parse(game.history || '[]');
   parsedHistory.push({
     player: game.currentTurn,
@@ -273,7 +264,6 @@ export async function handleMakeMove(gameId, userId, { move, clientVersion }) {
   const nextVersion = (game.version || 0) + 1;
   const nextBoardState = engineResult.fen || engineResult.state;
 
-  // Record move in moves table
   await recordMove({
     gameId: game.id,
     moveNumber: parsedHistory.length,
@@ -283,7 +273,6 @@ export async function handleMakeMove(gameId, userId, { move, clientVersion }) {
     timeSpentMs: elapsed
   });
 
-  // Check if game reached end state according to engine
   if (engineResult.gameOver) {
     const updated = await updateGame(game.id, {
       boardState: nextBoardState,
@@ -304,7 +293,6 @@ export async function handleMakeMove(gameId, userId, { move, clientVersion }) {
     });
   }
 
-  // Continue active game
   const updated = await updateGame(game.id, {
     boardState: nextBoardState,
     currentTurn: nextTurn,
@@ -313,7 +301,7 @@ export async function handleMakeMove(gameId, userId, { move, clientVersion }) {
     whiteTimeMs: newWhiteTime,
     blackTimeMs: newBlackTime,
     lastMoveTimestamp: now,
-    drawOfferedBy: null // Clear pending draw offer upon move
+    drawOfferedBy: null
   });
 
   return {
@@ -323,9 +311,47 @@ export async function handleMakeMove(gameId, userId, { move, clientVersion }) {
   };
 }
 
-/**
- * POST /api/game/:id/resign handler
- */
+export async function handleCreateInvite(userId, { gameType = 'chess', timeControl = '5+0' }) {
+  const game = await createGame({
+    gameType,
+    timeControl,
+    whiteId: Number(userId),
+    blackId: null,
+    status: 'waiting'
+  });
+
+  return {
+    success: true,
+    gameId: game.id,
+    game
+  };
+}
+
+export async function handleAcceptInvite(gameId, userId) {
+  const game = await getGameById(gameId);
+  if (!game) {
+    return { error: 'O‘yin topilmadi', status: 404 };
+  }
+  if (game.status !== 'waiting') {
+    return { error: 'O‘yin allaqachon boshlangan yoki yakunlangan', status: 400 };
+  }
+  if (Number(game.whiteId) === Number(userId)) {
+    return { error: 'O‘z taklifingizni qabul qila olmaysiz', status: 400 };
+  }
+
+  const updated = await updateGame(game.id, {
+    blackId: Number(userId),
+    status: 'active',
+    lastMoveTimestamp: Date.now()
+  });
+
+  return {
+    success: true,
+    message: 'Taklif qabul qilindi, o‘yin boshlandi!',
+    game: updated
+  };
+}
+
 export async function handleResign(gameId, userId) {
   const game = await getGameById(gameId);
   if (!game) return { error: 'Game not found', status: 404 };
@@ -345,9 +371,6 @@ export async function handleResign(gameId, userId) {
   return { success: true, game: completedGame };
 }
 
-/**
- * POST /api/game/:id/draw handler
- */
 export async function handleDrawAction(gameId, userId, { action }) {
   const game = await getGameById(gameId);
   if (!game) return { error: 'Game not found', status: 404 };
@@ -385,9 +408,6 @@ export async function handleDrawAction(gameId, userId, { action }) {
   return { error: 'Invalid draw action', status: 400 };
 }
 
-/**
- * POST /api/game/:id/rematch handler
- */
 export async function handleRematchAction(gameId, userId, { action }) {
   const game = await getGameById(gameId);
   if (!game) return { error: 'Game not found', status: 404 };
@@ -410,7 +430,6 @@ export async function handleRematchAction(gameId, userId, { action }) {
       return { error: 'No rematch offer to accept', status: 400 };
     }
 
-    // Create rematch game with swapped colors
     const newGame = await createGame({
       gameType: game.gameType,
       timeControl: game.timeControl,

@@ -14,6 +14,24 @@ import { CheckersGame } from './core/checkers.js';
 import { calculateNewRatings } from './core/elo.js';
 import { parseTimeControl } from './core/validation.js';
 
+function getPlayerElo(user, gameType) {
+  if (!user) return 1200;
+  if (gameType === 'checkers8') return user.checkers8Elo || user.checkersElo || 1200;
+  if (gameType === 'checkers') return user.checkersElo || 1200;
+  return user.chessElo || 1200;
+}
+
+function getPlayerTotalGames(user, gameType) {
+  if (!user) return 0;
+  if (gameType === 'checkers8') {
+    return (user.checkers8Wins || 0) + (user.checkers8Losses || 0) + (user.checkers8Draws || 0);
+  }
+  if (gameType === 'checkers') {
+    return (user.checkersWins || 0) + (user.checkersLosses || 0) + (user.checkersDraws || 0);
+  }
+  return (user.chessWins || 0) + (user.chessLosses || 0) + (user.chessDraws || 0);
+}
+
 export async function syncGameClocks(game) {
   if (game.status !== 'active') return game;
 
@@ -70,16 +88,11 @@ export async function finishGame({
   const whiteUser = await getUserById(game.whiteId);
   const blackUser = await getUserById(game.blackId);
 
-  const whiteRating = game.gameType === 'chess' ? (whiteUser?.chessElo || 1200) : (whiteUser?.checkersElo || 1200);
-  const blackRating = game.gameType === 'chess' ? (blackUser?.chessElo || 1200) : (blackUser?.checkersElo || 1200);
+  const whiteRating = getPlayerElo(whiteUser, game.gameType);
+  const blackRating = getPlayerElo(blackUser, game.gameType);
 
-  const whiteGames = game.gameType === 'chess'
-    ? ((whiteUser?.chessWins || 0) + (whiteUser?.chessLosses || 0) + (whiteUser?.chessDraws || 0))
-    : ((whiteUser?.checkersWins || 0) + (whiteUser?.checkersLosses || 0) + (whiteUser?.checkersDraws || 0));
-
-  const blackGames = game.gameType === 'chess'
-    ? ((blackUser?.chessWins || 0) + (blackUser?.chessLosses || 0) + (blackUser?.chessDraws || 0))
-    : ((blackUser?.checkersWins || 0) + (blackUser?.checkersLosses || 0) + (blackUser?.checkersDraws || 0));
+  const whiteGames = getPlayerTotalGames(whiteUser, game.gameType);
+  const blackGames = getPlayerTotalGames(blackUser, game.gameType);
 
   const eloResult = calculateNewRatings({
     whiteRating,
@@ -95,11 +108,24 @@ export async function finishGame({
     newRating: eloResult.white.newRating
   });
 
-  await updateUserStats(game.blackId, {
-    gameType: game.gameType,
-    result: winner === 'black' ? 'win' : (winner === 'white' ? 'loss' : 'draw'),
-    newRating: eloResult.black.newRating
-  });
+  if (game.blackId) {
+    await updateUserStats(game.blackId, {
+      gameType: game.gameType,
+      result: winner === 'black' ? 'win' : (winner === 'white' ? 'loss' : 'draw'),
+      newRating: eloResult.black.newRating
+    });
+
+    await recordRatingHistory({
+      userId: game.blackId,
+      gameType: game.gameType,
+      gameId: game.id,
+      oldRating: eloResult.black.oldRating,
+      newRating: eloResult.black.newRating,
+      change: eloResult.black.change,
+      result: winner === 'black' ? 'win' : (winner === 'white' ? 'loss' : 'draw'),
+      opponentId: game.whiteId
+    });
+  }
 
   await recordRatingHistory({
     userId: game.whiteId,
@@ -109,18 +135,7 @@ export async function finishGame({
     newRating: eloResult.white.newRating,
     change: eloResult.white.change,
     result: winner === 'white' ? 'win' : (winner === 'black' ? 'loss' : 'draw'),
-    opponentId: game.blackId
-  });
-
-  await recordRatingHistory({
-    userId: game.blackId,
-    gameType: game.gameType,
-    gameId: game.id,
-    oldRating: eloResult.black.oldRating,
-    newRating: eloResult.black.newRating,
-    change: eloResult.black.change,
-    result: winner === 'black' ? 'win' : (winner === 'white' ? 'loss' : 'draw'),
-    opponentId: game.whiteId
+    opponentId: game.blackId || 0
   });
 
   const updated = await updateGame(game.id, {
@@ -145,10 +160,12 @@ export async function handleGetGame(gameId) {
     return { error: 'Game not found', status: 404 };
   }
 
-  game = await syncGameClocks(game);
+  if (game.status === 'active') {
+    game = await syncGameClocks(game);
+  }
 
   const whiteUser = await getUserById(game.whiteId);
-  const blackUser = await getUserById(game.blackId);
+  const blackUser = game.blackId ? await getUserById(game.blackId) : null;
   const moves = await getGameMoves(game.id);
 
   return {
@@ -160,15 +177,15 @@ export async function handleGetGame(gameId) {
         username: whiteUser?.username,
         firstName: whiteUser?.firstName,
         photoUrl: whiteUser?.photoUrl,
-        elo: game.gameType === 'chess' ? whiteUser?.chessElo : whiteUser?.checkersElo
+        elo: getPlayerElo(whiteUser, game.gameType)
       },
-      blackPlayer: {
+      blackPlayer: blackUser ? {
         id: blackUser?.id,
         username: blackUser?.username,
         firstName: blackUser?.firstName,
         photoUrl: blackUser?.photoUrl,
-        elo: game.gameType === 'chess' ? blackUser?.chessElo : blackUser?.checkersElo
-      },
+        elo: getPlayerElo(blackUser, game.gameType)
+      } : null,
       moves
     }
   };
@@ -226,8 +243,8 @@ export async function handleMakeMove(gameId, userId, { move, clientVersion }) {
     if (game.gameType === 'chess') {
       const chess = new ChessGame(game.boardState);
       engineResult = chess.makeMove(move);
-    } else if (game.gameType === 'checkers') {
-      const checkers = new CheckersGame(game.boardState, isWhite ? 'w' : 'b');
+    } else if (game.gameType === 'checkers' || game.gameType === 'checkers8') {
+      const checkers = new CheckersGame(game.boardState, isWhite ? 'w' : 'b', game.gameType === 'checkers8' ? 8 : 10);
       engineResult = checkers.makeMove(move);
     } else {
       return { error: 'Unsupported game type', status: 400 };
@@ -291,6 +308,47 @@ export async function handleMakeMove(gameId, userId, { move, clientVersion }) {
     success: true,
     game: updated,
     moveResult: engineResult
+  };
+}
+
+export async function handleCreateInvite(userId, { gameType = 'chess', timeControl = '5+0' }) {
+  const game = await createGame({
+    gameType,
+    timeControl,
+    whiteId: Number(userId),
+    blackId: null,
+    status: 'waiting'
+  });
+
+  return {
+    success: true,
+    gameId: game.id,
+    game
+  };
+}
+
+export async function handleAcceptInvite(gameId, userId) {
+  const game = await getGameById(gameId);
+  if (!game) {
+    return { error: 'O‘yin topilmadi', status: 404 };
+  }
+  if (game.status !== 'waiting') {
+    return { error: 'O‘yin allaqachon boshlangan yoki yakunlangan', status: 400 };
+  }
+  if (Number(game.whiteId) === Number(userId)) {
+    return { error: 'O‘z taklifingizni qabul qila olmaysiz', status: 400 };
+  }
+
+  const updated = await updateGame(game.id, {
+    blackId: Number(userId),
+    status: 'active',
+    lastMoveTimestamp: Date.now()
+  });
+
+  return {
+    success: true,
+    message: 'Taklif qabul qilindi, o‘yin boshlandi!',
+    game: updated
   };
 }
 

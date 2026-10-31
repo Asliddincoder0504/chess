@@ -2,7 +2,7 @@
  * Game validation constants and time control parsing for tgcloud
  */
 
-export const SUPPORTED_GAME_TYPES = ['chess', 'checkers'];
+export const SUPPORTED_GAME_TYPES = ['chess', 'checkers', 'checkers8'];
 
 export const SUPPORTED_TIME_CONTROLS = {
   '1+0': { baseSeconds: 60, incrementSeconds: 0, category: 'bullet' },

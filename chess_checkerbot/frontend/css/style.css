@@ -446,6 +446,11 @@ body {
   grid-template-rows: repeat(8, 1fr);
 }
 
+.checkers-8x8 {
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+}
+
 .checkers-10x10 {
   grid-template-columns: repeat(10, 1fr);
   grid-template-rows: repeat(10, 1fr);
@@ -498,14 +503,21 @@ body {
   pointer-events: none;
 }
 
-/* Pieces */
+/* Pieces - Large, High contrast & Tactile */
 .chess-piece, .checkers-piece {
-  width: 88%;
-  height: 88%;
+  width: 95%;
+  height: 95%;
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.45));
+  transition: transform 0.1s ease;
+}
+
+.board-cell:active .chess-piece,
+.checkers-cell:active .checkers-piece {
+  transform: scale(1.08);
 }
 
 .chess-piece svg, .checkers-piece svg {
@@ -972,3 +984,221 @@ body {
   padding: 30px 10px;
   font-size: 0.9rem;
 }
+
+/* 3-column Game Mode Selector */
+.game-selector-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+@media (max-width: 380px) {
+  .game-selector-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Home action buttons */
+.home-actions-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.btn-outline {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+.btn-outline:hover {
+  background-color: var(--bg-elevated);
+  border-color: var(--primary-gold);
+}
+
+/* Profile Tier & Tabs */
+.profile-tier-badge {
+  display: inline-block;
+  background-color: rgba(229, 183, 59, 0.15);
+  color: var(--primary-gold);
+  border: 1px solid rgba(229, 183, 59, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 3px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-top: 5px;
+}
+
+.profile-stats-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 12px 0 8px;
+}
+
+.profile-tab {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.profile-tab.active {
+  background-color: rgba(229, 183, 59, 0.14);
+  border-color: var(--primary-gold);
+  color: var(--primary-gold);
+}
+
+.winrate-bar-container {
+  width: 100%;
+  height: 6px;
+  background-color: var(--border-color);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.winrate-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38b000 0%, #70e000 100%);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+/* Invite Modal */
+.invite-modal-controls {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.modal-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.modal-select {
+  width: 100%;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.invite-link-wrapper {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+
+.invite-link-field {
+  flex: 1;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  outline: none;
+}
+
+.tg-share-btn {
+  background-color: #229ED9 !important;
+  color: white !important;
+}
+
+.invite-waiting-msg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--primary-gold);
+  margin-top: 10px;
+}
+
+.loader-spinner-sm {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(229, 183, 59, 0.2);
+  border-top-color: var(--primary-gold);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Admin active games & users */
+.admin-games-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-game-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-game-meta {
+  font-size: 0.85rem;
+}
+
+.btn-danger {
+  background-color: var(--accent-red);
+  color: white;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+}
+
+/* Match History Card */
+.history-match-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.history-outcome-badge {
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.history-outcome-badge.win {
+  background-color: rgba(56, 176, 0, 0.16);
+  color: #70e000;
+}
+
+.history-outcome-badge.loss {
+  background-color: rgba(217, 4, 41, 0.16);
+  color: #ff4d6d;
+}
+
+.history-outcome-badge.draw {
+  background-color: rgba(139, 146, 165, 0.16);
+  color: var(--text-muted);
+}
+

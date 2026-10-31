@@ -10,6 +10,12 @@ export class MatchmakingController {
     this.timeControl = '3+2';
   }
 
+  formatGameType(type) {
+    if (type === 'checkers8') return 'SHASHKA 8x8 (12 tosh)';
+    if (type === 'checkers') return 'SHASHKA 10x10 (20 tosh)';
+    return 'SHAXMAT (8x8 FIDE)';
+  }
+
   async startSearch(gameType, timeControl) {
     this.gameType = gameType;
     this.timeControl = timeControl;
@@ -17,9 +23,9 @@ export class MatchmakingController {
 
     this.app.navigate('matchmaking');
 
-    document.getElementById('mm-game-type').textContent = gameType.toUpperCase();
+    document.getElementById('mm-game-type').textContent = this.formatGameType(gameType);
     document.getElementById('mm-time-control').textContent = timeControl;
-    document.getElementById('mm-status-text').textContent = 'Searching for an opponent...';
+    document.getElementById('mm-status-text').textContent = 'Mos raqib qidirilmoqda...';
     document.getElementById('mm-elapsed-timer').textContent = '00:00';
 
     this.startElapsedTimer();
@@ -33,7 +39,7 @@ export class MatchmakingController {
 
       this.startStatusPolling();
     } catch (err) {
-      this.app.showToast(`Matchmaking error: ${err.message}`, 'error');
+      this.app.showToast(`Qidiruv xatosi: ${err.message}`, 'error');
       this.cancel();
     }
   }
@@ -68,12 +74,12 @@ export class MatchmakingController {
           return;
         }
 
-        if (res.status === 'searching') {
+        if (res.status === 'waiting' || res.status === 'searching') {
           const rangeEl = document.getElementById('mm-elo-range');
           if (rangeEl && res.userElo !== undefined && res.allowedTolerance !== undefined) {
             const minElo = Math.max(100, res.userElo - res.allowedTolerance);
             const maxElo = res.userElo + res.allowedTolerance;
-            rangeEl.textContent = `ELO Range: ${minElo} - ${maxElo} (±${res.allowedTolerance})`;
+            rangeEl.textContent = `ELO oralig‘i: ${minElo} - ${maxElo} (±${res.allowedTolerance})`;
           }
         }
       } catch (err) {
@@ -97,20 +103,23 @@ export class MatchmakingController {
     this.stopElapsedTimer();
     this.stopStatusPolling();
 
-    document.getElementById('mm-status-text').textContent = 'Match Found! Launching board...';
+    document.getElementById('mm-status-text').textContent = 'Raqib topildi! O‘yinga ulanmoqda...';
+
     setTimeout(() => {
       this.app.launchGame(gameId);
-    }, 800);
+    }, 1000);
   }
 
   async cancel() {
     this.stopElapsedTimer();
     this.stopStatusPolling();
+
     try {
       await api.cancelMatchmaking();
     } catch {
-      // Ignore
+      // Ignore cancel error
     }
+
     this.app.navigate('home');
   }
 }

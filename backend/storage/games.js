@@ -3,27 +3,34 @@ import { db, eq, and, or, desc } from './index.js';
 import { games, moves } from '../../schema.js';
 import { parseTimeControl } from '../core/validation.js';
 import { INITIAL_FEN } from '../core/chess.js';
-import { INITIAL_CHECKERS_STATE } from '../core/checkers.js';
+import { INITIAL_CHECKERS_STATE, INITIAL_CHECKERS_8_STATE } from '../core/checkers.js';
 
 export async function createGame({
   gameType,
   timeControl,
   whiteId,
-  blackId,
-  customId = null
+  blackId = null,
+  customId = null,
+  status = 'active'
 }) {
   const tc = parseTimeControl(timeControl);
   const id = customId || `game_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
   const now = Date.now();
-  const initialBoard = gameType === 'chess' ? INITIAL_FEN : INITIAL_CHECKERS_STATE;
+
+  let initialBoard = INITIAL_FEN;
+  if (gameType === 'checkers8') {
+    initialBoard = INITIAL_CHECKERS_8_STATE;
+  } else if (gameType === 'checkers') {
+    initialBoard = INITIAL_CHECKERS_STATE;
+  }
 
   const newGame = {
     id,
     gameType,
     timeControl,
     whiteId: Number(whiteId),
-    blackId: Number(blackId),
-    status: 'active',
+    blackId: blackId !== null ? Number(blackId) : null,
+    status: blackId === null ? 'waiting' : status,
     currentTurn: 'white',
     boardState: initialBoard,
     history: JSON.stringify([]),
@@ -102,17 +109,14 @@ export async function getUserActiveGame(userId) {
     ))
     .all();
 
-  return rows[0] || null;
+  return rows.length > 0 ? rows[0] : null;
 }
 
 export async function getUserGameHistory(userId, limit = 50) {
   const numId = Number(userId);
   const rows = await db.select()
     .from(games)
-    .where(and(
-      eq(games.status, 'completed'),
-      or(eq(games.whiteId, numId), eq(games.blackId, numId))
-    ))
+    .where(or(eq(games.whiteId, numId), eq(games.blackId, numId)))
     .orderBy(desc(games.createdAt))
     .limit(limit)
     .all();
@@ -124,5 +128,6 @@ export async function getAllActiveGames() {
   return await db.select()
     .from(games)
     .where(eq(games.status, 'active'))
+    .orderBy(desc(games.createdAt))
     .all();
 }

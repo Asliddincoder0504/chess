@@ -6,6 +6,16 @@ export class ProfileController {
     this.app = app;
     this.leaderboardType = 'chess';
     this.leaderboardData = [];
+    this.profileStats = null;
+    this.activeProfileGame = 'chess';
+  }
+
+  getTierName(elo) {
+    if (elo >= 1800) return '🏆 Grossmeyster';
+    if (elo >= 1600) return '🎖️ Usta (Master)';
+    if (elo >= 1400) return '⭐ Usta nomzodi';
+    if (elo >= 1200) return '🥈 Havaskor';
+    return '🥉 Boshlovchi';
   }
 
   async renderProfile() {
@@ -13,26 +23,41 @@ export class ProfileController {
       const res = await api.getProfileStats();
       if (!res.success) throw new Error(res.error);
 
-      const stats = res.stats;
+      this.profileStats = res.stats;
       const user = this.app.currentUser;
 
-      document.getElementById('profile-name').textContent = `${user.firstName || 'Player'} ${user.lastName || ''}`;
+      document.getElementById('profile-name').textContent = `${user.firstName || 'O‘yinchi'} ${user.lastName || ''}`;
       document.getElementById('profile-username').textContent = user.username ? `@${user.username}` : `ID: ${user.id}`;
 
-      // Chess stats
-      document.getElementById('profile-chess-elo').textContent = stats.chess.elo || 1000;
-      document.getElementById('profile-chess-matches').textContent = stats.chess.total;
-      document.getElementById('profile-chess-record').textContent = `${stats.chess.wins}W / ${stats.chess.losses}L / ${stats.chess.draws}D`;
-      document.getElementById('profile-chess-winrate').textContent = `${stats.chess.winRate}%`;
+      const highestElo = Math.max(
+        this.profileStats.chess?.elo || 1200,
+        this.profileStats.checkers8?.elo || 1200,
+        this.profileStats.checkers?.elo || 1200
+      );
+      document.getElementById('profile-tier').textContent = this.getTierName(highestElo);
 
-      // Checkers stats
-      document.getElementById('profile-checkers-elo').textContent = stats.checkers.elo || 1000;
-      document.getElementById('profile-checkers-matches').textContent = stats.checkers.total;
-      document.getElementById('profile-checkers-record').textContent = `${stats.checkers.wins}W / ${stats.checkers.losses}L / ${stats.checkers.draws}D`;
-      document.getElementById('profile-checkers-winrate').textContent = `${stats.checkers.winRate}%`;
+      this.updateProfileStatCard(this.activeProfileGame);
     } catch (err) {
       console.warn('[Profile Render Error]:', err.message);
     }
+  }
+
+  updateProfileStatCard(gameType) {
+    this.activeProfileGame = gameType;
+    if (!this.profileStats) return;
+
+    const stat = this.profileStats[gameType] || { elo: 1200, wins: 0, losses: 0, draws: 0, total: 0, winRate: 0 };
+    document.getElementById('stat-active-elo').textContent = stat.elo || 1200;
+    document.getElementById('stat-active-winrate').textContent = `${stat.winRate || 0}%`;
+    document.getElementById('stat-active-matches').textContent = stat.total || 0;
+    document.getElementById('stat-active-record').textContent = `${stat.wins || 0}G' / ${stat.losses || 0}M / ${stat.draws || 0}D`;
+
+    const barEl = document.getElementById('stat-active-bar');
+    if (barEl) barEl.style.width = `${stat.winRate || 0}%`;
+
+    document.querySelectorAll('.profile-tab').forEach(tab => {
+      tab.classList.toggle('active', tab.dataset.profileGame === gameType);
+    });
   }
 
   async renderLeaderboard(gameType = 'chess') {
@@ -45,7 +70,7 @@ export class ProfileController {
       this.leaderboardData = res.leaderboard || [];
       this.filterLeaderboard('');
     } catch (err) {
-      listEl.innerHTML = `<div class="empty-state">Failed to load leaderboard: ${err.message}</div>`;
+      listEl.innerHTML = `<div class="empty-state">Reytingni yuklab bo‘lmadi: ${err.message}</div>`;
     }
   }
 
@@ -55,16 +80,17 @@ export class ProfileController {
 
     const filtered = this.leaderboardData.filter(p =>
       (p.firstName && p.firstName.toLowerCase().includes(query)) ||
-      (p.username && p.username.toLowerCase().includes(query))
+      (p.username && p.username.toLowerCase().includes(query)) ||
+      String(p.id).includes(query)
     );
 
     if (filtered.length === 0) {
-      listEl.innerHTML = '<div class="empty-state">No players found</div>';
+      listEl.innerHTML = '<div class="empty-state">O‘yinchilar topilmadi</div>';
       return;
     }
 
     listEl.innerHTML = '';
-    filtered.forEach((p, idx) => {
+    filtered.forEach(p => {
       const row = document.createElement('div');
       row.className = `leaderboard-item ${p.id === Number(this.app.currentUser.id) ? 'highlight-user' : ''}`;
 
@@ -77,17 +103,38 @@ export class ProfileController {
         <div class="lb-left">
           ${medal}
           <div class="lb-user-info">
-            <span class="lb-name">${p.firstName || 'Player'}</span>
-            <span class="lb-username">${p.username ? `@${p.username}` : ''}</span>
+            <span class="lb-name">${p.firstName || 'O‘yinchi'}</span>
+            <span class="lb-username">${p.username ? `@${p.username}` : `ID: ${p.id}`}</span>
           </div>
         </div>
         <div class="lb-right">
           <span class="lb-elo">${p.elo} ELO</span>
-          <span class="lb-record">${p.wins}W / ${p.losses}L (${p.winRate}%)</span>
+          <span class="lb-record">${p.wins}G' / ${p.losses}M (${p.winRate}%)</span>
         </div>
       `;
       listEl.appendChild(row);
     });
+  }
+
+  formatWinReason(reason) {
+    switch (reason) {
+      case 'checkmate': return 'Mot qilish orqali';
+      case 'timeout': return 'Vaqt tugashi orqali';
+      case 'resignation': return 'Raqib taslim bo‘ldi';
+      case 'draw_agreement': return 'Kelishuvga ko‘ra';
+      case 'stalemate': return 'Pat (durang)';
+      case 'insufficient_material': return 'Yetarsiz toshlar';
+      case 'elimination': return 'Toshlar yutildi';
+      case 'blocked': return 'Yurish yo‘li to‘silgan';
+      case 'admin_intervention': return 'Admin tomonidan bekor qilindi';
+      default: return reason || 'O‘yin tugadi';
+    }
+  }
+
+  formatGameType(type) {
+    if (type === 'checkers8') return '🔴 Shashka 8x8';
+    if (type === 'checkers') return '⚪ Shashka 10x10';
+    return '♟️ Shaxmat';
   }
 
   async renderHistory() {
@@ -99,7 +146,7 @@ export class ProfileController {
       const history = res.history || [];
 
       if (history.length === 0) {
-        listEl.innerHTML = '<div class="empty-state">No past matches found. Play your first game!</div>';
+        listEl.innerHTML = '<div class="empty-state">Hali o‘yinlar o‘tkazilmagan. Birinchi o‘yinni boshlang!</div>';
         return;
       }
 
@@ -110,11 +157,11 @@ export class ProfileController {
         const isDraw = g.winner === 'draw';
 
         const outcomeClass = isWinner ? 'win' : isDraw ? 'draw' : 'loss';
-        const outcomeText = isWinner ? 'Victory' : isDraw ? 'Draw' : 'Defeat';
+        const outcomeText = isWinner ? 'G‘alaba' : isDraw ? 'Durang' : 'Mag‘lubiyat';
 
         const change = isWhite ? g.whiteRatingChange : g.blackRatingChange;
         const changeStr = change > 0 ? `+${change}` : `${change}`;
-        const dateStr = new Date(g.createdAt * 1000).toLocaleDateString(undefined, {
+        const dateStr = new Date(g.createdAt * 1000).toLocaleDateString('uz-UZ', {
           month: 'short',
           day: 'numeric',
           hour: '2-digit',
@@ -122,30 +169,33 @@ export class ProfileController {
         });
 
         const card = document.createElement('div');
-        card.className = `history-card ${outcomeClass}`;
+        card.className = `history-match-card`;
         card.innerHTML = `
-          <div class="hist-header">
-            <span class="hist-game">${g.gameType.toUpperCase()} (${g.timeControl})</span>
-            <span class="hist-date">${dateStr}</span>
+          <div>
+            <div style="font-weight: 700; font-size: 0.9rem;">${this.formatGameType(g.gameType)} (${g.timeControl})</div>
+            <div class="text-muted" style="font-size: 0.78rem;">${this.formatWinReason(g.winReason)} • ${dateStr}</div>
           </div>
-          <div class="hist-body">
-            <div class="hist-outcome ${outcomeClass}">${outcomeText}</div>
-            <div class="hist-reason">by ${g.winReason}</div>
-            <div class="hist-rating ${change >= 0 ? 'pos' : 'neg'}">${changeStr} ELO</div>
+          <div style="text-align: right;">
+            <span class="history-outcome-badge ${outcomeClass}">${outcomeText}</span>
+            <div style="font-size: 0.82rem; font-weight: 700; color: ${change >= 0 ? '#70e000' : '#ff4d6d'}; margin-top: 3px;">
+              ${changeStr} ELO
+            </div>
           </div>
         `;
         listEl.appendChild(card);
       });
     } catch (err) {
-      listEl.innerHTML = `<div class="empty-state">Failed to load history: ${err.message}</div>`;
+      listEl.innerHTML = `<div class="empty-state">Tarixni yuklab bo‘lmadi: ${err.message}</div>`;
     }
   }
 
-  async renderAdmin() {
+  async renderAdmin(query = '') {
     const statsContainer = document.getElementById('admin-stats-container');
+    const gamesContainer = document.getElementById('admin-active-games-list');
     const usersContainer = document.getElementById('admin-users-list');
 
     statsContainer.innerHTML = '<div class="loader-spinner"></div>';
+    if (gamesContainer) gamesContainer.innerHTML = '';
     usersContainer.innerHTML = '';
 
     try {
@@ -156,50 +206,96 @@ export class ProfileController {
       statsContainer.innerHTML = `
         <div class="admin-stat-card">
           <div class="stat-num">${stats.totalUsers}</div>
-          <div class="stat-label">Total Users</div>
+          <div class="stat-label">Jami o‘yinchilar</div>
         </div>
         <div class="admin-stat-card">
           <div class="stat-num">${stats.activeGamesCount}</div>
-          <div class="stat-label">Active Games</div>
+          <div class="stat-label">Faol o‘yinlar</div>
         </div>
         <div class="admin-stat-card">
           <div class="stat-num">${stats.matchmakingQueue?.totalWaiting || 0}</div>
-          <div class="stat-label">In Queue</div>
+          <div class="stat-label">Navbatdagilar</div>
         </div>
         <div class="admin-stat-card">
           <div class="stat-num">${stats.bannedUsers}</div>
-          <div class="stat-label">Banned Users</div>
+          <div class="stat-label">Bloklanganlar</div>
         </div>
       `;
 
-      const usersRes = await api.getAdminUsers();
+      // Render active games
+      if (gamesContainer) {
+        const gamesRes = await api.getAdminActiveGames();
+        const activeGames = gamesRes.games || [];
+        if (activeGames.length === 0) {
+          gamesContainer.innerHTML = '<div class="empty-state" style="padding: 10px;">Hozirda jonli o‘yinlar yo‘q</div>';
+        } else {
+          gamesContainer.innerHTML = '';
+          activeGames.forEach(g => {
+            const card = document.createElement('div');
+            card.className = 'admin-game-card';
+            card.innerHTML = `
+              <div class="admin-game-meta">
+                <b>${this.formatGameType(g.gameType)}</b> (${g.timeControl})<br>
+                Oqlar: ID ${g.whiteId} vs Qoralar: ID ${g.blackId || 'Kutilmoqda'}
+              </div>
+              <button class="btn-danger btn-small" data-abort-id="${g.id}">To‘xtatish</button>
+            `;
+            card.querySelector('[data-abort-id]').addEventListener('click', async () => {
+              if (confirm('Ushbu o‘yinni to‘xtatishni tasdiqlaysizmi?')) {
+                await api.abortAdminGame(g.id);
+                this.renderAdmin(query);
+              }
+            });
+            gamesContainer.appendChild(card);
+          });
+        }
+      }
+
+      // Render users
+      const usersRes = await api.getAdminUsers(query);
       const users = usersRes.users || [];
 
       usersContainer.innerHTML = '';
+      if (users.length === 0) {
+        usersContainer.innerHTML = '<div class="empty-state">Foydalanuvchi topilmadi</div>';
+        return;
+      }
+
       users.forEach(u => {
         const item = document.createElement('div');
         item.className = 'admin-user-row';
         item.innerHTML = `
           <div class="admin-user-info">
-            <span class="name">${u.firstName || 'Player'} (@${u.username || 'n/a'})</span>
-            <span class="meta">ID: ${u.id} | Chess: ${u.chessElo} | Checkers: ${u.checkersElo}</span>
+            <span class="name">${u.firstName || 'O‘yinchi'} (@${u.username || 'n/a'})</span>
+            <span class="meta">ID: ${u.id} | Shaxmat: ${u.chessElo} | Shashka 8x8: ${u.checkers8Elo || u.checkersElo} | Shashka 10x10: ${u.checkersElo}</span>
           </div>
-          <button class="ban-btn ${u.isBanned ? 'unban' : 'ban'}" data-userid="${u.id}" data-banned="${u.isBanned}">
-            ${u.isBanned ? 'Unban' : 'Ban'}
-          </button>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn-small btn-secondary reset-elo-btn" data-userid="${u.id}">Tiklash</button>
+            <button class="ban-btn ${u.isBanned ? 'unban' : 'ban'}" data-userid="${u.id}" data-banned="${u.isBanned}">
+              ${u.isBanned ? 'Ochish' : 'Bloklash'}
+            </button>
+          </div>
         `;
 
         item.querySelector('.ban-btn').addEventListener('click', async e => {
           const userId = Number(e.target.dataset.userid);
           const isCurrentlyBanned = Number(e.target.dataset.banned) === 1;
           await api.setAdminUserBan(userId, !isCurrentlyBanned);
-          this.renderAdmin();
+          this.renderAdmin(query);
+        });
+
+        item.querySelector('.reset-elo-btn').addEventListener('click', async e => {
+          const userId = Number(e.target.dataset.userid);
+          if (confirm(`ID ${userId} foydalanuvchi reytingini 1200 ga tiklamoqchimisiz?`)) {
+            await api.resetAdminRating(userId, 1200);
+            this.renderAdmin(query);
+          }
         });
 
         usersContainer.appendChild(item);
       });
     } catch (err) {
-      statsContainer.innerHTML = `<div class="empty-state">Admin access error: ${err.message}</div>`;
+      statsContainer.innerHTML = `<div class="empty-state">Admin huquqi xatosi: ${err.message}</div>`;
     }
   }
 }
