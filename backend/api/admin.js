@@ -71,3 +71,13 @@ export async function handleResetUserRating(requestingUserId, targetUserId, newR
   await updateUserRating(targetUserId, 'checkers8', newRating);
   return { success: true, rating: newRating };
 }
+
+export async function handleGetAdminMessages(requestingUserId, limit = 50) {
+  if (!isAdminUser(requestingUserId)) {
+    return { error: 'Unauthorized: Admin access required', status: 403 };
+  }
+  const { getAdminMessages } = await import('../storage/messages.js');
+  const messages = await getAdminMessages(limit);
+  return { success: true, messages };
+}
+

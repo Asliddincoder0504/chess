@@ -203,6 +203,51 @@ class ApiClient {
       return { success: true, message: 'Murojaatingiz adminlarga yetkazildi!' };
     }
 
+    if (endpoint === 'admin') {
+      if (action === 'stats') {
+        return {
+          success: true,
+          stats: {
+            totalUsers: 142,
+            bannedUsers: 0,
+            activeGamesCount: 2,
+            matchmakingQueue: { totalWaiting: 0 }
+          }
+        };
+      }
+      if (action === 'messages') {
+        return {
+          success: true,
+          messages: [
+            {
+              id: 1,
+              senderId: 1002,
+              senderName: 'Rustam Qosimov',
+              username: 'rustam_gm',
+              topic: 'Taklif',
+              message: 'Assalomu alaykum! Turnirlar bo‘limi ham qo‘shilsa juda ajoyib bo‘lar edi.',
+              createdAt: Math.floor(Date.now() / 1000) - 1800,
+              isRead: 0
+            }
+          ]
+        };
+      }
+      if (action === 'users') {
+        return {
+          success: true,
+          users: [
+            { id: 6472114736, firstName: 'Asliddin Norqobilov', username: 'asliddincoder0504', chessElo: 1350, checkers8Elo: 1320, checkersElo: 1300, isBanned: 0 },
+            { id: 8455692606, firstName: 'Hamkor O‘yinchi', username: 'chess_friend', chessElo: 1280, checkers8Elo: 1250, checkersElo: 1240, isBanned: 0 },
+            { id: 1002, firstName: 'Rustam Qosimov', username: 'rustam_gm', chessElo: 1290, checkers8Elo: 1240, checkersElo: 1210, isBanned: 0 }
+          ]
+        };
+      }
+      if (action === 'active_games') {
+        return { success: true, games: [] };
+      }
+      return { success: true };
+    }
+
     if (endpoint === 'leaderboard') {
       const gType = payload.gameType || 'chess';
       return {
@@ -580,6 +625,10 @@ class ApiClient {
 
   async setAdminUserBan(targetUserId, isBanned) {
     return this.call('admin', { action: 'ban', targetUserId, isBanned });
+  }
+
+  async getAdminMessages(limit = 50) {
+    return this.call('admin', { action: 'messages', limit });
   }
 
   // Contact Admin

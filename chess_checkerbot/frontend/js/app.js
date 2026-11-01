@@ -444,6 +444,13 @@ class WellChessApp {
       'icon-nav-history': ICONS.history,
       'icon-nav-profile': ICONS.user,
       'icon-nav-admin': ICONS.shield,
+      'icon-admin-view-title': ICONS.shield,
+      'icon-admin-refresh': ICONS.refresh,
+      'icon-admin-msg-title': ICONS.mail,
+      'icon-btn-open-rules': ICONS.book,
+      'icon-btn-open-contact': ICONS.mail,
+      'icon-btn-send-contact': ICONS.send,
+      'icon-contact-modal-title': ICONS.mail,
       'icon-theme-mode': this.currentTheme === 'light' ? ICONS.moon : ICONS.sun,
       'icon-pill-dark': ICONS.moon,
       'icon-pill-light': ICONS.sun,
@@ -984,7 +991,8 @@ class WellChessApp {
             <span class="friend-player-elo">${p.chessElo || 1200} ELO</span>
           </div>
           <button class="btn-small btn-primary friend-invite-btn" data-user-id="${p.id}" data-name="${p.firstName || 'O‘yinchi'}">
-            <span>⚔️ Taklif</span>
+            <span class="btn-inline-icon">${ICONS.challenge}</span>
+            <span>Taklif qilish</span>
           </button>
         `;
 

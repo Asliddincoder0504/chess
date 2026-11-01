@@ -1,4 +1,5 @@
 import { EndpointError, api } from 'sdk';
+import { saveAdminMessage } from '../lib/storage/messages.js';
 
 const ADMIN_IDS = ['6472114736', '8455692606'];
 
@@ -16,6 +17,19 @@ export default async function (input, ctx) {
   const fullName = `${senderName} ${senderLastName}`.trim();
   const username = user?.username ? `@${user.username}` : 'Mavjud emas';
   const userId = user?.id || input?.userId || 'Noma‘lum';
+
+  // Persist message in tgcloud database
+  try {
+    await saveAdminMessage({
+      senderId: userId,
+      senderName: fullName,
+      username: user?.username || '',
+      topic,
+      message
+    });
+  } catch (saveErr) {
+    console.error('[tgcloud saveAdminMessage error]:', saveErr.message);
+  }
 
   const timeStr = new Date().toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent' });
 

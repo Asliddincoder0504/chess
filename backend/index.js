@@ -215,6 +215,10 @@ export async function dispatchApiRequest({ method, pathname, query = {}, body = 
       await resetUserElo(body.targetUserId, body.newRating || 1200);
       return { success: true };
     }
+    if (act === 'messages') {
+      const { handleGetAdminMessages } = await import('./api/admin.js');
+      return await handleGetAdminMessages(user.id, parseInt(body.limit || query.limit, 10) || 50);
+    }
   }
 
   // CONTACT ADMIN endpoint
@@ -225,9 +229,24 @@ export async function dispatchApiRequest({ method, pathname, query = {}, body = 
       return { status: 400, error: 'Xabar matni bo‘sh bo‘lishi mumkin emas' };
     }
 
-    const { sendTelegramMessage } = await import('./bot/notifications.js');
     const senderName = `${user.firstName || 'O‘yinchi'} ${user.lastName || ''}`.trim();
     const username = user.username ? `@${user.username}` : 'Yo‘q';
+
+    // Persist message to database
+    try {
+      const { saveAdminMessage } = await import('./storage/messages.js');
+      await saveAdminMessage({
+        senderId: user.id,
+        senderName,
+        username: user.username || '',
+        topic,
+        message
+      });
+    } catch (saveErr) {
+      console.error('[contact_admin save error]:', saveErr.message);
+    }
+
+    const { sendTelegramMessage } = await import('./bot/notifications.js');
     const text = [
       `📩 *Yangi murojaat (WellChess)*\n`,
       `📌 *Mavzu:* ${topic}`,

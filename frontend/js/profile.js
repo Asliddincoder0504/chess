@@ -298,6 +298,74 @@ export class ProfileController {
         </div>
       `;
 
+      // Render incoming user contact messages
+      const messagesContainer = document.getElementById('admin-messages-list');
+      const messagesCountBadge = document.getElementById('admin-messages-count');
+      if (messagesContainer) {
+        messagesContainer.innerHTML = '<div class="loader-spinner-sm"></div>';
+        try {
+          const msgRes = await api.getAdminMessages(50);
+          const messages = msgRes.messages || [];
+          if (messagesCountBadge) {
+            messagesCountBadge.textContent = `${messages.length} ta xabar`;
+          }
+
+          if (messages.length === 0) {
+            messagesContainer.innerHTML = '<div class="empty-state" style="padding: 12px; font-size: 0.85rem;">Hozircha foydalanuvchilardan murojaatlar yo‘q</div>';
+          } else {
+            messagesContainer.innerHTML = '';
+            messages.forEach(m => {
+              const card = document.createElement('div');
+              card.className = 'admin-msg-card';
+
+              const dateStr = m.createdAt
+                ? new Date(m.createdAt * 1000).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+                : 'Yangi';
+
+              const topicColors = {
+                'Umumiy': '#64748b',
+                'Savol': '#3b82f6',
+                'Texnik muammo': '#ef4444',
+                'Taklif': '#10b981',
+                'Qoidabuzarlik': '#f59e0b'
+              };
+              const badgeColor = topicColors[m.topic] || '#6366f1';
+
+              const replyUrl = m.username
+                ? `https://t.me/${m.username.replace(/^@/, '')}`
+                : (m.senderId ? `tg://user?id=${m.senderId}` : null);
+
+              card.innerHTML = `
+                <div class="admin-msg-top">
+                  <div class="admin-msg-sender-meta">
+                    <span class="admin-msg-sender-name">${escapeHtml(m.senderName || 'O‘yinchi')}</span>
+                    ${m.username ? `<span class="admin-msg-username">@${escapeHtml(m.username.replace(/^@/, ''))}</span>` : ''}
+                    <span class="admin-msg-id text-muted">(ID: ${m.senderId || 'Noma‘lum'})</span>
+                  </div>
+                  <span class="admin-msg-time text-muted">${dateStr}</span>
+                </div>
+                <div class="admin-msg-topic-row">
+                  <span class="admin-msg-topic-badge" style="background-color: ${badgeColor}22; color: ${badgeColor}; border: 1px solid ${badgeColor}44;">
+                    📌 ${escapeHtml(m.topic || 'Umumiy')}
+                  </span>
+                </div>
+                <div class="admin-msg-content">${escapeHtml(m.message || '')}</div>
+                ${replyUrl ? `
+                  <div class="admin-msg-footer">
+                    <a href="${replyUrl}" target="_blank" class="btn-small btn-reply-tg">
+                      <span>✉️ Telegramda javob berish</span>
+                    </a>
+                  </div>
+                ` : ''}
+              `;
+              messagesContainer.appendChild(card);
+            });
+          }
+        } catch (msgErr) {
+          messagesContainer.innerHTML = `<div class="empty-state">Xabarlarni yuklashda xatolik: ${msgErr.message}</div>`;
+        }
+      }
+
       // Render active games
       if (gamesContainer) {
         const gamesRes = await api.getAdminActiveGames();

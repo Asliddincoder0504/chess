@@ -14,9 +14,19 @@ try {
   sql = dbSdk.sql;
 } catch {
   // Local definition fallback for offline development & tests
+  const makeCol = (type, colName, opts = {}) => {
+    const col = {
+      _type: type,
+      _name: colName,
+      ...opts,
+      primaryKey: () => makeCol(type, colName, { ...opts, primaryKey: true }),
+      default: (val) => makeCol(type, colName, { ...opts, default: val })
+    };
+    return col;
+  };
   table = (tableName, columns) => ({ _tableName: tableName, _columns: columns, ...columns });
-  integer = (colName, opts = {}) => ({ _type: 'integer', _name: colName, ...opts, primaryKey: () => ({ _type: 'integer', _name: colName, primaryKey: true }) });
-  text = (colName, opts = {}) => ({ _type: 'text', _name: colName, ...opts, primaryKey: () => ({ _type: 'text', _name: colName, primaryKey: true }) });
+  integer = (colName, opts = {}) => makeCol('integer', colName, opts);
+  text = (colName, opts = {}) => makeCol('text', colName, opts);
   sql = (strings, ...values) => ({ _sql: strings, _values: values });
 }
 
@@ -101,3 +111,15 @@ export const ratingHistory = table('rating_history', {
   opponentId: integer('opponent_id'),
   timestamp: integer('timestamp')
 });
+
+export const adminMessages = table('admin_messages', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  senderId: integer('sender_id'),
+  senderName: text('sender_name'),
+  username: text('username'),
+  topic: text('topic'),
+  message: text('message'),
+  createdAt: integer('created_at'),
+  isRead: integer('is_read').default(0)
+});
+

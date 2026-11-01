@@ -3,6 +3,7 @@ import { isAdminUser } from '../lib/core/admin.js';
 import { getAllUsers, setUserBanStatus, getUserById } from '../lib/storage/users.js';
 import { getAllActiveGames, getGameById, updateGame } from '../lib/storage/games.js';
 import { getQueueStats } from '../lib/storage/matchmaking.js';
+import { getAdminMessages } from '../lib/storage/messages.js';
 import { db } from 'sdk';
 import { eq, sql } from 'sdk/db';
 import { users } from '../schema.js';
@@ -95,6 +96,12 @@ export default async function (input, ctx) {
     });
 
     return { success: true, message: 'O‘yin admin tomonidan bekor qilindi', game: updated };
+  }
+
+  if (action === 'messages') {
+    const limit = input.limit || 50;
+    const messages = await getAdminMessages(limit);
+    return { success: true, messages };
   }
 
   throw new EndpointError(`Unknown admin action: ${action}`, { code: 'UNKNOWN_ACTION' });

@@ -93,3 +93,17 @@ export const ratingHistory = table('rating_history', {
 }, (t) => ({
   userRatingIdx: index('idx_rating_user').on(t.userId)
 }));
+
+export const adminMessages = table('admin_messages', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  senderId: integer('sender_id'),
+  senderName: text('sender_name'),
+  username: text('username'),
+  topic: text('topic'),
+  message: text('message'),
+  createdAt: integer('created_at'),
+  isRead: integer('is_read').default(0)
+}, (t) => ({
+  senderIdx: index('idx_admin_msg_sender').on(t.senderId)
+}));
+

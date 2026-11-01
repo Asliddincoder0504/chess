@@ -151,3 +151,52 @@ test('Frontend UI: Theme Switcher and In-Game Chat drawer in HTML and CSS', () =
   assert.ok(css.includes('.chat-bubble.mine'), 'CSS must define .chat-bubble.mine styles');
   assert.ok(css.includes('.chat-bubble.opponent'), 'CSS must define .chat-bubble.opponent styles');
 });
+
+test('Admin Messages Inbox: messages are stored and viewable via /api/admin messages action', async () => {
+  const { saveAdminMessage, getAdminMessages } = await import('../backend/storage/messages.js');
+
+  // Submit test message
+  const saved = await saveAdminMessage({
+    senderId: 998877,
+    senderName: 'Umid Alimov',
+    username: 'umid_dev',
+    topic: 'Taklif',
+    message: 'Yangi turnir rejimi juda kerak!'
+  });
+
+  assert.equal(saved.senderId, 998877);
+  assert.equal(saved.topic, 'Taklif');
+
+  // Check storage retrieval
+  const list = await getAdminMessages(10);
+  assert.ok(Array.isArray(list));
+  const found = list.find(m => m.senderId === 998877);
+  assert.ok(found, 'Message must be present in getAdminMessages()');
+  assert.equal(found.message, 'Yangi turnir rejimi juda kerak!');
+
+  // Check admin endpoint dispatch
+  const adminRes = await dispatchApiRequest({
+    method: 'POST',
+    pathname: '/api/admin',
+    body: {
+      action: 'messages',
+      _testUser: { id: 6472114736 } // Admin ID
+    }
+  });
+
+  assert.equal(adminRes.success, true);
+  assert.ok(Array.isArray(adminRes.messages));
+  assert.ok(adminRes.messages.length > 0);
+});
+
+test('Frontend UI: Home showcase graphic & game overview info cards', () => {
+  const html = fs.readFileSync(path.resolve(__dirname, '../frontend/index.html'), 'utf8');
+
+  assert.ok(html.includes('class="home-showcase-card"'), 'Must have home-showcase-card');
+  assert.ok(html.includes('class="showcase-svg"'), 'Must have showcase vector illustration');
+  assert.ok(html.includes('Xalqaro Shaxmat'), 'Must have Chess overview info card');
+  assert.ok(html.includes('Klassik Shashka'), 'Must have Checkers 8x8 overview info card');
+  assert.ok(html.includes('Xalqaro Shashka'), 'Must have International Checkers overview info card');
+  assert.ok(html.includes('id="admin-messages-list"'), 'Must have admin-messages-list in Admin panel');
+});
+
