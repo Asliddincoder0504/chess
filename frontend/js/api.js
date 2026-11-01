@@ -199,6 +199,10 @@ class ApiClient {
       return { success: true, user };
     }
 
+    if (endpoint === 'contact_admin' || action === 'contact') {
+      return { success: true, message: 'Murojaatingiz adminlarga yetkazildi!' };
+    }
+
     if (endpoint === 'leaderboard') {
       const gType = payload.gameType || 'chess';
       return {
@@ -544,6 +548,11 @@ class ApiClient {
 
   async setAdminUserBan(targetUserId, isBanned) {
     return this.call('admin', { action: 'ban', targetUserId, isBanned });
+  }
+
+  // Contact Admin
+  async contactAdmin(message, topic = 'Umumiy') {
+    return this.call('contact_admin', { message, topic, user: this.tg?.initDataUnsafe?.user });
   }
 }
 

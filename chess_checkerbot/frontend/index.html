@@ -217,9 +217,9 @@
       <section id="view-profile" class="view-panel hidden">
         <div class="hero-card">
           <div class="hero-profile">
-            <div class="hero-avatar profile-avatar-box" id="icon-profile-user"></div>
+            <div class="profile-avatar-wrap" id="icon-profile-user"></div>
             <div class="hero-details">
-              <div class="profile-title-row" style="display: flex; align-items: center; gap: 6px;">
+              <div class="profile-title-row" style="display: flex; align-items: center; gap: 6px; min-width: 0; width: 100%;">
                 <h2 id="profile-name">O'yinchi</h2>
                 <span class="verified-badge" title="Tasdiqlangan">✓</span>
               </div>
@@ -308,6 +308,15 @@
             </div>
           </div>
         </div>
+
+        <div class="profile-actions-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px;">
+          <button class="btn btn-secondary" id="btn-open-rules" style="padding: 12px 10px; font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <span>📖</span> <span>O‘yin qoidalari</span>
+          </button>
+          <button class="btn btn-secondary" id="btn-open-contact-admin" style="padding: 12px 10px; font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <span>✍️</span> <span>Adminga murojaat</span>
+          </button>
+        </div>
       </section>
 
       <!-- 5. LEADERBOARD VIEW (REYTING) -->
@@ -332,7 +341,23 @@
           <input type="text" class="search-input" id="lb-search-input" placeholder="O'yinchini ism yoki username bo'yicha qidirish...">
         </div>
 
-        <div class="leaderboard-list" id="leaderboard-list"></div>
+        <div class="lb-table-wrap">
+          <table class="lb-table">
+            <thead>
+              <tr>
+                <th class="th-rank">#</th>
+                <th class="th-player">O‘yinchi</th>
+                <th class="th-games">Partiyalar</th>
+                <th class="th-winrate">G‘alaba %</th>
+                <th class="th-elo">ELO</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-tbody">
+              <!-- Dynamically populated rows -->
+            </tbody>
+          </table>
+          <div id="leaderboard-empty" class="empty-state hidden">O‘yinchilar topilmadi</div>
+        </div>
       </section>
 
       <!-- 6. HISTORY VIEW (TARIX) -->
@@ -612,6 +637,99 @@
 
         <!-- Move Notation List -->
         <div class="replay-moves-list" id="replay-moves-list"></div>
+      </div>
+    </div>
+
+    <!-- 10. Contact Admin Modal -->
+    <div class="modal-overlay hidden" id="contact-admin-modal" style="display: none;">
+      <div class="modal-dialog contact-admin-dialog">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px; margin: 0;">
+            <span>✍️</span> <span>Adminga murojaat</span>
+          </h3>
+          <button class="btn-icon-close" id="close-contact-modal-btn">✕</button>
+        </div>
+        <p class="modal-subtitle" style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">
+          Platforma bo‘yicha taklif, shikoyat yoki savolingiz bo‘lsa, to‘g‘ridan-to‘g‘ri adminlarga xabar yuborishingiz mumkin.
+        </p>
+
+        <label class="modal-label">Mavzu turi:</label>
+        <select id="contact-topic-select" class="modal-select">
+          <option value="💡 Taklif va fikrlar">💡 Taklif va fikrlar</option>
+          <option value="⚠️ Xatolik / Texnik muammo">⚠️ Xatolik / Texnik muammo</option>
+          <option value="🏆 Reyting / Profil masalasi">🏆 Reyting / Profil masalasi</option>
+          <option value="💬 Boshqa savollar">💬 Boshqa savollar</option>
+        </select>
+
+        <label class="modal-label" style="margin-top: 10px;">Xabaringiz:</label>
+        <textarea id="contact-message-input" class="modal-input" rows="4" style="resize: vertical; min-height: 90px; font-family: inherit; line-height: 1.4;" placeholder="Murojaatingiz mazmunini yozing..."></textarea>
+
+        <div id="contact-feedback-msg" class="contact-status-alert hidden" style="margin-top: 10px; padding: 10px; border-radius: var(--radius-sm); font-size: 0.84rem;"></div>
+
+        <div class="modal-actions-row" style="display: flex; gap: 10px; width: 100%; margin-top: 14px;">
+          <button class="btn btn-secondary" id="btn-cancel-contact" style="flex: 1;">Bekor qilish</button>
+          <button class="btn btn-primary" id="btn-send-contact" style="flex: 1;">Yuborish ✉️</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 11. Game Rules Modal -->
+    <div class="modal-overlay hidden" id="rules-modal" style="display: none;">
+      <div class="modal-dialog rules-dialog" style="max-height: 85vh; display: flex; flex-direction: column;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h3 class="modal-title" style="margin: 0; display: flex; align-items: center; gap: 6px;">
+            <span>📖</span> <span>O‘yin Qoidalari</span>
+          </h3>
+          <button class="btn-icon-close" id="btn-close-rules">✕</button>
+        </div>
+
+        <div class="rules-nav-tabs">
+          <button class="rules-tab-btn active" data-rules-tab="chess">♟️ Shaxmat</button>
+          <button class="rules-tab-btn" data-rules-tab="checkers8">🔴 Shashka 8x8</button>
+          <button class="rules-tab-btn" data-rules-tab="checkers10">⚪ Shashka 10x10</button>
+        </div>
+
+        <div class="rules-content-scroll" style="flex: 1; overflow-y: auto; padding: 8px 2px; margin-top: 10px;">
+          <!-- Chess content -->
+          <div id="rules-sec-chess" class="rules-section">
+            <h4 style="color: var(--primary-gold); margin-bottom: 6px; font-size: 0.95rem;">♟️ Shaxmat (8x8 FIDE standartlari)</h4>
+            <ul class="rules-list">
+              <li><strong>Taxta va toshlar:</strong> 64 katak (8x8), har bir o‘yinchida 16 ta sipoh (1 Shoh, 1 Farzin, 2 Qal‘a, 2 Fil, 2 Ot, 8 Piyoda).</li>
+              <li><strong>Rokirovka (0-0 va 0-0-0):</strong> Shoh va Qal‘aning bir vaqtda qatnashadigan maxsus yurishi. O‘rtadagi kataklar bo‘sh bo‘lishi, shoh zarb ostida bo‘lmasligi va kesib o‘tiladigan kataklar zarb ostida bo‘lmasligi shart.</li>
+              <li><strong>O‘tkinchi piyodani urish (En passant):</strong> Piyoda dastlabki holatidan ikki katak oldinga surilganda, uning yonidagi raqib piyodasi uni xuddi bir katak siljigandek urib olish huquqiga ega.</li>
+              <li><strong>Piyodani almashtirish (Promotion):</strong> Piyoda oxirgi (8-yoki 1-) gorizontalga yetib borganida, Farzin, Qal‘a, Fil yoki Otga aylantirilishi shart.</li>
+              <li><strong>G‘alaba:</strong> Raqib shohiga mot qo‘yish, raqib vaqti tugashi yoki raqib taslim bo‘lishi orqali erishiladi.</li>
+              <li><strong>Durang:</strong> Pat holati, yetarsiz toshlar, 50 yurish qoidasi yoki tomonlar kelishuvi bilan.</li>
+            </ul>
+          </div>
+
+          <!-- Checkers 8x8 content -->
+          <div id="rules-sec-checkers8" class="rules-section hidden">
+            <h4 style="color: var(--primary-gold); margin-bottom: 6px; font-size: 0.95rem;">🔴 Klassik Shashka (8x8, 12 tosh)</h4>
+            <ul class="rules-list">
+              <li><strong>Toshlar soni:</strong> Har bir o‘yinchida 12 tadan tosh faqat qora kataklarda joylashadi.</li>
+              <li><strong>Yurish:</strong> Oddiy tosh faqat bir katak oldinga diagonal bo‘ylab yuradi.</li>
+              <li><strong>Urish majburiyati:</strong> Tosh urish imkoni bo‘lsa, URISH MAJBURIY! Oddiy tosh ham oldinga, ham orqaga qarab tosh urishi mumkin.</li>
+              <li><strong>Seriyali urish:</strong> Tosh bitta sakrashdan so‘ng yana tosh ura olsa, navbatdagi toshlarni ham ketma-ket urib o‘tadi.</li>
+              <li><strong>Uchuvchi Dama (Flyer King):</strong> Oxirgi qatorga borgan tosh Damaga aylanadi. Dama butun diagonal bo‘ylab istalgan masofaga harakatlana oladi va uzoq masofadagi toshlarni ham urib o‘tadi.</li>
+              <li><strong>G‘alaba:</strong> Raqibning barcha toshlarini urib olish yoki ularning barcha yurish yo‘llarini butunlay qulflash.</li>
+            </ul>
+          </div>
+
+          <!-- Checkers 10x10 content -->
+          <div id="rules-sec-checkers10" class="rules-section hidden">
+            <h4 style="color: var(--primary-gold); margin-bottom: 6px; font-size: 0.95rem;">⚪ Xalqaro Shashka (10x10, 20 tosh)</h4>
+            <ul class="rules-list">
+              <li><strong>Taxta va toshlar:</strong> 100 katak (10x10), 50 ta qora katakda har bir tomonda 20 tadan tosh.</li>
+              <li><strong>Ko‘pchilik qoidasi (Maksimal urish):</strong> Bir nechta urish yo‘li bo‘lsa, o‘yinchi eng ko‘p tosh uriladigan yo‘nalishni tanlashi SHART!</li>
+              <li><strong>Xalqaro Dama harakati:</strong> Dama diagonal bo‘ylab erkin uchadi va urishdan so‘ng to‘xtash katagini to‘g‘ri tanlash imkonini beradi.</li>
+              <li><strong>Toshlarni olish tartibi:</strong> Seriyali urish paytida barcha urilgan toshlar faqat butun yurish yakunlangach taxtadan olinadi (bir tosh ustidan ikki marta sakrash mumkin emas).</li>
+              <li><strong>G‘alaba:</strong> Raqibning barcha toshlarini urib olish yoki ularning yurish yo‘lini butunlay to‘sib qo‘yish.</li>
+            </ul>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="btn-close-rules-bottom" style="margin-top: 12px; width: 100%;">Tushunarli</button>
       </div>
     </div>
 

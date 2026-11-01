@@ -73,6 +73,14 @@ class WellChessApp {
     const deepGameId = params.get('gameId');
     const autoPlay = params.get('game');
     const autoQuick = params.get('quick');
+    const contactAdminParam = params.get('contact_admin');
+    const rulesParam = params.get('rules');
+
+    if (contactAdminParam === '1') {
+      this.openContactAdminModal();
+    } else if (rulesParam === '1') {
+      this.openRulesModal();
+    }
 
     if (joinMatchHost) {
       await this.handleJoinMatchFromInvite(joinMatchHost, autoPlay || 'chess', params.get('tc') || '3+2');
@@ -687,6 +695,166 @@ class WellChessApp {
         this.closePlayerInspectModal();
       }
     });
+
+    // Contact Admin Modal events
+    document.getElementById('btn-open-contact-admin')?.addEventListener('click', () => {
+      this.openContactAdminModal();
+    });
+    document.getElementById('close-contact-modal-btn')?.addEventListener('click', () => {
+      this.closeContactAdminModal();
+    });
+    document.getElementById('btn-cancel-contact')?.addEventListener('click', () => {
+      this.closeContactAdminModal();
+    });
+    document.getElementById('btn-send-contact')?.addEventListener('click', () => {
+      this.submitContactAdmin();
+    });
+    document.getElementById('contact-admin-modal')?.addEventListener('click', e => {
+      if (e.target.id === 'contact-admin-modal') {
+        this.closeContactAdminModal();
+      }
+    });
+
+    // Rules Modal events
+    document.getElementById('btn-open-rules')?.addEventListener('click', () => {
+      this.openRulesModal();
+    });
+    document.getElementById('btn-close-rules')?.addEventListener('click', () => {
+      this.closeRulesModal();
+    });
+    document.getElementById('btn-close-rules-bottom')?.addEventListener('click', () => {
+      this.closeRulesModal();
+    });
+    document.getElementById('rules-modal')?.addEventListener('click', e => {
+      if (e.target.id === 'rules-modal') {
+        this.closeRulesModal();
+      }
+    });
+    document.querySelectorAll('.rules-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.switchRulesTab(btn.dataset.rulesTab);
+      });
+    });
+  }
+
+  openContactAdminModal() {
+    const modal = document.getElementById('contact-admin-modal');
+    if (!modal) return;
+    const msgInput = document.getElementById('contact-message-input');
+    const feedback = document.getElementById('contact-feedback-msg');
+    if (msgInput) msgInput.value = '';
+    if (feedback) {
+      feedback.className = 'contact-status-alert hidden';
+      feedback.textContent = '';
+      feedback.style.display = 'none';
+    }
+    const sendBtn = document.getElementById('btn-send-contact');
+    if (sendBtn) {
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Yuborish ✉️';
+    }
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+  }
+
+  closeContactAdminModal() {
+    const modal = document.getElementById('contact-admin-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+  }
+
+  async submitContactAdmin() {
+    const msgInput = document.getElementById('contact-message-input');
+    const topicSelect = document.getElementById('contact-topic-select');
+    const feedback = document.getElementById('contact-feedback-msg');
+    const sendBtn = document.getElementById('btn-send-contact');
+
+    const message = (msgInput?.value || '').trim();
+    const topic = topicSelect?.value || 'Umumiy';
+
+    if (!message) {
+      if (feedback) {
+        feedback.className = 'contact-status-alert error';
+        feedback.style.display = 'block';
+        feedback.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';
+        feedback.style.color = '#ef4444';
+        feedback.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+        feedback.textContent = 'Iltimos, murojaat matnini kiriting!';
+        feedback.classList.remove('hidden');
+      }
+      return;
+    }
+
+    if (sendBtn) {
+      sendBtn.disabled = true;
+      sendBtn.textContent = 'Yuborilmoqda...';
+    }
+
+    try {
+      const res = await api.contactAdmin(message, topic);
+      if (res.success) {
+        if (feedback) {
+          feedback.className = 'contact-status-alert success';
+          feedback.style.display = 'block';
+          feedback.style.backgroundColor = 'rgba(34, 197, 94, 0.15)';
+          feedback.style.color = '#4ade80';
+          feedback.style.border = '1px solid rgba(34, 197, 94, 0.3)';
+          feedback.textContent = '✅ Murojaatingiz adminlarga yetkazildi! Tez orada ko‘rib chiqiladi.';
+          feedback.classList.remove('hidden');
+        }
+        if (msgInput) msgInput.value = '';
+        setTimeout(() => {
+          this.closeContactAdminModal();
+        }, 1800);
+      } else {
+        throw new Error(res.error || res.message || 'Xatolik yuz berdi');
+      }
+    } catch (err) {
+      if (feedback) {
+        feedback.className = 'contact-status-alert error';
+        feedback.style.display = 'block';
+        feedback.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';
+        feedback.style.color = '#ef4444';
+        feedback.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+        feedback.textContent = `Xatolik: ${err.message}`;
+        feedback.classList.remove('hidden');
+      }
+      if (sendBtn) {
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Yuborish ✉️';
+      }
+    }
+  }
+
+  openRulesModal(defaultTab = 'chess') {
+    const modal = document.getElementById('rules-modal');
+    if (!modal) return;
+    this.switchRulesTab(defaultTab);
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+  }
+
+  closeRulesModal() {
+    const modal = document.getElementById('rules-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+  }
+
+  switchRulesTab(tabKey) {
+    document.querySelectorAll('.rules-tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.rulesTab === tabKey);
+    });
+    document.querySelectorAll('.rules-section').forEach(sec => {
+      sec.classList.add('hidden');
+      sec.style.display = 'none';
+    });
+    const target = document.getElementById(`rules-sec-${tabKey}`);
+    if (target) {
+      target.classList.remove('hidden');
+      target.style.display = 'block';
+    }
   }
 
   async openFriendInviteModal() {

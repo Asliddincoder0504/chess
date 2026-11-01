@@ -8,24 +8,15 @@ function getMainMenuKeyboard() {
     inline_keyboard: [
       [
         {
-          text: '♟️ WellChess Mini App ni ochish',
+          text: '🎮 O‘yinni boshlash (Mini App)',
           web_app: { url: MINI_APP_URL }
         }
       ],
       [
-        { text: '♟️ Shaxmat (8x8)', web_app: { url: `${MINI_APP_URL}?game=chess` } },
-        { text: '🔴 Shashka (8x8, 12 tosh)', web_app: { url: `${MINI_APP_URL}?game=checkers8` } }
+        { text: '📖 O‘yin qoidalari haqida ma‘lumot', callback_data: 'btn_rules' }
       ],
       [
-        { text: '⚪ Shashka (10x10, 20 tosh)', web_app: { url: `${MINI_APP_URL}?game=checkers` } },
-        { text: '⚡ Tezkor o‘yin', web_app: { url: `${MINI_APP_URL}?quick=1` } }
-      ],
-      [
-        { text: '👑 Reyting jadvali', callback_data: 'btn_leaderboard' },
-        { text: '👤 Mening profilim', callback_data: 'btn_profile' }
-      ],
-      [
-        { text: 'ℹ️ O‘yin qoidalari va ma‘lumot', callback_data: 'btn_help' }
+        { text: '✍️ Adminga murojaat', web_app: { url: `${MINI_APP_URL}?contact_admin=1` } }
       ]
     ]
   };
@@ -177,28 +168,49 @@ export default async function (message, ctx) {
     return;
   }
 
-  // /help
-  if (text.startsWith('/help')) {
-    const helpText = [
-      `ℹ️ *WellChess platformasi qoidalari:*\n`,
-      `• *Shaxmat:* Rasmiy 8x8 FIDE qoidalari (mot, pat, rokirovka, o‘tkinchi piyoda urish va so‘nggi chiziqda sipohni almashtirish).`,
-      `• *Klassik shashka (8x8):* Har bir o‘yinchida 12 tadan tosh, orqaga tosh urish mumkin, Dama (Uchuvchi Dama) qoidalari.`,
-      `• *Xalqaro shashka (10x10):* 50 ta qora katak, 20 tadan tosh, maksimal tosh urish majburiy.`,
-      `• *Server soati:* Server tomonidan aniq boshqariladigan shaxmat soatlari va vaqt qo‘shilishi (increment).`,
-      `• *ELO reytingi:* Rasmiy FIDE koeffitsientlari asosida avtomatik hisoblanadi.\n`,
-      `*Buyruqlar:*`,
-      `/start — Botni ishga tushirish va bosh menyu`,
-      `/play — O‘yin boshlash`,
-      `/profile — Shaxsiy reyting va statistika`,
-      `/leaderboard — Yetakchilar jadvali`,
-      `/help — Qoidalar va yordam`
+  // /rules or /help
+  if (text.startsWith('/rules') || text.startsWith('/help') || text.startsWith('/qoida')) {
+    const rulesText = [
+      `📖 *WellChess O‘yin Qoidalari va Qo‘llanma*\n`,
+      `♟️ *1. Shaxmat (8x8 FIDE):*`,
+      `• Rasmiy xalqaro FIDE standartlariga 100% mos.`,
+      `• Rokirovka (0-0, 0-0-0), yo‘l-yo‘lakay urish (en passant) va so‘nggi katakda sipohga aylanish (promotion) to‘liq ishlaydi.`,
+      `• G‘alaba: Mot qo‘yish, raqib vaqti tugashi yoki raqib taslim bo‘lishi orqali.`,
+      `• Durang: Pat, 3 marta takrorlanish, 50 yurish qoidasi yoki kelishuv.\n`,
+      `🔴 *2. Klassik Shashka (8x8, 12 tosh):*`,
+      `• Har bir tomonda 12 tadan tosh faqat qora kataklarda joylashadi.`,
+      `• Oddiy tosh oldinga 1 katak yuradi.`,
+      `• *Tosh urish:* Oldinga ham, orqaga ham urish mumkin! Tosh urish imkoni bo‘lsa — URISH MAJBURIY!`,
+      `• Ketma-ket urish: Tosh barcha mumkin bo‘lgan toshlarni urib o‘tadi.`,
+      `• *Dama (Uchuvchi Dama):* Oxirgi qatorga yetgan tosh Damaga aylanadi va butun diagonal bo‘ylab istalgan masofadagi toshlarni uradi.\n`,
+      `⚪ *3. Xalqaro Shashka (10x10, 20 tosh):*`,
+      `• 100 katak (10x10), 50 ta qora katak, har bir tomonda 20 tadan tosh.`,
+      `• *Ko‘pchilik qoidasi:* Bir nechta urish yo‘li bo‘lsa, eng ko‘p tosh uriladigan yo‘nalish tanlanishi SHART!`,
+      `• Dama har qanday diagonal bo‘ylab erkin harakatlanadi.\n`,
+      `⏱️ *Server soati va ELO:*`,
+      `• O‘yinlar server soati nazorati ostida adolatli o‘tadi va ELO darajasi avtomatik yangilanadi.`
     ].join('\n');
 
     await api.sendMessage({
       chat_id: chatId,
-      text: helpText,
+      text: rulesText,
       parse_mode: 'Markdown',
       reply_markup: getMainMenuKeyboard()
+    });
+    return;
+  }
+
+  // /contact or /admin
+  if (text.startsWith('/contact') || text.startsWith('/admin') || text.startsWith('/murojaat')) {
+    await api.sendMessage({
+      chat_id: chatId,
+      text: `✍️ *Adminga murojaat qilish:*\n\nPlatforma bo‘yicha taklif, shikoyat yoki xatolik haqida xabar berish uchun pastdagi tugmani bosing va formani to‘ldiring:`,
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '✍️ Adminga murojaat yuborish', web_app: { url: `${MINI_APP_URL}?contact_admin=1` } }]
+        ]
+      }
     });
     return;
   }

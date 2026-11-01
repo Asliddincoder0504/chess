@@ -206,6 +206,38 @@ export async function dispatchApiRequest({ method, pathname, query = {}, body = 
     }
   }
 
+  // CONTACT ADMIN endpoint
+  if (pathname === '/api/contact_admin' || (pathname === '/api/admin' && body.action === 'contact')) {
+    const message = (body.message || body.text || '').trim();
+    const topic = body.topic || 'Umumiy';
+    if (!message) {
+      return { status: 400, error: 'Xabar matni bo‘sh bo‘lishi mumkin emas' };
+    }
+
+    const { sendTelegramMessage } = await import('./bot/notifications.js');
+    const senderName = `${user.firstName || 'O‘yinchi'} ${user.lastName || ''}`.trim();
+    const username = user.username ? `@${user.username}` : 'Yo‘q';
+    const text = [
+      `📩 *Yangi murojaat (WellChess)*\n`,
+      `📌 *Mavzu:* ${topic}`,
+      `👤 *Yuboruvchi:* ${senderName}`,
+      `🆔 *Telegram ID:* \`${user.id}\``,
+      `🔗 *Username:* ${username}\n`,
+      `💬 *Murojaat:*`,
+      message
+    ].join('\n');
+
+    const ADMIN_IDS = ['6472114736', '8455692606'];
+    for (const adminId of ADMIN_IDS) {
+      try {
+        await sendTelegramMessage(adminId, text);
+      } catch (err) {
+        console.error(`Local contact_admin send error:`, err.message);
+      }
+    }
+    return { success: true, message: 'Murojaatingiz adminlarga muvaffaqiyatli yetkazildi!' };
+  }
+
   // USER endpoints
   if (pathname === '/api/profile' && normMethod === 'GET') {
     return await handleGetProfile(user);
