@@ -38,33 +38,34 @@ export async function syncGameClocks(game) {
   if (game.status !== 'active') return game;
 
   const now = Date.now();
-  const elapsed = Math.max(0, now - game.lastMoveTimestamp);
+  const elapsed = Math.max(0, now - (game.lastMoveTimestamp || now));
 
   let whiteTime = game.whiteTimeMs;
   let blackTime = game.blackTimeMs;
+  const GRACE_BUFFER_MS = 3000; // 3 seconds network / lag buffer to prevent false timeout
 
   if (game.currentTurn === 'white') {
     whiteTime -= elapsed;
-    if (whiteTime <= 0) {
+    if (whiteTime <= -GRACE_BUFFER_MS) {
       whiteTime = 0;
       return await finishGame({
         game,
         winner: 'black',
         winReason: 'timeout',
-        finalWhiteTime: whiteTime,
-        finalBlackTime: blackTime
+        finalWhiteTime: 0,
+        finalBlackTime: Math.max(0, blackTime)
       });
     }
   } else {
     blackTime -= elapsed;
-    if (blackTime <= 0) {
+    if (blackTime <= -GRACE_BUFFER_MS) {
       blackTime = 0;
       return await finishGame({
         game,
         winner: 'white',
         winReason: 'timeout',
-        finalWhiteTime: whiteTime,
-        finalBlackTime: blackTime
+        finalWhiteTime: Math.max(0, whiteTime),
+        finalBlackTime: 0
       });
     }
   }
@@ -220,25 +221,26 @@ export async function handleMakeMove(gameId, userId, { move, clientVersion }) {
   }
 
   const now = Date.now();
-  const elapsed = Math.max(0, now - game.lastMoveTimestamp);
+  const elapsed = Math.max(0, now - (game.lastMoveTimestamp || now));
   const tc = parseTimeControl(game.timeControl);
 
   let newWhiteTime = game.whiteTimeMs;
   let newBlackTime = game.blackTimeMs;
   const isMovingWhite = game.currentTurn === 'white';
+  const GRACE_BUFFER_MS = 3000;
 
   if (isMovingWhite) {
     newWhiteTime = game.whiteTimeMs - elapsed;
-    if (newWhiteTime <= 0) {
-      return await finishGame({ game, winner: 'black', winReason: 'timeout' });
+    if (newWhiteTime <= -GRACE_BUFFER_MS) {
+      return await finishGame({ game, winner: 'black', winReason: 'timeout', finalWhiteTime: 0, finalBlackTime: Math.max(0, newBlackTime) });
     }
-    newWhiteTime += tc.incrementMs;
+    newWhiteTime = Math.max(0, newWhiteTime) + tc.incrementMs;
   } else {
     newBlackTime = game.blackTimeMs - elapsed;
-    if (newBlackTime <= 0) {
-      return await finishGame({ game, winner: 'white', winReason: 'timeout' });
+    if (newBlackTime <= -GRACE_BUFFER_MS) {
+      return await finishGame({ game, winner: 'white', winReason: 'timeout', finalWhiteTime: Math.max(0, newWhiteTime), finalBlackTime: 0 });
     }
-    newBlackTime += tc.incrementMs;
+    newBlackTime = Math.max(0, newBlackTime) + tc.incrementMs;
   }
 
   let engineResult;
@@ -256,16 +258,18 @@ export async function handleMakeMove(gameId, userId, { move, clientVersion }) {
     return { error: err.message, status: 400 };
   }
 
+  const nextBoardState = engineResult.fen || engineResult.state;
   const parsedHistory = JSON.parse(game.history || '[]');
   parsedHistory.push({
     player: game.currentTurn,
     move: engineResult.notation || engineResult.san || move,
+    moveData: move,
+    boardState: nextBoardState,
     timestamp: now
   });
 
   const nextTurn = game.currentTurn === 'white' ? 'black' : 'white';
   const nextVersion = (game.version || 0) + 1;
-  const nextBoardState = engineResult.fen || engineResult.state;
 
   await recordMove({
     gameId: game.id,

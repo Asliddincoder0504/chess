@@ -226,8 +226,19 @@ export async function broadcastMatchmakingRequest({ hostUser, gameType, timeCont
         console.warn(`[Broadcast to ${target.id} failed]:`, err.message);
       }
     }
+
+    return {
+      dispatchedCount: targets.length,
+      targets: targets.map(t => ({
+        id: t.id,
+        firstName: t.firstName || 'O‘yinchi',
+        username: t.username || '',
+        elo: getElo(t)
+      }))
+    };
   } catch (err) {
     console.warn('[broadcastMatchmakingRequest error]:', err.message);
+    return { dispatchedCount: 0, targets: [] };
   }
 }
 

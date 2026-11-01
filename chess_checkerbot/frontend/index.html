@@ -16,7 +16,12 @@
         <span class="brand-icon" id="icon-brand-logo"></span>
         <span>WellChess</span>
       </div>
-      <div class="header-user" id="home-user-name">O'yinchi</div>
+      <div class="header-user-badge" id="header-user-badge">
+        <div class="header-avatar" id="header-user-avatar">
+          <span class="avatar-initials">O</span>
+        </div>
+        <span class="header-user" id="home-user-name">O'yinchi</span>
+      </div>
     </header>
 
     <!-- Main Content Panes -->
@@ -102,6 +107,15 @@
           </div>
           <div class="mm-details" id="mm-elo-range">ELO diapazoni: 1100 - 1300 (±100)</div>
           <div class="mm-timer" id="mm-elapsed-timer">00:00</div>
+
+          <!-- Dispatched Candidate Requests Box -->
+          <div id="mm-dispatched-box" class="mm-dispatched-box hidden">
+            <div class="mm-dispatched-header">
+              <span class="pulse-dot-sm"></span>
+              <span>Yaqin darajadagi raqiblarga yuborilgan so'rovlar:</span>
+            </div>
+            <div id="mm-dispatched-list" class="mm-dispatched-list"></div>
+          </div>
 
           <button class="btn-secondary" id="cancel-matchmaking-btn">Qidiruvni bekor qilish</button>
         </div>
@@ -234,9 +248,31 @@
 
         <h3 class="section-title" style="margin-top: 14px;">Sozlamalar</h3>
         <div class="hero-card">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
             <span>🔊 Ovoz effektlari</span>
             <input type="checkbox" id="sound-toggle" checked style="width: 22px; height: 22px; cursor: pointer;">
+          </div>
+          <div class="settings-divider" style="height: 1px; background: var(--border-color); margin: 10px 0;"></div>
+          <div style="margin-top: 10px;">
+            <div style="font-weight: 600; font-size: 0.88rem; margin-bottom: 8px;">🎨 Toshlar va taxta dizayni:</div>
+            <div class="piece-theme-selector" id="piece-theme-selector">
+              <div class="piece-theme-pill selected" data-piece-theme="classic">
+                <span class="theme-icon">♟️</span>
+                <span>Klassik</span>
+              </div>
+              <div class="piece-theme-pill" data-piece-theme="neon">
+                <span class="theme-icon">⚡</span>
+                <span>Neon</span>
+              </div>
+              <div class="piece-theme-pill" data-piece-theme="wood">
+                <span class="theme-icon">🪵</span>
+                <span>Yog'och</span>
+              </div>
+              <div class="piece-theme-pill" data-piece-theme="minimal">
+                <span class="theme-icon">🔷</span>
+                <span>Minimal</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -457,6 +493,89 @@
         <button class="btn-secondary" id="close-challenge-modal-btn" style="margin-top: 8px;">Bekor qilish</button>
       </div>
     </div>
+
+    <!-- 8. Player Profile Inspection Modal (Boshqa o'yinchilarning to'liq profil statistikasi) -->
+    <div class="modal-overlay hidden" id="player-inspect-modal" style="display: none;">
+      <div class="modal-dialog player-inspect-dialog">
+        <div class="inspect-header">
+          <div class="inspect-avatar-box" id="inspect-avatar-box">
+            <div class="avatar-wrap avatar-lg"><span class="avatar-initials">O</span></div>
+          </div>
+          <div class="inspect-user-details">
+            <h3 id="inspect-player-name">O'yinchi</h3>
+            <div class="text-muted" id="inspect-player-username">@username</div>
+            <div class="inspect-status-row">
+              <span class="online-status-tag" id="inspect-online-tag">🟢 Onlayn</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="inspect-stats-grid">
+          <div class="inspect-stat-card">
+            <div class="inspect-card-title">♟️ Shaxmat (8x8)</div>
+            <div class="inspect-elo" id="inspect-chess-elo">1200 ELO</div>
+            <div class="inspect-sub">Jami: <b id="inspect-chess-total">0</b> (<span id="inspect-chess-record">0G' / 0M / 0D</span>)</div>
+            <div class="inspect-rate">G'alaba: <b id="inspect-chess-winrate">0%</b></div>
+          </div>
+
+          <div class="inspect-stat-card">
+            <div class="inspect-card-title">🔴 Shashka (8x8)</div>
+            <div class="inspect-elo" id="inspect-checkers8-elo">1200 ELO</div>
+            <div class="inspect-sub">Jami: <b id="inspect-checkers8-total">0</b> (<span id="inspect-checkers8-record">0G' / 0M / 0D</span>)</div>
+            <div class="inspect-rate">G'alaba: <b id="inspect-checkers8-winrate">0%</b></div>
+          </div>
+
+          <div class="inspect-stat-card">
+            <div class="inspect-card-title">⚪ Shashka (10x10)</div>
+            <div class="inspect-elo" id="inspect-checkers-elo">1200 ELO</div>
+            <div class="inspect-sub">Jami: <b id="inspect-checkers-total">0</b> (<span id="inspect-checkers-record">0G' / 0M / 0D</span>)</div>
+            <div class="inspect-rate">G'alaba: <b id="inspect-checkers-winrate">0%</b></div>
+          </div>
+        </div>
+
+        <div class="modal-actions-row" style="display: flex; gap: 8px; width: 100%; margin-top: 14px;">
+          <button class="btn-primary" id="inspect-challenge-btn" style="flex: 1;">
+            <span>⚔️ O'yinga chorlash</span>
+          </button>
+          <button class="btn-secondary" id="close-inspect-modal-btn" style="flex: 1;">
+            <span>Yopish</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9. Game Replay Modal (Tarixdagi o'yinni qayta ko'rib chiqish) -->
+    <div class="modal-overlay hidden" id="game-replay-modal" style="display: none;">
+      <div class="modal-dialog replay-dialog">
+        <div class="replay-header">
+          <div>
+            <div class="replay-title" id="replay-title">O'yin tahlili va takrori</div>
+            <div class="text-muted" id="replay-subtitle">Oq vs Qora</div>
+          </div>
+          <button class="btn-icon-close" id="close-replay-modal-btn">✕</button>
+        </div>
+
+        <!-- Replay Board Container -->
+        <div id="replay-board-container" class="replay-board-container"></div>
+
+        <!-- Replay Step Controls -->
+        <div class="replay-controls-bar">
+          <button class="btn-replay-nav" id="replay-btn-first" title="Boshiga">|◀</button>
+          <button class="btn-replay-nav" id="replay-btn-prev" title="Oldingi yurish">◀</button>
+          <button class="btn-replay-nav btn-replay-play" id="replay-btn-play" title="Avtomatik o'ynatish">▶</button>
+          <button class="btn-replay-nav" id="replay-btn-next" title="Keyingi yurish">▶</button>
+          <button class="btn-replay-nav" id="replay-btn-last" title="Oxiriga">▶|</button>
+        </div>
+
+        <div class="replay-step-label" id="replay-step-label">Yurish: 0 / 0</div>
+
+        <!-- Move Notation List -->
+        <div class="replay-moves-list" id="replay-moves-list"></div>
+      </div>
+    </div>
+
+    <!-- Victory Celebration Confetti Canvas -->
+    <canvas id="victory-confetti-canvas" class="confetti-canvas hidden"></canvas>
 
     <!-- Toast Notification -->
     <div id="toast" class="toast hidden"></div>

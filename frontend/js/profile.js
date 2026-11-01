@@ -29,6 +29,15 @@ export class ProfileController {
       document.getElementById('profile-name').textContent = `${user.firstName || 'O‘yinchi'} ${user.lastName || ''}`;
       document.getElementById('profile-username').textContent = user.username ? `@${user.username}` : `ID: ${user.id}`;
 
+      const avatarEl = document.getElementById('icon-profile-user');
+      if (avatarEl) {
+        if (user.photoUrl) {
+          avatarEl.innerHTML = `<img src="${user.photoUrl}" class="avatar-img-lg" onerror="this.parentElement.innerHTML='${ICONS.user}'" />`;
+        } else {
+          avatarEl.innerHTML = ICONS.user;
+        }
+      }
+
       const highestElo = Math.max(
         this.profileStats.chess?.elo || 1200,
         this.profileStats.checkers8?.elo || 1200,
@@ -93,6 +102,7 @@ export class ProfileController {
     filtered.forEach(p => {
       const row = document.createElement('div');
       row.className = `leaderboard-item ${p.id === Number(this.app.currentUser.id) ? 'highlight-user' : ''}`;
+      row.style.cursor = 'pointer';
 
       let medal = `<span class="rank-num">${p.rank}</span>`;
       if (p.rank === 1) medal = `<span class="rank-badge">${ICONS.medalGold}</span>`;
@@ -112,6 +122,13 @@ export class ProfileController {
           <span class="lb-record">${p.wins}G' / ${p.losses}M (${p.winRate}%)</span>
         </div>
       `;
+
+      row.addEventListener('click', () => {
+        if (this.app.openPlayerInspectModal) {
+          this.app.openPlayerInspectModal(p.id);
+        }
+      });
+
       listEl.appendChild(row);
     });
   }
@@ -170,10 +187,12 @@ export class ProfileController {
 
         const card = document.createElement('div');
         card.className = `history-match-card`;
+        card.style.cursor = 'pointer';
         card.innerHTML = `
           <div>
             <div style="font-weight: 700; font-size: 0.9rem;">${this.formatGameType(g.gameType)} (${g.timeControl})</div>
             <div class="text-muted" style="font-size: 0.78rem;">${this.formatWinReason(g.winReason)} • ${dateStr}</div>
+            <div class="history-replay-hint">▶ Tahlil qilish va qayta ko‘rish</div>
           </div>
           <div style="text-align: right;">
             <span class="history-outcome-badge ${outcomeClass}">${outcomeText}</span>
@@ -182,6 +201,13 @@ export class ProfileController {
             </div>
           </div>
         `;
+
+        card.addEventListener('click', () => {
+          if (this.app.gameReplayer) {
+            this.app.gameReplayer.loadGame(g);
+          }
+        });
+
         listEl.appendChild(card);
       });
     } catch (err) {
@@ -270,12 +296,20 @@ export class ProfileController {
             <span class="meta">ID: ${u.id} | Shaxmat: ${u.chessElo} | Shashka 8x8: ${u.checkers8Elo || u.checkersElo} | Shashka 10x10: ${u.checkersElo}</span>
           </div>
           <div style="display: flex; gap: 6px;">
+            <button class="btn-small btn-secondary inspect-user-btn" data-userid="${u.id}">Profil</button>
             <button class="btn-small btn-secondary reset-elo-btn" data-userid="${u.id}">Tiklash</button>
             <button class="ban-btn ${u.isBanned ? 'unban' : 'ban'}" data-userid="${u.id}" data-banned="${u.isBanned}">
               ${u.isBanned ? 'Ochish' : 'Bloklash'}
             </button>
           </div>
         `;
+
+        item.querySelector('.inspect-user-btn').addEventListener('click', e => {
+          const userId = Number(e.target.dataset.userid);
+          if (this.app.openPlayerInspectModal) {
+            this.app.openPlayerInspectModal(userId);
+          }
+        });
 
         item.querySelector('.ban-btn').addEventListener('click', async e => {
           const userId = Number(e.target.dataset.userid);

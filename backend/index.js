@@ -24,7 +24,7 @@ try {
 } catch {}
 
 import { validateTelegramInitData } from './core/validation.js';
-import { handleGetProfile, handleGetProfileStats, handleGetProfileHistory } from './api/profile.js';
+import { handleGetProfile, handleGetProfileStats, handleGetProfileHistory, handleInspectUser } from './api/profile.js';
 import { handleGetRatings } from './api/ratings.js';
 import { handleGetLeaderboard } from './api/leaderboard.js';
 import {
@@ -128,6 +128,7 @@ export async function dispatchApiRequest({ method, pathname, query = {}, body = 
     if (act === 'stats') return await handleGetProfileStats(user.id);
     if (act === 'history') return await handleGetProfileHistory(user.id, parseInt(body.limit || query.limit, 10) || 50);
     if (act === 'ratings') return await handleGetRatings(user.id, body.gameType || 'chess');
+    if (act === 'inspect') return await handleInspectUser(body.targetUserId || query.targetUserId);
     return await handleGetProfile(user);
   }
 

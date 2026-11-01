@@ -167,6 +167,35 @@ class ApiClient {
           }
         };
       }
+      if (action === 'inspect') {
+        const targetId = payload.targetUserId || 1002;
+        return {
+          success: true,
+          user: {
+            id: targetId,
+            firstName: targetId === 6472114736 ? 'Asliddin Norqobilov' : 'Rustam Qosimov',
+            username: targetId === 6472114736 ? 'asliddincoder0504' : 'rustam_gm',
+            chessElo: 1290,
+            checkers8Elo: 1260,
+            checkersElo: 1250,
+            chessWins: 14,
+            chessLosses: 3,
+            chessDraws: 1,
+            chessTotal: 18,
+            chessWinRate: 78,
+            checkers8Wins: 12,
+            checkers8Losses: 2,
+            checkers8Draws: 1,
+            checkers8Total: 15,
+            checkers8WinRate: 80,
+            checkersWins: 10,
+            checkersLosses: 2,
+            checkersDraws: 0,
+            checkersTotal: 12,
+            checkersWinRate: 83
+          }
+        };
+      }
       return { success: true, user };
     }
 
@@ -293,7 +322,22 @@ class ApiClient {
           const gType = is8x8 ? 'checkers8' : (isCheckers ? 'checkers' : 'chess');
           game = this.createLocalGame(gameId, gType, '5+0', user.id, user.id);
         }
-        return { success: true, game };
+        const now = Date.now();
+        const elapsed = Math.max(0, now - (game.lastMoveTimestamp || now));
+        let wTime = game.whiteTimeMs;
+        let bTime = game.blackTimeMs;
+        if (game.status === 'active') {
+          if (game.currentTurn === 'white') wTime = Math.max(0, wTime - elapsed);
+          else bTime = Math.max(0, bTime - elapsed);
+        }
+        return {
+          success: true,
+          game: {
+            ...game,
+            whiteTimeMs: wTime,
+            blackTimeMs: bTime
+          }
+        };
       }
 
       if (action === 'move') {
@@ -306,6 +350,16 @@ class ApiClient {
         if (payload.move?.newBoardState) {
           game.boardState = payload.move.newBoardState;
         }
+        try {
+          const parsedHist = JSON.parse(game.history || '[]');
+          parsedHist.push({
+            player: game.currentTurn,
+            move: payload.move?.notation || 'move',
+            boardState: game.boardState,
+            timestamp: Date.now()
+          });
+          game.history = JSON.stringify(parsedHist);
+        } catch {}
         localGames[gameId] = game;
         this.saveLocalGames(localGames);
         return { success: true, game };
@@ -382,6 +436,10 @@ class ApiClient {
   // Profile API
   async getProfile() {
     return this.call('profile', { action: 'profile' });
+  }
+
+  async inspectUser(targetUserId) {
+    return this.call('profile', { action: 'inspect', targetUserId });
   }
 
   async getProfileStats() {

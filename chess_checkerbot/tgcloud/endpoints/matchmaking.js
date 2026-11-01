@@ -29,16 +29,22 @@ export default async function (input, ctx) {
 
     try {
       const result = await joinMatchmaking({ userId, gameType, timeControl });
+      let dispatchedTargets = [];
       if (result.status === 'waiting') {
-        // Asynchronously notify players with close ELO
-        broadcastMatchmakingRequest({
+        const broadcastRes = await broadcastMatchmakingRequest({
           hostUser: user,
           gameType,
           timeControl,
           userElo: result.userElo
-        }).catch(err => console.warn('[Broadcast matchmaking bg error]:', err.message));
+        }).catch(err => {
+          console.warn('[Broadcast matchmaking bg error]:', err.message);
+          return null;
+        });
+        if (broadcastRes?.targets) {
+          dispatchedTargets = broadcastRes.targets;
+        }
       }
-      return { success: true, ...result };
+      return { success: true, ...result, dispatchedTargets };
     } catch (err) {
       throw new EndpointError(err.message, { code: 'MATCHMAKING_ERROR' });
     }

@@ -228,6 +228,17 @@ export class LiveController {
           this.openChallengeModal(p);
         });
 
+        item.querySelector('.user-item-info')?.addEventListener('click', () => {
+          if (this.app.openPlayerInspectModal) {
+            this.app.openPlayerInspectModal(p.id);
+          }
+        });
+        item.querySelector('.user-item-avatar')?.addEventListener('click', () => {
+          if (this.app.openPlayerInspectModal) {
+            this.app.openPlayerInspectModal(p.id);
+          }
+        });
+
         container.appendChild(item);
       }
     } catch (err) {

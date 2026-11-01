@@ -30,6 +30,9 @@ export class MatchmakingController {
     document.getElementById('mm-status-text').textContent = 'Mos raqib qidirilmoqda...';
     document.getElementById('mm-elapsed-timer').textContent = '00:00';
 
+    const box = document.getElementById('mm-dispatched-box');
+    if (box) box.classList.add('hidden');
+
     this.startElapsedTimer();
 
     try {
@@ -39,11 +42,40 @@ export class MatchmakingController {
         return;
       }
 
+      if (res.dispatchedTargets && res.dispatchedTargets.length > 0) {
+        this.renderDispatchedTargets(res.dispatchedTargets);
+      }
+
       this.startStatusPolling();
     } catch (err) {
       console.warn('[Matchmaking Join Fallback]:', err.message);
       this.startStatusPolling();
     }
+  }
+
+  renderDispatchedTargets(targets) {
+    const box = document.getElementById('mm-dispatched-box');
+    const list = document.getElementById('mm-dispatched-list');
+    if (!box || !list) return;
+
+    if (!targets || targets.length === 0) {
+      box.classList.add('hidden');
+      return;
+    }
+
+    box.classList.remove('hidden');
+    list.innerHTML = targets.map(t => `
+      <div class="mm-dispatched-item">
+        <div class="mm-target-info">
+          <div class="avatar-wrap avatar-xs"><span class="avatar-initials">${(t.firstName || 'O').charAt(0).toUpperCase()}</span></div>
+          <div class="mm-target-meta">
+            <span class="mm-target-name">${t.firstName || 'O‘yinchi'} ${t.username ? `<span class="text-muted">(@${t.username})</span>` : ''}</span>
+            <span class="mm-target-elo">${t.elo || 1200} ELO • Bot orqali taklif yuborildi</span>
+          </div>
+        </div>
+        <div class="mm-target-badge"><span class="pulse-dot-sm"></span> Yuborildi</div>
+      </div>
+    `).join('');
   }
 
   startElapsedTimer() {
@@ -121,6 +153,9 @@ export class MatchmakingController {
     this.isMatched = true;
     this.stopElapsedTimer();
     this.stopStatusPolling();
+
+    const box = document.getElementById('mm-dispatched-box');
+    if (box) box.classList.add('hidden');
 
     try {
       await api.cancelMatchmaking();

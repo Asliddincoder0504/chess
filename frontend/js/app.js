@@ -3,6 +3,7 @@ import { GameController, sounds } from './game.js';
 import { MatchmakingController } from './matchmaking.js';
 import { ProfileController } from './profile.js';
 import { LiveController } from './live.js';
+import { GameReplayer } from './replayer.js';
 import { ICONS } from '../assets/icons.js';
 
 class WellChessApp {
@@ -11,6 +12,7 @@ class WellChessApp {
       id: 1001,
       firstName: 'O‘yinchi',
       username: 'player',
+      photoUrl: '',
       chessElo: 1200,
       checkersElo: 1200,
       checkers8Elo: 1200
@@ -21,6 +23,7 @@ class WellChessApp {
     this.matchmakingController = new MatchmakingController(this);
     this.profileController = new ProfileController(this);
     this.liveController = new LiveController(this);
+    this.gameReplayer = new GameReplayer();
 
     this.selectedGameType = 'chess';
     this.selectedTimeControl = '3+2';
@@ -44,7 +47,8 @@ class WellChessApp {
           firstName: tg.initDataUnsafe.user.first_name || 'O‘yinchi',
           lastName: tg.initDataUnsafe.user.last_name || '',
           username: tg.initDataUnsafe.user.username || '',
-          languageCode: tg.initDataUnsafe.user.language_code || 'uz'
+          languageCode: tg.initDataUnsafe.user.language_code || 'uz',
+          photoUrl: tg.initDataUnsafe.user.photo_url || ''
         };
       }
     }
@@ -61,6 +65,7 @@ class WellChessApp {
     this.updateUserUI();
     this.renderIcons();
     this.bindEvents();
+    this.initPieceTheme();
     this.startPendingChallengesPoll();
 
     const params = new URLSearchParams(window.location.search);
@@ -281,11 +286,23 @@ class WellChessApp {
 
   updateUserUI() {
     const nameEl = document.getElementById('home-user-name');
+    const headerAvatar = document.getElementById('header-user-avatar');
     const chessEloEl = document.getElementById('home-chess-elo');
     const checkers8EloEl = document.getElementById('home-checkers8-elo');
     const checkersEloEl = document.getElementById('home-checkers-elo');
 
-    if (nameEl) nameEl.textContent = this.currentUser.firstName || 'O‘yinchi';
+    const firstName = this.currentUser.firstName || 'O‘yinchi';
+    if (nameEl) nameEl.textContent = firstName;
+
+    const initial = firstName.charAt(0).toUpperCase();
+    if (headerAvatar) {
+      if (this.currentUser.photoUrl) {
+        headerAvatar.innerHTML = `<img src="${this.currentUser.photoUrl}" class="avatar-img" alt="${firstName}" onerror="this.parentElement.innerHTML='<span class=\\'avatar-initials\\'>${initial}</span>'" />`;
+      } else {
+        headerAvatar.innerHTML = `<span class="avatar-initials">${initial}</span>`;
+      }
+    }
+
     if (chessEloEl) chessEloEl.textContent = `${this.currentUser.chessElo || 1200} ELO (Shaxmat)`;
     if (checkers8EloEl) checkers8EloEl.textContent = `${this.currentUser.checkers8Elo || this.currentUser.checkersElo || 1200} ELO (Shashka 8x8)`;
     if (checkersEloEl) checkersEloEl.textContent = `${this.currentUser.checkersElo || 1200} ELO (Shashka 10x10)`;
@@ -297,6 +314,96 @@ class WellChessApp {
       } else {
         adminTab.classList.add('hidden');
       }
+    }
+  }
+
+  initPieceTheme() {
+    const savedTheme = localStorage.getItem('wellchess_piece_theme') || 'classic';
+    document.body.dataset.pieceTheme = savedTheme;
+
+    const pills = document.querySelectorAll('.piece-theme-pill');
+    pills.forEach(pill => {
+      pill.classList.toggle('selected', pill.dataset.pieceTheme === savedTheme);
+      pill.addEventListener('click', () => {
+        const theme = pill.dataset.pieceTheme;
+        localStorage.setItem('wellchess_piece_theme', theme);
+        document.body.dataset.pieceTheme = theme;
+        pills.forEach(p => p.classList.toggle('selected', p === pill));
+        this.showToast(`Toshlar dizayni o‘zgartirildi: ${pill.textContent.trim()}`, 'success');
+      });
+    });
+  }
+
+  async openPlayerInspectModal(targetUserId) {
+    const modal = document.getElementById('player-inspect-modal');
+    if (!modal) return;
+
+    const nameEl = document.getElementById('inspect-player-name');
+    const userEl = document.getElementById('inspect-player-username');
+    const avatarBox = document.getElementById('inspect-avatar-box');
+
+    if (nameEl) nameEl.textContent = 'Yuklanmoqda...';
+    if (userEl) userEl.textContent = '...';
+    if (avatarBox) avatarBox.innerHTML = '<div class="avatar-wrap avatar-lg"><span class="avatar-initials">...</span></div>';
+
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+
+    try {
+      const res = await api.inspectUser(targetUserId);
+      if (!res.success || !res.user) throw new Error(res.error || 'Ma‘lumot topilmadi');
+
+      const u = res.user;
+      const initial = (u.firstName || 'O').charAt(0).toUpperCase();
+
+      if (nameEl) nameEl.textContent = `${u.firstName || 'O‘yinchi'} ${u.lastName || ''}`;
+      if (userEl) userEl.textContent = u.username ? `@${u.username}` : `ID: ${u.id}`;
+
+      if (avatarBox) {
+        if (u.photoUrl) {
+          avatarBox.innerHTML = `<div class="avatar-wrap avatar-lg"><img src="${u.photoUrl}" class="avatar-img" alt="${u.firstName}" onerror="this.parentElement.innerHTML='<span class=\\'avatar-initials\\'>${initial}</span>'" /></div>`;
+        } else {
+          avatarBox.innerHTML = `<div class="avatar-wrap avatar-lg"><span class="avatar-initials">${initial}</span></div>`;
+        }
+      }
+
+      // Chess stats
+      document.getElementById('inspect-chess-elo').textContent = `${u.chessElo || 1200} ELO`;
+      document.getElementById('inspect-chess-total').textContent = u.chessTotal || 0;
+      document.getElementById('inspect-chess-record').textContent = `${u.chessWins || 0}G' / ${u.chessLosses || 0}M / ${u.chessDraws || 0}D`;
+      document.getElementById('inspect-chess-winrate').textContent = `${u.chessWinRate || 0}%`;
+
+      // Checkers 8x8 stats
+      document.getElementById('inspect-checkers8-elo').textContent = `${u.checkers8Elo || 1200} ELO`;
+      document.getElementById('inspect-checkers8-total').textContent = u.checkers8Total || 0;
+      document.getElementById('inspect-checkers8-record').textContent = `${u.checkers8Wins || 0}G' / ${u.checkers8Losses || 0}M / ${u.checkers8Draws || 0}D`;
+      document.getElementById('inspect-checkers8-winrate').textContent = `${u.checkers8WinRate || 0}%`;
+
+      // Checkers 10x10 stats
+      document.getElementById('inspect-checkers-elo').textContent = `${u.checkersElo || 1200} ELO`;
+      document.getElementById('inspect-checkers-total').textContent = u.checkersTotal || 0;
+      document.getElementById('inspect-checkers-record').textContent = `${u.checkersWins || 0}G' / ${u.checkersLosses || 0}M / ${u.checkersDraws || 0}D`;
+      document.getElementById('inspect-checkers-winrate').textContent = `${u.checkersWinRate || 0}%`;
+
+      // Challenge button
+      const challengeBtn = document.getElementById('inspect-challenge-btn');
+      if (challengeBtn) {
+        challengeBtn.onclick = () => {
+          this.closePlayerInspectModal();
+          this.liveController.openChallengeModal(u);
+        };
+      }
+    } catch (err) {
+      if (nameEl) nameEl.textContent = 'Xatolik';
+      if (userEl) userEl.textContent = err.message;
+    }
+  }
+
+  closePlayerInspectModal() {
+    const modal = document.getElementById('player-inspect-modal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.style.display = 'none';
     }
   }
 
@@ -561,6 +668,17 @@ class WellChessApp {
     // Settings sound toggle
     document.getElementById('sound-toggle')?.addEventListener('change', e => {
       sounds.enabled = e.target.checked;
+    });
+
+    // Player Inspect Modal close events
+    document.getElementById('close-inspect-modal-btn')?.addEventListener('click', () => {
+      this.closePlayerInspectModal();
+    });
+
+    document.getElementById('player-inspect-modal')?.addEventListener('click', e => {
+      if (e.target.id === 'player-inspect-modal') {
+        this.closePlayerInspectModal();
+      }
     });
   }
 
