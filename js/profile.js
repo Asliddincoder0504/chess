@@ -1,6 +1,17 @@
 import api from './api.js';
 import { ICONS } from '../assets/icons.js';
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/[&<>"']/g, m => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[m]);
+}
+
 export class ProfileController {
   constructor(app) {
     this.app = app;
@@ -26,15 +37,16 @@ export class ProfileController {
       this.profileStats = res.stats;
       const user = this.app.currentUser;
 
-      document.getElementById('profile-name').textContent = `${user.firstName || 'O‘yinchi'} ${user.lastName || ''}`;
+      document.getElementById('profile-name').textContent = `${user.firstName || 'O‘yinchi'} ${user.lastName || ''}`.trim();
       document.getElementById('profile-username').textContent = user.username ? `@${user.username}` : `ID: ${user.id}`;
 
       const avatarEl = document.getElementById('icon-profile-user');
       if (avatarEl) {
+        const initial = (user.firstName || 'O').charAt(0).toUpperCase();
         if (user.photoUrl) {
-          avatarEl.innerHTML = `<img src="${user.photoUrl}" class="avatar-img-lg" onerror="this.parentElement.innerHTML='${ICONS.user}'" />`;
+          avatarEl.innerHTML = `<img src="${user.photoUrl}" class="avatar-img-lg" alt="${user.firstName || 'O‘yinchi'}" onerror="this.outerHTML='<span class=\\'avatar-initials\\'>${initial}</span>'" />`;
         } else {
-          avatarEl.innerHTML = ICONS.user;
+          avatarEl.innerHTML = `<span class="avatar-initials" style="font-size: 1.35rem; font-weight: 800; color: var(--primary-gold);">${initial}</span>`;
         }
       }
 
@@ -79,65 +91,95 @@ export class ProfileController {
 
   async renderLeaderboard(gameType = 'chess') {
     this.leaderboardType = gameType;
-    const listEl = document.getElementById('leaderboard-list');
-    listEl.innerHTML = '<div class="loader-spinner"></div>';
+    const tbody = document.getElementById('leaderboard-tbody');
+    const emptyEl = document.getElementById('leaderboard-empty');
+    if (tbody) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 28px;"><div class="loader-spinner"></div></td></tr>';
+    }
+    if (emptyEl) emptyEl.classList.add('hidden');
 
     try {
       const res = await api.getLeaderboard(gameType);
       this.leaderboardData = res.leaderboard || [];
       this.filterLeaderboard('');
     } catch (err) {
-      listEl.innerHTML = `<div class="empty-state">Reytingni yuklab bo‘lmadi: ${err.message}</div>`;
+      if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 20px; color: #ef4444;">Reytingni yuklab bo‘lmadi: ${err.message}</td></tr>`;
+      }
     }
   }
 
   filterLeaderboard(searchQuery) {
-    const listEl = document.getElementById('leaderboard-list');
-    const query = searchQuery.trim().toLowerCase();
+    const tbody = document.getElementById('leaderboard-tbody');
+    const emptyEl = document.getElementById('leaderboard-empty');
+    if (!tbody) return;
 
-    const filtered = this.leaderboardData.filter(p =>
+    const query = searchQuery.trim().toLowerCase();
+    const filtered = (this.leaderboardData || []).filter(p =>
       (p.firstName && p.firstName.toLowerCase().includes(query)) ||
       (p.username && p.username.toLowerCase().includes(query)) ||
       String(p.id).includes(query)
     );
 
     if (filtered.length === 0) {
-      listEl.innerHTML = '<div class="empty-state">O‘yinchilar topilmadi</div>';
+      tbody.innerHTML = '';
+      if (emptyEl) emptyEl.classList.remove('hidden');
       return;
     }
 
-    listEl.innerHTML = '';
-    filtered.forEach(p => {
-      const row = document.createElement('div');
-      row.className = `leaderboard-item ${p.id === Number(this.app.currentUser.id) ? 'highlight-user' : ''}`;
-      row.style.cursor = 'pointer';
+    if (emptyEl) emptyEl.classList.add('hidden');
+    tbody.innerHTML = '';
 
-      let medal = `<span class="rank-num">${p.rank}</span>`;
-      if (p.rank === 1) medal = `<span class="rank-badge">${ICONS.medalGold}</span>`;
-      else if (p.rank === 2) medal = `<span class="rank-badge">${ICONS.medalSilver}</span>`;
-      else if (p.rank === 3) medal = `<span class="rank-badge">${ICONS.medalBronze}</span>`;
+    filtered.forEach((p, idx) => {
+      const rank = p.rank || (idx + 1);
+      const isCurrent = Number(p.id) === Number(this.app.currentUser.id);
 
-      row.innerHTML = `
-        <div class="lb-left">
-          ${medal}
-          <div class="lb-user-info">
-            <span class="lb-name">${p.firstName || 'O‘yinchi'}</span>
-            <span class="lb-username">${p.username ? `@${p.username}` : `ID: ${p.id}`}</span>
+      const tr = document.createElement('tr');
+      tr.className = `lb-table-row ${isCurrent ? 'highlight-user' : ''}`;
+      tr.style.cursor = 'pointer';
+
+      let rankDisplay = `<span class="rank-num">${rank}</span>`;
+      if (rank === 1) rankDisplay = `<span class="rank-badge">${ICONS.medalGold || '🥇'}</span>`;
+      else if (rank === 2) rankDisplay = `<span class="rank-badge">${ICONS.medalSilver || '🥈'}</span>`;
+      else if (rank === 3) rankDisplay = `<span class="rank-badge">${ICONS.medalBronze || '🥉'}</span>`;
+
+      const initial = (p.firstName || 'O').charAt(0).toUpperCase();
+      const avatarHtml = p.photoUrl
+        ? `<img src="${p.photoUrl}" class="lb-avatar-mini" alt="" onerror="this.outerHTML='<span class=\\'lb-avatar-initial\\'>${initial}</span>'" />`
+        : `<span class="lb-avatar-initial">${initial}</span>`;
+
+      const totalMatches = (p.wins || 0) + (p.losses || 0) + (p.draws || 0);
+
+      tr.innerHTML = `
+        <td class="td-rank">${rankDisplay}</td>
+        <td class="td-player">
+          <div class="lb-player-cell">
+            ${avatarHtml}
+            <div class="lb-player-text">
+              <span class="lb-row-name">${escapeHtml(p.firstName || 'O‘yinchi')}</span>
+              <span class="lb-row-username">${p.username ? '@' + p.username : 'ID: ' + p.id}</span>
+            </div>
           </div>
-        </div>
-        <div class="lb-right">
-          <span class="lb-elo">${p.elo} ELO</span>
-          <span class="lb-record">${p.wins}G' / ${p.losses}M (${p.winRate}%)</span>
-        </div>
+        </td>
+        <td class="td-games">
+          <span>${totalMatches}</span>
+          <div style="font-size: 0.7rem; color: var(--text-muted);">${p.wins || 0}G' / ${p.losses || 0}M</div>
+        </td>
+        <td class="td-winrate">
+          <span class="winrate-badge-pill">${p.winRate || 0}%</span>
+        </td>
+        <td class="td-elo">
+          <span class="lb-row-elo">${p.elo || 1200}</span>
+        </td>
       `;
 
-      row.addEventListener('click', () => {
+      tr.addEventListener('click', () => {
         if (this.app.openPlayerInspectModal) {
           this.app.openPlayerInspectModal(p.id);
         }
       });
 
-      listEl.appendChild(row);
+      tbody.appendChild(tr);
     });
   }
 
