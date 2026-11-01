@@ -6,9 +6,23 @@
 export const ICONS = {
   // Brand Logo / Chess Icon
   logo: `
-    <svg class="ui-icon icon-logo" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M11.5 22h-6a2 2 0 0 1-2-2c0-3.5 2-5 3-7 1-2 1-3.5 0-5.5-.5-1-1.5-1.5-2.5-1.5 1-2 3-3 6.5-3 4.5 0 7 2.5 7 6.5 0 2-.5 3-1.5 4.5 2 1.5 3.5 4 3.5 8a2 2 0 0 1-2 2h-6.5"/>
-      <circle cx="10" cy="7" r="1" fill="currentColor"/>
+    <svg class="ui-icon icon-logo" viewBox="0 0 32 32" width="28" height="28" fill="none">
+      <defs>
+        <linearGradient id="logoGold" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#fbbf24"/>
+          <stop offset="100%" stop-color="#d97706"/>
+        </linearGradient>
+        <linearGradient id="logoInner" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#1e2538"/>
+          <stop offset="100%" stop-color="#0f1422"/>
+        </linearGradient>
+      </defs>
+      <path d="M16 2L28 7V16C28 22.5 22.8 28.5 16 30C9.2 28.5 4 22.5 4 16V7L16 2Z" fill="url(#logoInner)" stroke="url(#logoGold)" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M10 13L12.5 16.5L16 11L19.5 16.5L22 13V21H10V13Z" fill="url(#logoGold)"/>
+      <circle cx="16" cy="9.5" r="1.3" fill="#fbbf24"/>
+      <circle cx="10" cy="11.5" r="1" fill="#fbbf24"/>
+      <circle cx="22" cy="11.5" r="1" fill="#fbbf24"/>
+      <circle cx="16" cy="23.5" r="2.2" fill="#fbbf24" stroke="#d97706" stroke-width="0.8"/>
     </svg>
   `,
 

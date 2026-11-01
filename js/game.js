@@ -3,6 +3,7 @@ import { ChessBoardUI } from './chess.js';
 import { CheckersBoardUI } from './checkers.js';
 import { ChessGame } from './engine-chess.js';
 import { CheckersGame } from './engine-checkers.js';
+import { fireVictoryConfetti } from './confetti.js';
 
 class SoundEffects {
   constructor() {
@@ -199,6 +200,19 @@ export class GameController {
     this.checkDrawOffers();
   }
 
+  triggerCaptureAnimation(square) {
+    if (!square) return;
+    const container = document.getElementById('game-board-container');
+    if (!container) return;
+    const cell = container.querySelector(`[data-square="${square}"]`);
+    if (cell) {
+      cell.classList.remove('cell-capture-poof');
+      void cell.offsetWidth;
+      cell.classList.add('cell-capture-poof');
+    }
+    sounds.capture();
+  }
+
   async handlePlayerMove(move) {
     if (this.gameData.status !== 'active') return;
     const isSolo = Number(this.gameData.whiteId) === Number(this.gameData.blackId);
@@ -213,7 +227,16 @@ export class GameController {
         throw new Error(res.error);
       }
 
-      sounds.move();
+      const lastMoveItem = res.game?.moves ? res.game.moves[res.game.moves.length - 1] : null;
+      const notation = lastMoveItem?.moveNotation || '';
+      const isCapture = notation.includes('x') || notation.includes(':') || !!move.captured;
+
+      if (isCapture) {
+        this.triggerCaptureAnimation(move.to);
+      } else {
+        sounds.move();
+      }
+
       await this.syncGameState(res.game);
     } catch (err) {
       this.app.showToast(`Yurish xatosi: ${err.message}`, 'error');
@@ -257,9 +280,16 @@ export class GameController {
       this.boardUI.loadState(this.gameData.boardState);
     }
 
-    // Play move sound if opponent just made a move
+    // Play move or capture sound if opponent just made a move
     if (prevTurn !== newGame.currentTurn && newGame.currentTurn === this.playerColor) {
-      sounds.move();
+      const lastMove = newGame.moves ? newGame.moves[newGame.moves.length - 1] : null;
+      const notation = lastMove?.moveNotation || '';
+      const isCapture = notation.includes('x') || notation.includes(':');
+      if (isCapture) {
+        this.triggerCaptureAnimation(lastMove.moveData?.to);
+      } else {
+        sounds.move();
+      }
     }
 
     this.updateMoveHistory();
@@ -296,9 +326,16 @@ export class GameController {
         if (res.game.version !== this.gameData.version || res.game.status !== this.gameData.status) {
           await this.syncGameState(res.game);
         } else {
-          // Sync clocks
-          this.cachedWhiteTime = res.game.whiteTimeMs;
-          this.cachedBlackTime = res.game.blackTimeMs;
+          // Reconcile clocks smoothly without jitter
+          const serverWhite = res.game.whiteTimeMs;
+          const serverBlack = res.game.blackTimeMs;
+          if (Math.abs(this.cachedWhiteTime - serverWhite) > 2500) {
+            this.cachedWhiteTime = serverWhite;
+          }
+          if (Math.abs(this.cachedBlackTime - serverBlack) > 2500) {
+            this.cachedBlackTime = serverBlack;
+          }
+          this.lastClockTick = Date.now();
         }
       }
     } catch {
@@ -308,11 +345,12 @@ export class GameController {
 
   startClock() {
     this.stopClock();
+    this.lastClockTick = Date.now();
     this.clockInterval = setInterval(() => {
-      if (this.gameData.status !== 'active') return;
+      if (!this.gameData || this.gameData.status !== 'active') return;
 
       const now = Date.now();
-      const delta = now - this.lastClockTick;
+      const delta = Math.min(1000, Math.max(0, now - this.lastClockTick));
       this.lastClockTick = now;
 
       if (this.gameData.currentTurn === 'white') {
@@ -458,9 +496,18 @@ export class GameController {
     const isWinner = this.gameData.winner === this.playerColor;
     const isDraw = this.gameData.winner === 'draw';
 
-    if (isWinner) sounds.victory();
-    else if (isDraw) sounds.move();
-    else sounds.defeat();
+    if (isWinner) {
+      sounds.victory();
+      try {
+        fireVictoryConfetti();
+      } catch (err) {
+        console.warn('[Confetti error]:', err.message);
+      }
+    } else if (isDraw) {
+      sounds.move();
+    } else {
+      sounds.defeat();
+    }
 
     const change = this.playerColor === 'white' ? this.gameData.whiteRatingChange : this.gameData.blackRatingChange;
     const changeStr = change > 0 ? `+${change}` : `${change}`;
