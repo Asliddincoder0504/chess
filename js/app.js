@@ -665,6 +665,13 @@ class WellChessApp {
       this.profileController.renderAdmin(e.target.value);
     });
 
+    // Admin refresh button
+    document.getElementById('admin-refresh-btn')?.addEventListener('click', () => {
+      const q = document.getElementById('admin-user-search')?.value || '';
+      this.profileController.renderAdmin(q);
+      this.showToast('Admin paneli yangilandi', 'info');
+    });
+
     // Settings sound toggle
     document.getElementById('sound-toggle')?.addEventListener('change', e => {
       sounds.enabled = e.target.checked;
