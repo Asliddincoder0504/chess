@@ -169,11 +169,14 @@ export async function handleGetGame(gameId) {
   const whiteUser = await getUserById(game.whiteId);
   const blackUser = game.blackId ? await getUserById(game.blackId) : null;
   const moves = await getGameMoves(game.id);
+  const { getGameChat } = await import('../storage/games.js');
+  const chat = getGameChat(game.id);
 
   return {
     success: true,
     game: {
       ...game,
+      chat,
       whitePlayer: {
         id: whiteUser?.id,
         username: whiteUser?.username,
@@ -190,6 +193,37 @@ export async function handleGetGame(gameId) {
       } : null,
       moves
     }
+  };
+}
+
+export async function handleSendChatMessage(gameId, userId, { text, senderName }) {
+  const game = await getGameById(gameId);
+  if (!game) {
+    return { error: 'Game not found', status: 404 };
+  }
+
+  const uId = Number(userId);
+  const isPlayer = uId === Number(game.whiteId) || uId === Number(game.blackId);
+  if (!isPlayer) {
+    return { error: 'Faqat o‘yin ishtirokchilari chatda yozisha oladi', status: 403 };
+  }
+
+  const cleanText = (text || '').trim();
+  if (!cleanText) {
+    return { error: 'Xabar bo‘sh bo‘lishi mumkin emas', status: 400 };
+  }
+
+  const { addGameChatMessage, getGameChat } = await import('../storage/games.js');
+  const message = addGameChatMessage(game.id, {
+    senderId: uId,
+    senderName,
+    text: cleanText
+  });
+
+  return {
+    success: true,
+    message,
+    chat: getGameChat(game.id)
   };
 }
 

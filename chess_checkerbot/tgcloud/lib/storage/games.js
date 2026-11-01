@@ -67,6 +67,32 @@ export async function getGameById(id) {
   return row || null;
 }
 
+const gameChats = new Map();
+
+export function getGameChat(gameId) {
+  return gameChats.get(String(gameId)) || [];
+}
+
+export function addGameChatMessage(gameId, { senderId, senderName, text }) {
+  const gId = String(gameId);
+  if (!gameChats.has(gId)) {
+    gameChats.set(gId, []);
+  }
+  const chatList = gameChats.get(gId);
+  const msg = {
+    id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    senderId: Number(senderId),
+    senderName: senderName || 'O‘yinchi',
+    text: String(text).slice(0, 200),
+    timestamp: Date.now()
+  };
+  chatList.push(msg);
+  if (chatList.length > 80) {
+    chatList.shift();
+  }
+  return msg;
+}
+
 export async function updateGame(id, updates) {
   updates.updatedAt = Math.floor(Date.now() / 1000);
   await db.update(games)

@@ -11,9 +11,10 @@ import {
   handleDeclineInvite,
   handleGetLiveGames,
   handleGetOnlinePlayers,
+  handleSendChatMessage,
   syncGameClocks
 } from '../lib/game_service.js';
-import { getGameById } from '../lib/storage/games.js';
+import { getGameById, getGameChat } from '../lib/storage/games.js';
 
 export default async function (input, ctx) {
   // Allow read-only actions (live games, online players, spectating) for guests/visitors
@@ -138,6 +139,20 @@ export default async function (input, ctx) {
     const res = await handleRematchAction(gameId, userId, { action: rematchAct });
     if (res.error) throw new EndpointError(res.error, { code: 'REMATCH_ERROR' });
     return res;
+  }
+
+  if (action === 'chat_send') {
+    const text = (input.text || input.message || '').trim();
+    if (!text) throw new EndpointError('Xabar bo‘sh bo‘lishi mumkin emas', { code: 'EMPTY_TEXT' });
+    const senderName = user.first_name || user.firstName || 'O‘yinchi';
+    const res = await handleSendChatMessage(gameId, userId, { text, senderName });
+    if (res.error) throw new EndpointError(res.error, { code: res.status === 403 ? 'FORBIDDEN' : 'ERROR' });
+    return res;
+  }
+
+  if (action === 'chat_get') {
+    const chat = getGameChat(gameId);
+    return { success: true, chat };
   }
 
   throw new EndpointError(`Unknown action: ${action}`, { code: 'UNKNOWN_ACTION' });

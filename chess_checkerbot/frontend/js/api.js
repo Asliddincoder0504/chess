@@ -247,6 +247,29 @@ class ApiClient {
     if (endpoint === 'game') {
       const localGames = this.getLocalGames();
 
+      if (action === 'chat_send') {
+        const localChatKey = `wellchess_chat_${payload.gameId}`;
+        let existing = [];
+        try { existing = JSON.parse(localStorage.getItem(localChatKey) || '[]'); } catch {}
+        const newMsg = {
+          id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          senderId: user.id,
+          senderName: user.firstName,
+          text: payload.text,
+          timestamp: Date.now()
+        };
+        existing.push(newMsg);
+        try { localStorage.setItem(localChatKey, JSON.stringify(existing)); } catch {}
+        return { success: true, message: newMsg, chat: existing };
+      }
+
+      if (action === 'chat_get') {
+        const localChatKey = `wellchess_chat_${payload.gameId}`;
+        let existing = [];
+        try { existing = JSON.parse(localStorage.getItem(localChatKey) || '[]'); } catch {}
+        return { success: true, chat: existing };
+      }
+
       if (action === 'pending_challenges') {
         return { success: true, challenges: [] };
       }
@@ -523,6 +546,15 @@ class ApiClient {
 
   async getOnlinePlayers() {
     return this.call('game', { action: 'online_players' });
+  }
+
+  // Real-Time In-Game Chat API
+  async sendGameChat(gameId, text) {
+    return this.call('game', { action: 'chat_send', gameId, text });
+  }
+
+  async getGameChat(gameId) {
+    return this.call('game', { action: 'chat_get', gameId });
   }
 
   // Admin API

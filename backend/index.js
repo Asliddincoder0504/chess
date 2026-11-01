@@ -182,6 +182,17 @@ export async function dispatchApiRequest({ method, pathname, query = {}, body = 
     if (action === 'rematch') {
       return await handleRematchAction(gameId, user.id, { action: body.rematchAction || body.action });
     }
+    if (action === 'chat_send') {
+      const { handleSendChatMessage } = await import('./api/games.js');
+      return await handleSendChatMessage(gameId, user.id, {
+        text: body.text || body.message,
+        senderName: user.firstName || 'O‘yinchi'
+      });
+    }
+    if (action === 'chat_get') {
+      const { getGameChat } = await import('./storage/games.js');
+      return { success: true, chat: getGameChat(gameId) };
+    }
     if (action === 'get' || action === 'state' || !action) {
       return await handleGetGame(gameId, user.id);
     }

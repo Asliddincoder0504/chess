@@ -31,6 +31,7 @@ class WellChessApp {
     this.pendingInviteGameId = null;
     this.pendingChallengesTimer = null;
     this.activeIncomingChallenge = null;
+    this.currentTheme = 'dark';
   }
 
   async init() {
@@ -63,6 +64,7 @@ class WellChessApp {
     }
 
     this.updateUserUI();
+    this.initTheme();
     this.renderIcons();
     this.bindEvents();
     this.initPieceTheme();
@@ -441,13 +443,58 @@ class WellChessApp {
       'icon-nav-ranks': ICONS.podium,
       'icon-nav-history': ICONS.history,
       'icon-nav-profile': ICONS.user,
-      'icon-nav-admin': ICONS.shield
+      'icon-nav-admin': ICONS.shield,
+      'icon-theme-mode': this.currentTheme === 'light' ? ICONS.moon : ICONS.sun,
+      'icon-pill-dark': ICONS.moon,
+      'icon-pill-light': ICONS.sun,
+      'icon-btn-chat': ICONS.chat,
+      'icon-chat-drawer-title': ICONS.chat,
+      'icon-btn-send-chat': ICONS.send
     };
 
     for (const [id, svg] of Object.entries(iconMap)) {
       const el = document.getElementById(id);
       if (el) el.innerHTML = svg;
     }
+  }
+
+  initTheme() {
+    let saved = 'dark';
+    try {
+      saved = localStorage.getItem('wellchess_theme') || 'dark';
+    } catch {}
+    this.setTheme(saved, false);
+  }
+
+  setTheme(theme, showToast = true) {
+    this.currentTheme = theme === 'light' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = this.currentTheme;
+    try {
+      localStorage.setItem('wellchess_theme', this.currentTheme);
+    } catch {}
+
+    const themeText = document.getElementById('header-theme-text');
+    if (themeText) {
+      themeText.textContent = this.currentTheme === 'light' ? 'Oq' : 'Qora';
+    }
+
+    const themeIcon = document.getElementById('icon-theme-mode');
+    if (themeIcon) {
+      themeIcon.innerHTML = this.currentTheme === 'light' ? ICONS.moon : ICONS.sun;
+    }
+
+    document.querySelectorAll('.theme-mode-pill').forEach(pill => {
+      pill.classList.toggle('selected', pill.dataset.themeMode === this.currentTheme);
+    });
+
+    if (showToast) {
+      this.showToast(this.currentTheme === 'light' ? '☀️ Oq rejim faollashtirildi' : '🌙 Qora rejim faollashtirildi', 'info');
+    }
+  }
+
+  toggleTheme() {
+    const nextTheme = this.currentTheme === 'light' ? 'dark' : 'light';
+    this.setTheme(nextTheme, true);
   }
 
   bindEvents() {
@@ -733,6 +780,46 @@ class WellChessApp {
     document.querySelectorAll('.rules-tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         this.switchRulesTab(btn.dataset.rulesTab);
+      });
+    });
+
+    // Theme Toggle Header & Settings
+    document.getElementById('header-theme-toggle')?.addEventListener('click', () => {
+      this.toggleTheme();
+    });
+
+    document.querySelectorAll('.theme-mode-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        const mode = pill.dataset.themeMode;
+        if (mode) this.setTheme(mode, true);
+      });
+    });
+
+    // In-Game Real-Time Chat actions
+    document.getElementById('game-chat-toggle-btn')?.addEventListener('click', () => {
+      this.gameController.toggleChat();
+    });
+
+    document.getElementById('close-game-chat-btn')?.addEventListener('click', () => {
+      this.gameController.toggleChat(false);
+    });
+
+    document.getElementById('game-chat-form')?.addEventListener('submit', e => {
+      e.preventDefault();
+      const input = document.getElementById('game-chat-input');
+      const val = input ? input.value : '';
+      if (val.trim()) {
+        this.gameController.sendChatMessage(val);
+        if (input) input.value = '';
+      }
+    });
+
+    document.querySelectorAll('.chat-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const text = chip.dataset.quickChat;
+        if (text) {
+          this.gameController.sendChatMessage(text);
+        }
       });
     });
   }

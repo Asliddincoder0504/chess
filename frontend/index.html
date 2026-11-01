@@ -16,11 +16,18 @@
         <span class="brand-icon" id="icon-brand-logo"></span>
         <span>WellChess</span>
       </div>
-      <div class="header-user-badge" id="header-user-badge">
-        <div class="header-avatar" id="header-user-avatar">
-          <span class="avatar-initials">O</span>
+      <div class="header-right-actions" style="display: flex; align-items: center; gap: 8px;">
+        <button class="theme-toggle-btn" id="header-theme-toggle" title="Oq / Qora rejim" aria-label="Mavzuni almashtirish">
+          <span class="theme-toggle-icon" id="icon-theme-mode"></span>
+          <span class="theme-toggle-text" id="header-theme-text">Qora</span>
+        </button>
+
+        <div class="header-user-badge" id="header-user-badge">
+          <div class="header-avatar" id="header-user-avatar">
+            <span class="avatar-initials">O</span>
+          </div>
+          <span class="header-user" id="home-user-name">O'yinchi</span>
         </div>
-        <span class="header-user" id="home-user-name">O'yinchi</span>
       </div>
     </header>
 
@@ -162,9 +169,14 @@
 
           <!-- Game Action Controls -->
           <div class="game-controls-strip">
+            <button class="btn-secondary btn-with-icon" id="game-chat-toggle-btn" title="Raqib bilan jonli chat">
+              <span class="btn-ctrl-icon" id="icon-btn-chat"></span>
+              <span>Chat</span>
+              <span class="chat-badge hidden" id="game-chat-badge">0</span>
+            </button>
             <button class="btn-secondary btn-with-icon" id="draw-btn">
               <span class="btn-ctrl-icon" id="icon-btn-draw"></span>
-              <span>Durang taklif qilish</span>
+              <span>Durang</span>
             </button>
             <button class="btn-secondary btn-with-icon" id="resign-btn">
               <span class="btn-ctrl-icon" id="icon-btn-resign"></span>
@@ -172,8 +184,43 @@
             </button>
             <button class="btn-secondary btn-with-icon hidden" id="exit-spectate-btn">
               <span class="btn-ctrl-icon" id="icon-btn-exit-spectate"></span>
-              <span>Tomoshadan chiqish</span>
+              <span>Chiqish</span>
             </button>
+          </div>
+
+          <!-- Real-Time In-Game Player Chat Drawer -->
+          <div class="game-chat-drawer hidden" id="game-chat-drawer">
+            <div class="game-chat-header">
+              <div class="chat-header-title">
+                <span class="chat-header-icon" id="icon-chat-drawer-title"></span>
+                <span class="chat-header-text">Raqib bilan chat</span>
+                <span class="chat-private-tag">🔒 Faqat 2 o‘yinchi</span>
+              </div>
+              <button class="btn-icon-close" id="close-game-chat-btn" title="Chatni yopish">✕</button>
+            </div>
+
+            <!-- Quick Reactions Bar -->
+            <div class="chat-quick-bar">
+              <button type="button" class="chat-chip" data-quick-chat="Salom! 👋">Salom! 👋</button>
+              <button type="button" class="chat-chip" data-quick-chat="Yaxshi yurish! 👏">Yaxshi yurish! 👏</button>
+              <button type="button" class="chat-chip" data-quick-chat="Omad! 🍀">Omad! 🍀</button>
+              <button type="button" class="chat-chip" data-quick-chat="O‘ylash kerak 🤔">O‘ylash kerak 🤔</button>
+              <button type="button" class="chat-chip" data-quick-chat="Rahmat! 🙏">Rahmat! 🙏</button>
+              <button type="button" class="chat-chip" data-quick-chat="Ajoyib o‘yin! 🔥">Ajoyib o‘yin! 🔥</button>
+            </div>
+
+            <!-- Messages Scroll List -->
+            <div class="game-chat-messages" id="game-chat-messages">
+              <div class="chat-empty-state">💬 O‘yin davomida raqibingiz bilan yozishishingiz mumkin!</div>
+            </div>
+
+            <!-- Chat Input Bar -->
+            <form class="game-chat-input-bar" id="game-chat-form">
+              <input type="text" id="game-chat-input" class="chat-input" placeholder="Xabaringizni yozing..." maxlength="180" autocomplete="off" />
+              <button type="submit" class="btn-chat-send" id="game-chat-send-btn" title="Yuborish">
+                <span id="icon-btn-send-chat">➤</span>
+              </button>
+            </form>
           </div>
         </div>
       </section>
@@ -284,6 +331,20 @@
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
             <span>🔊 Ovoz effektlari</span>
             <input type="checkbox" id="sound-toggle" checked style="width: 22px; height: 22px; cursor: pointer;">
+          </div>
+          <div class="settings-divider" style="height: 1px; background: var(--border-color); margin: 10px 0;"></div>
+          <div style="margin-top: 10px; margin-bottom: 12px;">
+            <div style="font-weight: 600; font-size: 0.88rem; margin-bottom: 8px;">🌓 Interfeys rejimi (Oq / Qora rejim):</div>
+            <div class="theme-mode-selector" id="theme-mode-selector">
+              <div class="theme-mode-pill selected" data-theme-mode="dark" id="pill-theme-dark">
+                <span class="theme-pill-icon" id="icon-pill-dark">🌙</span>
+                <span>Qora rejim (Dark)</span>
+              </div>
+              <div class="theme-mode-pill" data-theme-mode="light" id="pill-theme-light">
+                <span class="theme-pill-icon" id="icon-pill-light">☀️</span>
+                <span>Oq rejim (Light)</span>
+              </div>
+            </div>
           </div>
           <div class="settings-divider" style="height: 1px; background: var(--border-color); margin: 10px 0;"></div>
           <div style="margin-top: 10px;">

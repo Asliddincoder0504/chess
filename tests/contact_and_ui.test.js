@@ -64,3 +64,90 @@ test('Telegram Bot: /start menu has only the 3 required options', () => {
   assert.ok(!msgHandler.includes('⚡ Tezkor o‘yin (3 min)'), 'Must NOT have old Tezkor o‘yin button in start menu');
   assert.ok(!msgHandler.includes('btn_profile'), 'Must NOT have old Mening profilim button in start menu');
 });
+
+test('Real-Time In-Game Chat: active players can chat, spectators cannot', async () => {
+  const { createGame } = await import('../backend/storage/games.js');
+  const game = await createGame({
+    gameType: 'chess',
+    timeControl: '3+2',
+    whiteId: 2001,
+    blackId: 2002
+  });
+
+  // White sends message
+  const sendRes = await dispatchApiRequest({
+    method: 'POST',
+    pathname: '/api/game',
+    body: {
+      action: 'chat_send',
+      gameId: game.id,
+      text: 'Omad tilayman!',
+      _testUser: { id: 2001, firstName: 'Oq O‘yinchi' }
+    }
+  });
+
+  assert.equal(sendRes.success, true);
+  assert.equal(sendRes.message.text, 'Omad tilayman!');
+  assert.equal(sendRes.message.senderId, 2001);
+
+  // Black sends reply
+  const replyRes = await dispatchApiRequest({
+    method: 'POST',
+    pathname: '/api/game',
+    body: {
+      action: 'chat_send',
+      gameId: game.id,
+      text: 'Rahmat, sizga ham omad!',
+      _testUser: { id: 2002, firstName: 'Qora O‘yinchi' }
+    }
+  });
+  assert.equal(replyRes.success, true);
+  assert.equal(replyRes.chat.length, 2);
+
+  // Outsider / spectator attempts to send chat -> must be blocked (403)
+  const outsiderRes = await dispatchApiRequest({
+    method: 'POST',
+    pathname: '/api/game',
+    body: {
+      action: 'chat_send',
+      gameId: game.id,
+      text: 'Men tomoshabinman!',
+      _testUser: { id: 9999, firstName: 'Tomoshabin' }
+    }
+  });
+  assert.equal(outsiderRes.status, 403);
+  assert.match(outsiderRes.error, /Faqat o‘yin ishtirokchilari/i);
+
+  // Getting game state includes real-time chat messages
+  const stateRes = await dispatchApiRequest({
+    method: 'POST',
+    pathname: '/api/game',
+    body: { action: 'get', gameId: game.id, _testUser: { id: 2001 } }
+  });
+  assert.equal(stateRes.success, true);
+  assert.ok(Array.isArray(stateRes.game.chat));
+  assert.equal(stateRes.game.chat.length, 2);
+  assert.equal(stateRes.game.chat[0].text, 'Omad tilayman!');
+});
+
+test('Frontend UI: Theme Switcher and In-Game Chat drawer in HTML and CSS', () => {
+  const html = fs.readFileSync(path.resolve(__dirname, '../frontend/index.html'), 'utf8');
+  const css = fs.readFileSync(path.resolve(__dirname, '../frontend/css/style.css'), 'utf8');
+
+  // Header Theme Switcher
+  assert.ok(html.includes('id="header-theme-toggle"'), 'Must have header theme toggle button');
+  assert.ok(html.includes('id="theme-mode-selector"'), 'Must have theme mode selector in settings');
+
+  // In-Game Chat Drawer & Toggle
+  assert.ok(html.includes('id="game-chat-toggle-btn"'), 'Must have game-chat-toggle-btn');
+  assert.ok(html.includes('id="game-chat-drawer"'), 'Must have game-chat-drawer');
+  assert.ok(html.includes('id="game-chat-messages"'), 'Must have game-chat-messages container');
+  assert.ok(html.includes('id="game-chat-input"'), 'Must have game-chat-input field');
+  assert.ok(html.includes('class="chat-chip"'), 'Must have quick chat chips');
+
+  // CSS supports both Dark and Light mode
+  assert.ok(css.includes('[data-theme="light"]'), 'CSS must define [data-theme="light"] rules');
+  assert.ok(css.includes('.game-chat-drawer'), 'CSS must define .game-chat-drawer styles');
+  assert.ok(css.includes('.chat-bubble.mine'), 'CSS must define .chat-bubble.mine styles');
+  assert.ok(css.includes('.chat-bubble.opponent'), 'CSS must define .chat-bubble.opponent styles');
+});

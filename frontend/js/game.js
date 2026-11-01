@@ -68,6 +68,11 @@ class SoundEffects {
     setTimeout(() => this.playTone(320, 'sine', 0.2, 0.25), 180);
     setTimeout(() => this.playTone(260, 'sine', 0.35, 0.3), 360);
   }
+
+  chat() {
+    this.playTone(520, 'sine', 0.08, 0.15);
+    setTimeout(() => this.playTone(660, 'sine', 0.1, 0.15), 60);
+  }
 }
 
 export const sounds = new SoundEffects();
@@ -87,6 +92,10 @@ export class GameController {
     this.cachedWhiteTime = 0;
     this.cachedBlackTime = 0;
     this.lastClockTick = Date.now();
+
+    this.chatMessages = [];
+    this.chatUnreadCount = 0;
+    this.isChatOpen = false;
   }
 
   async loadGame(gameId, isSpectator = false) {
@@ -146,15 +155,27 @@ export class GameController {
     const drawBtn = document.getElementById('draw-btn');
     const resignBtn = document.getElementById('resign-btn');
     const exitSpectateBtn = document.getElementById('exit-spectate-btn');
+    const chatToggleBtn = document.getElementById('game-chat-toggle-btn');
     if (isSpectator) {
       if (drawBtn) drawBtn.classList.add('hidden');
       if (resignBtn) resignBtn.classList.add('hidden');
       if (exitSpectateBtn) exitSpectateBtn.classList.remove('hidden');
+      if (chatToggleBtn) chatToggleBtn.classList.add('hidden');
     } else {
       if (drawBtn) drawBtn.classList.remove('hidden');
       if (resignBtn) resignBtn.classList.remove('hidden');
       if (exitSpectateBtn) exitSpectateBtn.classList.add('hidden');
+      if (chatToggleBtn) chatToggleBtn.classList.remove('hidden');
     }
+
+    // Setup In-Game Real-Time Chat
+    this.chatMessages = Array.isArray(this.gameData.chat) ? this.gameData.chat : [];
+    this.chatUnreadCount = 0;
+    this.isChatOpen = false;
+    this.updateChatBadge();
+    this.renderChatMessages();
+    const chatDrawer = document.getElementById('game-chat-drawer');
+    if (chatDrawer) chatDrawer.classList.add('hidden');
 
     this.cachedWhiteTime = this.gameData.whiteTimeMs;
     this.cachedBlackTime = this.gameData.blackTimeMs;
@@ -295,6 +316,9 @@ export class GameController {
     this.updateMoveHistory();
     this.updateTurnIndicator();
     this.checkDrawOffers();
+    if (newGame.chat) {
+      this.syncChatMessages(newGame.chat);
+    }
 
     // Check game completion
     if (newGame.status === 'completed' && prevStatus !== 'completed') {
@@ -336,6 +360,9 @@ export class GameController {
             this.cachedBlackTime = serverBlack;
           }
           this.lastClockTick = Date.now();
+          if (res.game.chat) {
+            this.syncChatMessages(res.game.chat);
+          }
         }
       }
     } catch {
@@ -587,6 +614,125 @@ export class GameController {
         rematchBtn.textContent = 'Raqib kutilmoqda...';
         rematchBtn.disabled = true;
       }
+    }
+  }
+
+  // ================= In-Game Real-Time Chat Methods =================
+  updateChatBadge() {
+    const badge = document.getElementById('game-chat-badge');
+    if (!badge) return;
+    if (this.chatUnreadCount > 0) {
+      badge.textContent = this.chatUnreadCount > 9 ? '9+' : this.chatUnreadCount;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  }
+
+  toggleChat(forceState = null) {
+    if (this.isSpectator) return;
+    this.isChatOpen = forceState !== null ? forceState : !this.isChatOpen;
+    const drawer = document.getElementById('game-chat-drawer');
+    if (drawer) {
+      if (this.isChatOpen) {
+        drawer.classList.remove('hidden');
+        this.chatUnreadCount = 0;
+        this.updateChatBadge();
+        this.scrollChatToBottom();
+        const input = document.getElementById('game-chat-input');
+        if (input) input.focus();
+      } else {
+        drawer.classList.add('hidden');
+      }
+    }
+  }
+
+  scrollChatToBottom() {
+    const container = document.getElementById('game-chat-messages');
+    if (container) {
+      setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+      }, 50);
+    }
+  }
+
+  syncChatMessages(newChatList) {
+    if (!Array.isArray(newChatList)) return;
+    const currentLen = this.chatMessages.length;
+    if (newChatList.length > currentLen) {
+      const myId = Number(this.app.currentUser.id);
+      const incoming = newChatList.slice(currentLen);
+      const hasOpponentMsg = incoming.some(m => Number(m.senderId) !== myId);
+      if (hasOpponentMsg) {
+        sounds.chat();
+        if (!this.isChatOpen) {
+          const count = incoming.filter(m => Number(m.senderId) !== myId).length;
+          this.chatUnreadCount += count;
+          this.updateChatBadge();
+        }
+      }
+      this.chatMessages = newChatList;
+      this.renderChatMessages();
+      if (this.isChatOpen) {
+        this.scrollChatToBottom();
+      }
+    }
+  }
+
+  renderChatMessages() {
+    const container = document.getElementById('game-chat-messages');
+    if (!container) return;
+
+    if (!this.chatMessages || this.chatMessages.length === 0) {
+      container.innerHTML = '<div class="chat-empty-state">💬 O‘yin davomida raqibingiz bilan yozishishingiz mumkin!</div>';
+      return;
+    }
+
+    const myId = Number(this.app.currentUser.id);
+    let html = '';
+    this.chatMessages.forEach(msg => {
+      const isMine = Number(msg.senderId) === myId;
+      const timeStr = new Date(msg.timestamp || Date.now()).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
+      const safeText = String(msg.text || '').replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[m]);
+
+      html += `
+        <div class="chat-bubble ${isMine ? 'mine' : 'opponent'}">
+          <div class="chat-bubble-sender">${isMine ? 'Siz' : (msg.senderName || 'Raqib')}</div>
+          <div class="chat-bubble-text">${safeText}</div>
+          <div class="chat-bubble-time">${timeStr}</div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+  }
+
+  async sendChatMessage(text) {
+    const clean = (text || '').trim();
+    if (!clean || !this.gameId) return;
+
+    const myId = Number(this.app.currentUser.id);
+    const optimisticMsg = {
+      id: `opt_${Date.now()}`,
+      senderId: myId,
+      senderName: this.app.currentUser.firstName || 'Siz',
+      text: clean,
+      timestamp: Date.now()
+    };
+    this.chatMessages.push(optimisticMsg);
+    this.renderChatMessages();
+    this.scrollChatToBottom();
+
+    try {
+      const res = await api.sendGameChat(this.gameId, clean);
+      if (res.success && res.chat) {
+        this.chatMessages = res.chat;
+        this.renderChatMessages();
+      }
+    } catch (err) {
+      this.app.showToast(`Xabar yuborilmadi: ${err.message}`, 'error');
     }
   }
 }
