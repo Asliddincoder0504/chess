@@ -1,5 +1,8 @@
 import { ChessBoardUI } from './chess.js';
 import { CheckersBoardUI } from './checkers.js';
+import { ChessGame } from './engine-chess.js';
+import { CheckersGame } from './engine-checkers.js';
+import { sounds } from './game.js';
 
 export class GameReplayer {
   constructor() {
@@ -8,12 +11,14 @@ export class GameReplayer {
     this.titleEl = document.getElementById('replay-title');
     this.subtitleEl = document.getElementById('replay-subtitle');
     this.stepLabel = document.getElementById('replay-step-label');
+    this.currentMoveBadge = document.getElementById('replay-current-move-badge');
     this.movesListEl = document.getElementById('replay-moves-list');
     this.playBtn = document.getElementById('replay-btn-play');
 
     this.gameData = null;
     this.boardUI = null;
     this.moves = [];
+    this.stepStates = [];
     this.currentStep = -1;
     this.isPlaying = false;
     this.playTimer = null;
@@ -86,17 +91,28 @@ export class GameReplayer {
     }
     if (this.subtitleEl) {
       let outcome = 'Tugallangan';
-      if (game.winner === 'white') outcome = `${wName} g'alaba qozondi`;
-      else if (game.winner === 'black') outcome = `${bName} g'alaba qozondi`;
-      else if (game.winner === 'draw') outcome = 'Durang';
+      if (game.winner === 'white') outcome = `🏆 ${wName} g'alaba qozondi`;
+      else if (game.winner === 'black') outcome = `🏆 ${bName} g'alaba qozondi`;
+      else if (game.winner === 'draw') outcome = '🤝 Durang';
       this.subtitleEl.textContent = `${wName} (Oq) vs ${bName} (Qora) • ${outcome}`;
     }
+
+    // Initialize initial state
+    if (game.gameType === 'chess') {
+      this.initialState = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+    } else if (game.gameType === 'checkers8') {
+      this.initialState = 'bbbbbbbbbbbb........wwwwwwwwwwww';
+    } else {
+      this.initialState = 'bbbbbbbbbbbbbbbbbbbb..........wwwwwwwwwwwwwwwwwwww';
+    }
+
+    // Precalculate all board states through engine simulation if needed
+    this.computeAllStepStates();
 
     // Initialize board UI
     this.boardContainer.innerHTML = '';
     if (game.gameType === 'chess') {
       this.boardUI = new ChessBoardUI(this.boardContainer, { orientation: 'white', onMove: null });
-      this.initialState = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
     } else {
       const is8x8 = game.gameType === 'checkers8';
       this.boardUI = new CheckersBoardUI(this.boardContainer, {
@@ -104,9 +120,6 @@ export class GameReplayer {
         size: is8x8 ? 8 : 10,
         onMove: null
       });
-      this.initialState = is8x8
-        ? 'bbbbbbbbbbbb........wwwwwwwwwwww'
-        : 'bbbbbbbbbbbbbbbbbbbb..........wwwwwwwwwwwwwwwwwwww';
     }
 
     // Render move notations
@@ -116,8 +129,42 @@ export class GameReplayer {
     this.modal.classList.remove('hidden');
     this.modal.style.display = 'flex';
 
-    // Start at initial or end position
+    // Start at initial state
     this.goToStep(-1);
+  }
+
+  computeAllStepStates() {
+    this.stepStates = [this.initialState];
+    let curState = this.initialState;
+    const isChess = this.gameData.gameType === 'chess';
+    const isCheckers8 = this.gameData.gameType === 'checkers8';
+
+    for (let i = 0; i < this.moves.length; i++) {
+      const item = this.moves[i];
+      if (item.boardState) {
+        curState = item.boardState;
+        this.stepStates.push(curState);
+      } else {
+        // Fallback simulate using engine
+        try {
+          if (isChess) {
+            const engine = new ChessGame(curState);
+            const moveParam = item.moveData || item.move;
+            const res = engine.makeMove(moveParam);
+            curState = res.fen || curState;
+          } else {
+            const nextTurn = item.player === 'white' ? 'w' : 'b';
+            const engine = new CheckersGame(curState, nextTurn, isCheckers8 ? 8 : 10);
+            const moveParam = item.moveData || item.move;
+            const res = engine.makeMove(moveParam);
+            curState = res.state || curState;
+          }
+        } catch {
+          // Keep current state on parse failure
+        }
+        this.stepStates.push(curState);
+      }
+    }
   }
 
   renderMovesList() {
@@ -125,7 +172,7 @@ export class GameReplayer {
     this.movesListEl.innerHTML = '';
 
     if (this.moves.length === 0) {
-      this.movesListEl.innerHTML = '<div class="text-muted" style="text-align: center; padding: 10px; font-size: 0.85rem;">Hech qanday yurish yozib olinmagan</div>';
+      this.movesListEl.innerHTML = '<div class="text-muted" style="text-align: center; padding: 12px; font-size: 0.85rem;">Hech qanday yurish yozib olinmagan</div>';
       return;
     }
 
@@ -146,7 +193,7 @@ export class GameReplayer {
 
       moveBtn.addEventListener('click', () => {
         this.stopPlay();
-        this.goToStep(index);
+        this.goToStep(index, true);
       });
 
       fragment.appendChild(moveBtn);
@@ -155,14 +202,11 @@ export class GameReplayer {
     this.movesListEl.appendChild(fragment);
   }
 
-  goToStep(step) {
+  goToStep(step, playAudio = false) {
     const maxStep = this.moves.length - 1;
     this.currentStep = Math.max(-1, Math.min(step, maxStep));
 
-    let targetBoardState = this.initialState;
-    if (this.currentStep >= 0 && this.moves[this.currentStep]) {
-      targetBoardState = this.moves[this.currentStep].boardState || this.gameData.boardState || this.initialState;
-    }
+    const targetBoardState = this.stepStates[this.currentStep + 1] || this.initialState;
 
     // Apply board state
     if (this.gameData.gameType === 'chess') {
@@ -174,19 +218,57 @@ export class GameReplayer {
     // Update highlights
     if (this.currentStep >= 0 && this.moves[this.currentStep]) {
       const curMove = this.moves[this.currentStep];
-      if (curMove.moveData?.from && curMove.moveData?.to) {
-        this.boardUI.setLastMove(curMove.moveData.from, curMove.moveData.to);
-      } else {
-        this.boardUI.setLastMove(null, null);
+      let from = null;
+      let to = null;
+
+      if (curMove.moveData) {
+        from = curMove.moveData.from;
+        to = curMove.moveData.to;
+      } else if (typeof curMove.move === 'object') {
+        from = curMove.move.from;
+        to = curMove.move.to;
+      }
+
+      this.boardUI.setLastMove(from, to);
+
+      // Check capture
+      const notation = typeof curMove.move === 'string' ? curMove.move : (curMove.move?.notation || '');
+      const isCapture = notation.includes('x') || notation.includes(':') || curMove.move?.captured;
+
+      if (playAudio) {
+        if (isCapture) {
+          sounds.capture();
+        } else {
+          sounds.move();
+        }
+      }
+
+      if (to && isCapture) {
+        const cell = this.boardContainer.querySelector(`[data-square="${to}"]`);
+        if (cell) {
+          cell.classList.remove('cell-capture-poof');
+          void cell.offsetWidth;
+          cell.classList.add('cell-capture-poof');
+        }
+      }
+
+      // Update current move badge
+      if (this.currentMoveBadge) {
+        const moveNum = Math.floor(this.currentStep / 2) + 1;
+        const pName = curMove.player === 'white' ? '⚪ Oqlar' : '⚫ Qoralar';
+        this.currentMoveBadge.innerHTML = `<span>${pName}: <b>${notation}</b> (${moveNum}-yurish)</span> ${isCapture ? '<span class="badge-capture-tag">💥 Yutildi</span>' : ''}`;
       }
     } else {
       this.boardUI.setLastMove(null, null);
+      if (this.currentMoveBadge) {
+        this.currentMoveBadge.innerHTML = '<span>⚪ Boshlang‘ich holat</span>';
+      }
     }
 
     // Update step indicator
     if (this.stepLabel) {
       if (this.currentStep === -1) {
-        this.stepLabel.textContent = `Boshlang'ich holat (0 / ${this.moves.length})`;
+        this.stepLabel.textContent = `Boshlang‘ich holat (0 / ${this.moves.length})`;
       } else {
         this.stepLabel.textContent = `Yurish: ${this.currentStep + 1} / ${this.moves.length}`;
       }
@@ -207,7 +289,7 @@ export class GameReplayer {
 
   next() {
     if (this.currentStep < this.moves.length - 1) {
-      this.goToStep(this.currentStep + 1);
+      this.goToStep(this.currentStep + 1, true);
       return true;
     }
     return false;
@@ -215,7 +297,7 @@ export class GameReplayer {
 
   prev() {
     if (this.currentStep > -1) {
-      this.goToStep(this.currentStep - 1);
+      this.goToStep(this.currentStep - 1, false);
       return true;
     }
     return false;

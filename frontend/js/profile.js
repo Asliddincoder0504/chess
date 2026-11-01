@@ -45,6 +45,14 @@ export class ProfileController {
       );
       document.getElementById('profile-tier').textContent = this.getTierName(highestElo);
 
+      const chessEl = document.getElementById('profile-chess-elo-quick');
+      const ch8El = document.getElementById('profile-checkers8-elo-quick');
+      const chEl = document.getElementById('profile-checkers-elo-quick');
+
+      if (chessEl) chessEl.textContent = this.profileStats.chess?.elo || 1200;
+      if (ch8El) ch8El.textContent = this.profileStats.checkers8?.elo || 1200;
+      if (chEl) chEl.textContent = this.profileStats.checkers?.elo || 1200;
+
       this.updateProfileStatCard(this.activeProfileGame);
     } catch (err) {
       console.warn('[Profile Render Error]:', err.message);
@@ -231,20 +239,20 @@ export class ProfileController {
       const stats = statsRes.stats;
       statsContainer.innerHTML = `
         <div class="admin-stat-card">
-          <div class="stat-num">${stats.totalUsers}</div>
-          <div class="stat-label">Jami o‘yinchilar</div>
+          <div class="stat-num">${stats.totalUsers || 0}</div>
+          <div class="stat-label">👥 Jami o‘yinchilar</div>
         </div>
         <div class="admin-stat-card">
-          <div class="stat-num">${stats.activeGamesCount}</div>
-          <div class="stat-label">Faol o‘yinlar</div>
+          <div class="stat-num">${stats.activeGamesCount || 0}</div>
+          <div class="stat-label">⚔️ Faol o‘yinlar</div>
         </div>
         <div class="admin-stat-card">
           <div class="stat-num">${stats.matchmakingQueue?.totalWaiting || 0}</div>
-          <div class="stat-label">Navbatdagilar</div>
+          <div class="stat-label">⏳ Navbatdagilar</div>
         </div>
         <div class="admin-stat-card">
-          <div class="stat-num">${stats.bannedUsers}</div>
-          <div class="stat-label">Bloklanganlar</div>
+          <div class="stat-num">${stats.bannedUsers || 0}</div>
+          <div class="stat-label">🚫 Bloklanganlar</div>
         </div>
       `;
 
@@ -261,12 +269,20 @@ export class ProfileController {
             card.className = 'admin-game-card';
             card.innerHTML = `
               <div class="admin-game-meta">
-                <b>${this.formatGameType(g.gameType)}</b> (${g.timeControl})<br>
-                Oqlar: ID ${g.whiteId} vs Qoralar: ID ${g.blackId || 'Kutilmoqda'}
+                <div style="font-weight: 700; font-size: 0.88rem; color: var(--text-main);">${this.formatGameType(g.gameType)} (${g.timeControl})</div>
+                <div class="text-muted" style="font-size: 0.76rem; margin-top: 2px;">
+                  Oqlar: ID ${g.whiteId} vs Qoralar: ID ${g.blackId || 'Kutilmoqda'}
+                </div>
               </div>
-              <button class="btn-danger btn-small" data-abort-id="${g.id}">To‘xtatish</button>
+              <div style="display: flex; gap: 6px;">
+                <button class="btn-small btn-secondary admin-spectate-btn" data-game-id="${g.id}">👁️ Kuzatish</button>
+                <button class="btn-small btn-danger admin-abort-btn" data-abort-id="${g.id}">To‘xtatish</button>
+              </div>
             `;
-            card.querySelector('[data-abort-id]').addEventListener('click', async () => {
+            card.querySelector('.admin-spectate-btn')?.addEventListener('click', () => {
+              this.app.spectateGame(g.id);
+            });
+            card.querySelector('.admin-abort-btn')?.addEventListener('click', async () => {
               if (confirm('Ushbu o‘yinni to‘xtatishni tasdiqlaysizmi?')) {
                 await api.abortAdminGame(g.id);
                 this.renderAdmin(query);
@@ -289,40 +305,63 @@ export class ProfileController {
 
       users.forEach(u => {
         const item = document.createElement('div');
-        item.className = 'admin-user-row';
+        item.className = 'admin-user-card';
+
+        const initial = (u.firstName || 'O').charAt(0).toUpperCase();
+        const avatarHtml = u.photoUrl
+          ? `<img src="${u.photoUrl}" class="avatar-img" onerror="this.parentElement.innerHTML='<span class=\\'avatar-initials\\'>${initial}</span>'" />`
+          : `<span class="avatar-initials">${initial}</span>`;
+
         item.innerHTML = `
-          <div class="admin-user-info">
-            <span class="name">${u.firstName || 'O‘yinchi'} (@${u.username || 'n/a'})</span>
-            <span class="meta">ID: ${u.id} | Shaxmat: ${u.chessElo} | Shashka 8x8: ${u.checkers8Elo || u.checkersElo} | Shashka 10x10: ${u.checkersElo}</span>
+          <div class="admin-user-top">
+            <div class="admin-user-avatar">${avatarHtml}</div>
+            <div class="admin-user-details">
+              <div class="name">${u.firstName || 'O‘yinchi'} ${u.lastName || ''} <span class="text-muted" style="font-size: 0.76rem;">(@${u.username || 'n/a'})</span></div>
+              <div class="meta">Telegram ID: <b>${u.id}</b> ${u.isBanned ? '<span style="color: #ef4444; font-weight: bold;">(Bloklangan)</span>' : ''}</div>
+              <div class="admin-user-ratings-pills">
+                <span class="admin-rating-pill">♟️ ${u.chessElo || 1200}</span>
+                <span class="admin-rating-pill">🔴 ${u.checkers8Elo || u.checkersElo || 1200}</span>
+                <span class="admin-rating-pill">⚪ ${u.checkersElo || 1200}</span>
+              </div>
+            </div>
           </div>
-          <div style="display: flex; gap: 6px;">
-            <button class="btn-small btn-secondary inspect-user-btn" data-userid="${u.id}">Profil</button>
-            <button class="btn-small btn-secondary reset-elo-btn" data-userid="${u.id}">Tiklash</button>
-            <button class="ban-btn ${u.isBanned ? 'unban' : 'ban'}" data-userid="${u.id}" data-banned="${u.isBanned}">
-              ${u.isBanned ? 'Ochish' : 'Bloklash'}
+          <div class="admin-user-actions-row">
+            <button class="btn-small btn-secondary inspect-user-btn" data-userid="${u.id}">👁️ Profil</button>
+            <button class="btn-small btn-secondary reset-elo-btn" data-userid="${u.id}">🔄 Tiklash</button>
+            <button class="btn-small ban-btn ${u.isBanned ? 'unban' : 'ban'}" data-userid="${u.id}" data-banned="${u.isBanned}">
+              ${u.isBanned ? '✅ Ochish' : '🚫 Bloklash'}
             </button>
           </div>
         `;
 
-        item.querySelector('.inspect-user-btn').addEventListener('click', e => {
-          const userId = Number(e.target.dataset.userid);
+        item.querySelector('.inspect-user-btn').addEventListener('click', () => {
           if (this.app.openPlayerInspectModal) {
-            this.app.openPlayerInspectModal(userId);
+            this.app.openPlayerInspectModal(u.id);
           }
         });
 
         item.querySelector('.ban-btn').addEventListener('click', async e => {
-          const userId = Number(e.target.dataset.userid);
-          const isCurrentlyBanned = Number(e.target.dataset.banned) === 1;
+          const userId = Number(u.id);
+          const isCurrentlyBanned = Number(u.isBanned) === 1;
           await api.setAdminUserBan(userId, !isCurrentlyBanned);
+          if (this.app.showToast) {
+            this.app.showToast(isCurrentlyBanned ? 'Foydalanuvchi blokdan ochildi' : 'Foydalanuvchi bloklandi', 'info');
+          }
           this.renderAdmin(query);
         });
 
-        item.querySelector('.reset-elo-btn').addEventListener('click', async e => {
-          const userId = Number(e.target.dataset.userid);
-          if (confirm(`ID ${userId} foydalanuvchi reytingini 1200 ga tiklamoqchimisiz?`)) {
-            await api.resetAdminRating(userId, 1200);
-            this.renderAdmin(query);
+        item.querySelector('.reset-elo-btn').addEventListener('click', async () => {
+          const userId = Number(u.id);
+          const custom = prompt(`ID ${userId} foydalanuvchi yangi reytingini kiriting:`, '1200');
+          if (custom !== null) {
+            const val = parseInt(custom, 10);
+            if (!isNaN(val) && val >= 100) {
+              await api.resetAdminRating(userId, val);
+              if (this.app.showToast) {
+                this.app.showToast(`Reyting ${val} ga o‘rnatildi!`, 'success');
+              }
+              this.renderAdmin(query);
+            }
           }
         });
 

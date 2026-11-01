@@ -217,12 +217,34 @@
       <section id="view-profile" class="view-panel hidden">
         <div class="hero-card">
           <div class="hero-profile">
-            <div class="hero-avatar" id="icon-profile-user"></div>
+            <div class="hero-avatar profile-avatar-box" id="icon-profile-user"></div>
             <div class="hero-details">
-              <h2 id="profile-name">O'yinchi</h2>
+              <div class="profile-title-row" style="display: flex; align-items: center; gap: 6px;">
+                <h2 id="profile-name">O'yinchi</h2>
+                <span class="verified-badge" title="Tasdiqlangan">✓</span>
+              </div>
               <div class="text-muted" id="profile-username">@username</div>
               <div class="profile-tier-badge" id="profile-tier">Boshlovchi (1200)</div>
             </div>
+          </div>
+        </div>
+
+        <!-- 3 Modes Quick ELO Summary Strip -->
+        <div class="profile-quick-elo-strip">
+          <div class="quick-elo-card">
+            <span class="quick-elo-icon">♟️</span>
+            <span class="quick-elo-label">Shaxmat</span>
+            <b class="quick-elo-val" id="profile-chess-elo-quick">1200</b>
+          </div>
+          <div class="quick-elo-card">
+            <span class="quick-elo-icon">🔴</span>
+            <span class="quick-elo-label">Shashka 8x8</span>
+            <b class="quick-elo-val" id="profile-checkers8-elo-quick">1200</b>
+          </div>
+          <div class="quick-elo-card">
+            <span class="quick-elo-icon">⚪</span>
+            <span class="quick-elo-label">Shashka 10x10</span>
+            <b class="quick-elo-val" id="profile-checkers-elo-quick">1200</b>
           </div>
         </div>
 
@@ -234,14 +256,25 @@
 
         <!-- Dynamic Profile Stat Card -->
         <div class="hero-card" id="profile-stat-card">
-          <div class="hero-ratings-row">
-            <span class="rating-badge">ELO: <b id="stat-active-elo">1200</b></span>
-            <span class="rating-badge">G'alaba: <b id="stat-active-winrate">0%</b></span>
+          <div class="profile-kpi-grid">
+            <div class="profile-kpi-item">
+              <span class="kpi-label">ELO Reyting</span>
+              <span class="kpi-val" id="stat-active-elo">1200</span>
+            </div>
+            <div class="profile-kpi-item">
+              <span class="kpi-label">G'alaba foizi</span>
+              <span class="kpi-val text-gold" id="stat-active-winrate">0%</span>
+            </div>
+            <div class="profile-kpi-item">
+              <span class="kpi-label">Jami partiyalar</span>
+              <span class="kpi-val" id="stat-active-matches">0</span>
+            </div>
+            <div class="profile-kpi-item">
+              <span class="kpi-label">G' / M / D</span>
+              <span class="kpi-val text-muted-sub" id="stat-active-record">0 / 0 / 0</span>
+            </div>
           </div>
-          <div class="text-muted" style="margin-top: 6px;">
-            Jami o'yinlar: <span id="stat-active-matches">0</span> (<span id="stat-active-record">0G' / 0M / 0D</span>)
-          </div>
-          <div class="winrate-bar-container">
+          <div class="winrate-bar-container" style="margin-top: 12px;">
             <div class="winrate-bar-fill" id="stat-active-bar" style="width: 0%;"></div>
           </div>
         </div>
@@ -310,16 +343,19 @@
 
       <!-- 7. ADMIN VIEW (ADMIN PANEL) -->
       <section id="view-admin" class="view-panel hidden">
-        <h3 class="section-title">Platforma boshqaruvi</h3>
+        <div class="admin-top-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+          <h3 class="section-title" style="margin: 0;">🛡️ Platforma boshqaruvi</h3>
+          <button class="btn-small btn-secondary" id="admin-refresh-btn" style="padding: 5px 12px; font-size: 0.78rem;">🔄 Yangilash</button>
+        </div>
         <div class="admin-stats-grid" id="admin-stats-container"></div>
 
-        <h3 class="section-title" style="margin-top: 16px;">Faol o'yinlar monitoringi</h3>
+        <h3 class="section-title" style="margin-top: 14px;">⚔️ Faol o'yinlar monitoringi</h3>
         <div id="admin-active-games-list" class="admin-games-container"></div>
 
-        <h3 class="section-title" style="margin-top: 16px;">Foydalanuvchilarni boshqarish</h3>
-        <div class="search-box-wrapper" style="margin-bottom: 12px;">
+        <h3 class="section-title" style="margin-top: 14px;">👥 Foydalanuvchilarni boshqarish</h3>
+        <div class="search-box-wrapper" style="margin-bottom: 10px;">
           <span class="search-icon-slot" id="icon-admin-search-slot"></span>
-          <input type="text" class="search-input" id="admin-user-search" placeholder="Foydalanuvchi qidirish (ID, ism yoki @username)...">
+          <input type="text" class="search-input" id="admin-user-search" placeholder="ID, ism yoki @username orqali qidirish...">
         </div>
         <div id="admin-users-list"></div>
       </section>
@@ -557,6 +593,11 @@
 
         <!-- Replay Board Container -->
         <div id="replay-board-container" class="replay-board-container"></div>
+
+        <!-- Current Move Active Badge -->
+        <div class="replay-current-move-badge" id="replay-current-move-badge">
+          <span>⚪ Boshlang‘ich holat</span>
+        </div>
 
         <!-- Replay Step Controls -->
         <div class="replay-controls-bar">

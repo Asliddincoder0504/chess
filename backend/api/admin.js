@@ -60,3 +60,14 @@ export async function handleGetAdminActiveGames(requestingUserId) {
   const games = await getAllActiveGames();
   return { success: true, games };
 }
+
+export async function handleResetUserRating(requestingUserId, targetUserId, newRating = 1200) {
+  if (!isAdminUser(requestingUserId)) {
+    return { error: 'Unauthorized: Admin access required', status: 403 };
+  }
+  const { updateUserRating } = await import('../storage/ratings.js');
+  await updateUserRating(targetUserId, 'chess', newRating);
+  await updateUserRating(targetUserId, 'checkers', newRating);
+  await updateUserRating(targetUserId, 'checkers8', newRating);
+  return { success: true, rating: newRating };
+}
