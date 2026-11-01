@@ -167,6 +167,147 @@ export class GameReplayer {
     }
   }
 
+  formatReplayMove(item, index) {
+    if (!item) {
+      return { icon: '•', name: 'Yurish', coords: '-', fullText: '', isCapture: false };
+    }
+
+    const isWhite = item.player === 'white';
+    const isChess = this.gameData?.gameType === 'chess';
+    const rawMove = item.move;
+    const moveData = item.moveData || (typeof rawMove === 'object' ? rawMove : null);
+    const rawNotation = typeof rawMove === 'string' ? rawMove : (rawMove?.notation || '');
+
+    let from = moveData?.from || null;
+    let to = moveData?.to || null;
+    let isCapture = rawNotation.includes('x') || rawNotation.includes(':') || Boolean(moveData?.captured);
+
+    if (isChess) {
+      let pieceChar = null;
+      const priorState = this.stepStates[index] || this.initialState;
+
+      // 1. Try to find piece from FEN if from square is known
+      if (from && typeof from === 'string' && from.length === 2) {
+        pieceChar = this.getPieceFromFEN(priorState, from);
+      }
+
+      // 2. Castling
+      if (rawNotation.includes('O-O-O') || rawNotation.includes('0-0-0')) {
+        return {
+          icon: isWhite ? '♔' : '♚',
+          name: 'Shoh',
+          coords: 'O-O-O (Katta rokirovka)',
+          fullText: `${isWhite ? '♔' : '♚'} Shoh: O-O-O (Katta rokirovka)`,
+          isCapture: false
+        };
+      }
+      if (rawNotation.includes('O-O') || rawNotation.includes('0-0')) {
+        return {
+          icon: isWhite ? '♔' : '♚',
+          name: 'Shoh',
+          coords: 'O-O (Kichik rokirovka)',
+          fullText: `${isWhite ? '♔' : '♚'} Shoh: O-O (Kichik rokirovka)`,
+          isCapture: false
+        };
+      }
+
+      // 3. Piece Name and Figurine Icon
+      let pieceName = 'Piyoda';
+      let pieceIcon = isWhite ? '♙' : '♟';
+
+      if (pieceChar) {
+        const upper = pieceChar.toUpperCase();
+        if (upper === 'K') { pieceName = 'Shoh'; pieceIcon = isWhite ? '♔' : '♚'; }
+        else if (upper === 'Q') { pieceName = 'Farzin'; pieceIcon = isWhite ? '♕' : '♛'; }
+        else if (upper === 'R') { pieceName = 'Qal‘a'; pieceIcon = isWhite ? '♖' : '♜'; }
+        else if (upper === 'B') { pieceName = 'Fil'; pieceIcon = isWhite ? '♗' : '♝'; }
+        else if (upper === 'N') { pieceName = 'Ot'; pieceIcon = isWhite ? '♘' : '♞'; }
+        else if (upper === 'P') { pieceName = 'Piyoda'; pieceIcon = isWhite ? '♙' : '♟'; }
+      } else if (rawNotation) {
+        const first = rawNotation.charAt(0);
+        if (first === 'K') { pieceName = 'Shoh'; pieceIcon = isWhite ? '♔' : '♚'; }
+        else if (first === 'Q') { pieceName = 'Farzin'; pieceIcon = isWhite ? '♕' : '♛'; }
+        else if (first === 'R') { pieceName = 'Qal‘a'; pieceIcon = isWhite ? '♖' : '♜'; }
+        else if (first === 'B') { pieceName = 'Fil'; pieceIcon = isWhite ? '♗' : '♝'; }
+        else if (first === 'N') { pieceName = 'Ot'; pieceIcon = isWhite ? '♘' : '♞'; }
+        else if (/^[a-h]/.test(first)) { pieceName = 'Piyoda'; pieceIcon = isWhite ? '♙' : '♟'; }
+      }
+
+      let coords = '';
+      if (from && to) {
+        coords = `${from} ➔ ${to}`;
+      } else if (rawNotation) {
+        coords = rawNotation;
+      } else {
+        coords = 'Yurish';
+      }
+
+      return {
+        icon: pieceIcon,
+        name: pieceName,
+        coords,
+        fullText: `${pieceIcon} ${pieceName}: ${coords}`,
+        isCapture
+      };
+    } else {
+      // Checkers Piece Resolution
+      let isKing = Boolean(moveData?.isKing || (typeof rawMove === 'object' && rawMove?.isKing));
+      const priorState = this.stepStates[index] || this.initialState;
+      if (from !== null && from !== undefined && typeof priorState === 'string') {
+        const idx = Number(from);
+        if (!isNaN(idx) && priorState[idx]) {
+          const ch = priorState[idx];
+          if (ch === 'W' || ch === 'B') isKing = true;
+        }
+      }
+
+      const pieceName = isKing ? 'Dama' : 'Tosh';
+      const pieceIcon = isKing ? '👑' : (isWhite ? '⚪' : '⚫');
+
+      let coords = '';
+      if (from !== null && to !== null) {
+        coords = `${from} ➔ ${to}`;
+      } else if (rawNotation) {
+        coords = rawNotation;
+      } else {
+        coords = 'Yurish';
+      }
+
+      return {
+        icon: pieceIcon,
+        name: pieceName,
+        coords,
+        fullText: `${pieceIcon} ${pieceName}: ${coords}`,
+        isCapture
+      };
+    }
+  }
+
+  getPieceFromFEN(fen, square) {
+    if (!fen || !square || square.length < 2) return null;
+    try {
+      const placement = fen.split(' ')[0];
+      const rows = placement.split('/');
+      if (rows.length !== 8) return null;
+      const file = square.toLowerCase().charCodeAt(0) - 97;
+      const rank = 8 - parseInt(square[1], 10);
+      if (rank < 0 || rank > 7 || file < 0 || file > 7) return null;
+      const rowStr = rows[rank];
+      let col = 0;
+      for (const ch of rowStr) {
+        if (/\d/.test(ch)) {
+          col += parseInt(ch, 10);
+        } else {
+          if (col === file) return ch;
+          col++;
+        }
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }
+
   renderMovesList() {
     if (!this.movesListEl) return;
     this.movesListEl.innerHTML = '';
@@ -183,12 +324,14 @@ export class GameReplayer {
       moveBtn.dataset.stepIndex = index;
 
       const num = Math.floor(index / 2) + 1;
-      const notation = typeof item.move === 'string' ? item.move : (item.move?.notation || JSON.stringify(item.move));
-      const playerIcon = item.player === 'white' ? '⚪' : '⚫';
+      const fmt = this.formatReplayMove(item, index);
 
       moveBtn.innerHTML = `
         <span class="replay-move-num">${index % 2 === 0 ? `${num}.` : ''}</span>
-        <span class="replay-move-text">${playerIcon} ${notation}</span>
+        <span class="replay-move-piece-icon">${fmt.icon}</span>
+        <span class="replay-move-name">${fmt.name}:</span>
+        <span class="replay-move-coords">${fmt.coords}</span>
+        ${fmt.isCapture ? '<span class="replay-tag-capture" title="Tosh urildi">⚔️</span>' : ''}
       `;
 
       moveBtn.addEventListener('click', () => {
@@ -256,7 +399,14 @@ export class GameReplayer {
       if (this.currentMoveBadge) {
         const moveNum = Math.floor(this.currentStep / 2) + 1;
         const pName = curMove.player === 'white' ? '⚪ Oqlar' : '⚫ Qoralar';
-        this.currentMoveBadge.innerHTML = `<span>${pName}: <b>${notation}</b> (${moveNum}-yurish)</span> ${isCapture ? '<span class="badge-capture-tag">💥 Yutildi</span>' : ''}`;
+        const fmt = this.formatReplayMove(curMove, this.currentStep);
+        this.currentMoveBadge.innerHTML = `
+          <span class="replay-badge-player">${pName}:</span>
+          <span class="replay-badge-piece">${fmt.icon} <b>${fmt.name}</b></span>
+          <span class="replay-badge-arrow">${fmt.coords}</span>
+          <span class="replay-badge-num">(${moveNum}-yurish)</span>
+          ${fmt.isCapture ? '<span class="badge-capture-tag">💥 Yutildi</span>' : ''}
+        `;
       }
     } else {
       this.boardUI.setLastMove(null, null);
