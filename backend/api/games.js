@@ -6,7 +6,9 @@ import {
   getGameMoves,
   getUserActiveGame,
   getUserGameHistory,
-  getAllActiveGames
+  getAllActiveGames,
+  getGameChat,
+  addGameChatMessage
 } from '../storage/games.js';
 import { getUserById, updateUserStats, getAllUsers } from '../storage/users.js';
 import { recordRatingHistory } from '../storage/ratings.js';
@@ -41,7 +43,7 @@ export async function syncGameClocks(game) {
 
   let whiteTime = game.whiteTimeMs;
   let blackTime = game.blackTimeMs;
-  const GRACE_BUFFER_MS = 3000;
+  const GRACE_BUFFER_MS = 5000;
 
   if (game.currentTurn === 'white') {
     whiteTime -= elapsed;
@@ -169,7 +171,6 @@ export async function handleGetGame(gameId) {
   const whiteUser = await getUserById(game.whiteId);
   const blackUser = game.blackId ? await getUserById(game.blackId) : null;
   const moves = await getGameMoves(game.id);
-  const { getGameChat } = await import('../storage/games.js');
   const chat = getGameChat(game.id);
 
   return {
@@ -213,7 +214,6 @@ export async function handleSendChatMessage(gameId, userId, { text, senderName }
     return { error: 'Xabar bo‘sh bo‘lishi mumkin emas', status: 400 };
   }
 
-  const { addGameChatMessage, getGameChat } = await import('../storage/games.js');
   const message = addGameChatMessage(game.id, {
     senderId: uId,
     senderName,
@@ -260,7 +260,7 @@ export async function handleMakeMove(gameId, userId, { move, clientVersion }) {
   let newWhiteTime = game.whiteTimeMs;
   let newBlackTime = game.blackTimeMs;
   const isMovingWhite = game.currentTurn === 'white';
-  const GRACE_BUFFER_MS = 3000;
+  const GRACE_BUFFER_MS = 5000;
 
   if (isMovingWhite) {
     newWhiteTime = game.whiteTimeMs - elapsed;
@@ -351,12 +351,12 @@ export async function handleMakeMove(gameId, userId, { move, clientVersion }) {
   };
 }
 
-export async function handleCreateInvite(userId, { gameType = 'chess', timeControl = '5+0' }) {
+export async function handleCreateInvite(userId, { gameType = 'chess', timeControl = '5+0', targetUserId = null }) {
   const game = await createGame({
     gameType,
     timeControl,
     whiteId: Number(userId),
-    blackId: null,
+    blackId: targetUserId ? Number(targetUserId) : null,
     status: 'waiting'
   });
 

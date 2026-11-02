@@ -201,7 +201,8 @@ class WellChessApp {
 
   async handleDeepGameLink(gameId) {
     try {
-      const res = await api.getGame(gameId);
+      const cleanGameId = String(gameId || '').replace(/^game_game_/, 'game_');
+      const res = await api.getGame(cleanGameId);
       if (!res.success || !res.game) {
         this.showToast('O‘yin topilmadi', 'error');
         this.clearGameUrlParam();
@@ -223,10 +224,10 @@ class WellChessApp {
         const userId = Number(this.currentUser.id);
         const isParticipant = userId === Number(game.whiteId) || userId === Number(game.blackId);
         if (isParticipant) {
-          this.launchGame(gameId);
+          this.launchGame(cleanGameId);
         } else {
           // Open as spectator
-          this.spectateGame(gameId);
+          this.spectateGame(cleanGameId);
         }
         return;
       }
@@ -234,7 +235,7 @@ class WellChessApp {
       if (game.status === 'waiting') {
         if (Number(game.whiteId) === Number(this.currentUser.id)) {
           // Current user is host
-          this.openInviteModalWithExisting(gameId, game.gameType, game.timeControl);
+          this.openInviteModalWithExisting(cleanGameId, game.gameType, game.timeControl);
         } else {
           // Current user is the invitee friend! Show accept dialog
           this.showAcceptInviteDialog(game);
@@ -1039,7 +1040,8 @@ class WellChessApp {
     }
 
     // Also populate fallback link input
-    const inviteUrl = `https://t.me/chess_checkerbot?start=game_${gameId}`;
+    const cleanId = String(gameId || '').replace(/^game_game_/, 'game_');
+    const inviteUrl = `https://t.me/chess_checkerbot?start=${cleanId.startsWith('game_') ? cleanId : 'game_' + cleanId}`;
     const input = document.getElementById('invite-link-input');
     if (input) input.value = inviteUrl;
 
@@ -1090,7 +1092,8 @@ class WellChessApp {
   }
 
   openInviteModalWithExisting(gameId, gameType, timeControl) {
-    const inviteUrl = `https://t.me/chess_checkerbot?start=game_${gameId}`;
+    const cleanId = String(gameId || '').replace(/^game_game_/, 'game_');
+    const inviteUrl = `https://t.me/chess_checkerbot?start=${cleanId.startsWith('game_') ? cleanId : 'game_' + cleanId}`;
     const input = document.getElementById('invite-link-input');
     if (input) input.value = inviteUrl;
 

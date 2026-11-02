@@ -58,10 +58,15 @@ export default async function (input, ctx) {
         if (input.gameType === 'checkers8') gName = 'Klassik shashka (8x8, 12 tosh)';
         else if (input.gameType === 'checkers') gName = 'Xalqaro shashka (10x10, 20 tosh)';
 
+        const escapeHtml = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const safeName = escapeHtml(challengerName);
+        const safeGame = escapeHtml(gName);
+        const safeTime = escapeHtml(input.timeControl || '5+0');
+
         await api.sendMessage({
           chat_id: targetId,
-          text: `⚔️ *${challengerName} sizni o‘yinga taklif qildi!*\n\n🎮 O‘yin turi: *${gName}*\n⏱ Vaqt: *${input.timeControl || '5+0'}*\n\nPastdagi tugmani bosing va o‘yinga qo‘shiling:`,
-          parse_mode: 'Markdown',
+          text: `⚔️ <b>${safeName} sizni o‘yinga taklif qildi!</b>\n\n🎮 O‘yin turi: <b>${safeGame}</b>\n⏱ Vaqt: <b>${safeTime}</b>\n\nPastdagi tugmani bosing va o‘yinga qo‘shiling:`,
+          parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [{ text: '⚔️ Qabul qilish va o‘yinga kirish', web_app: { url: `${MINI_APP_URL}?gameId=${res.gameId}` } }]

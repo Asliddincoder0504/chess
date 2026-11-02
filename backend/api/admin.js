@@ -1,6 +1,7 @@
-import { getAllUsers, setUserBanStatus, getUserById } from '../storage/users.js';
+import { getAllUsers, setUserBanStatus, getUserById, resetUserElo } from '../storage/users.js';
 import { getAllActiveGames } from '../storage/games.js';
 import { getQueueStats } from '../core/matchmaking.js';
+import { getAdminMessages } from '../storage/messages.js';
 
 export function isAdminUser(userId) {
   const adminIdsStr = process.env.ADMIN_IDS || '6472114736,8455692606';
@@ -65,10 +66,7 @@ export async function handleResetUserRating(requestingUserId, targetUserId, newR
   if (!isAdminUser(requestingUserId)) {
     return { error: 'Unauthorized: Admin access required', status: 403 };
   }
-  const { updateUserRating } = await import('../storage/ratings.js');
-  await updateUserRating(targetUserId, 'chess', newRating);
-  await updateUserRating(targetUserId, 'checkers', newRating);
-  await updateUserRating(targetUserId, 'checkers8', newRating);
+  await resetUserElo(targetUserId, newRating);
   return { success: true, rating: newRating };
 }
 
@@ -76,7 +74,6 @@ export async function handleGetAdminMessages(requestingUserId, limit = 50) {
   if (!isAdminUser(requestingUserId)) {
     return { error: 'Unauthorized: Admin access required', status: 403 };
   }
-  const { getAdminMessages } = await import('../storage/messages.js');
   const messages = await getAdminMessages(limit);
   return { success: true, messages };
 }

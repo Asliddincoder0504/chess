@@ -156,3 +156,16 @@ export async function setUserBanStatus(userId, isBanned) {
     .run();
   return await getUserById(userId);
 }
+
+export async function resetUserElo(userId, newRating = 1200) {
+  await db.update(users)
+    .set({
+      chessElo: Number(newRating),
+      checkers8Elo: Number(newRating),
+      checkersElo: Number(newRating),
+      updatedAt: Math.floor(Date.now() / 1000)
+    })
+    .where(eq(users.id, Number(userId)))
+    .run();
+  return { success: true, userId, newRating };
+}

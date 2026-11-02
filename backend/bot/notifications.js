@@ -3,7 +3,10 @@
  * Sends authoritative notifications using Telegram Bot API
  */
 
-export async function sendTelegramMessage(chatId, text, replyMarkup = null, botToken = process.env.BOT_TOKEN) {
+export async function sendTelegramMessage(chatId, text, replyMarkup = null, botToken = process.env.BOT_TOKEN, parseMode = null) {
+  const isHtml = parseMode === 'HTML' || /<\/?[a-z][\s\S]*>/i.test(text);
+  const mode = parseMode || (isHtml ? 'HTML' : 'Markdown');
+
   // Try using tgcloud built-in sdk.api if in Telegram Serverless runtime
   try {
     const sdk = await import('sdk');
@@ -11,7 +14,7 @@ export async function sendTelegramMessage(chatId, text, replyMarkup = null, botT
       return await sdk.api.sendMessage({
         chat_id: chatId,
         text,
-        parse_mode: 'Markdown',
+        parse_mode: mode,
         reply_markup: replyMarkup || undefined
       });
     }
@@ -31,7 +34,7 @@ export async function sendTelegramMessage(chatId, text, replyMarkup = null, botT
       body: JSON.stringify({
         chat_id: chatId,
         text,
-        parse_mode: 'Markdown',
+        parse_mode: mode,
         reply_markup: replyMarkup || undefined
       })
     });

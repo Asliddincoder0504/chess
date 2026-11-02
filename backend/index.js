@@ -159,7 +159,38 @@ export async function dispatchApiRequest({ method, pathname, query = {}, body = 
   if (pathname === '/api/game') {
     const { action, gameId } = body;
     if (action === 'create_invite') {
-      return await handleCreateInvite(user.id, { gameType: body.gameType, timeControl: body.timeControl });
+      const targetId = body.targetUserId ? Number(body.targetUserId) : null;
+      const res = await handleCreateInvite(user.id, {
+        gameType: body.gameType,
+        timeControl: body.timeControl,
+        targetUserId: targetId
+      });
+      if (targetId && res.success && res.gameId) {
+        try {
+          const { sendTelegramMessage } = await import('./bot/notifications.js');
+          const challengerName = user.firstName || 'Do‘stingiz';
+          let gName = 'Shaxmat (8x8 FIDE)';
+          if (body.gameType === 'checkers8') gName = 'Klassik shashka (8x8, 12 tosh)';
+          else if (body.gameType === 'checkers') gName = 'Xalqaro shashka (10x10, 20 tosh)';
+          const escapeHtml = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+          const safeName = escapeHtml(challengerName);
+          const safeGame = escapeHtml(gName);
+          const safeTime = escapeHtml(body.timeControl || '5+0');
+          const MINI_APP_URL = process.env.MINI_APP_URL || 'https://app9223102562.tgcloud.ai/';
+          await sendTelegramMessage(
+            targetId,
+            `⚔️ <b>${safeName} sizni o‘yinga taklif qildi!</b>\n\n🎮 O‘yin turi: <b>${safeGame}</b>\n⏱ Vaqt: <b>${safeTime}</b>\n\nPastdagi tugmani bosing va o‘yinga qo‘shiling:`,
+            {
+              inline_keyboard: [
+                [{ text: '⚔️ Qabul qilish va o‘yinga kirish', web_app: { url: `${MINI_APP_URL}?gameId=${res.gameId}` } }]
+              ]
+            }
+          );
+        } catch (e) {
+          console.warn('[Direct Challenge Telegram Notification]:', e.message);
+        }
+      }
+      return res;
     }
     if (action === 'accept_invite') {
       return await handleAcceptInvite(gameId, user.id);

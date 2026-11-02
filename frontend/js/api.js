@@ -388,11 +388,16 @@ class ApiClient {
 
       if (action === 'get' || action === 'state' || !action) {
         if (!game) {
-          // If demo game or not found, create a playable instance
-          const is8x8 = gameId.includes('8') || gameId.includes('checkers8');
-          const isCheckers = gameId.includes('checker');
-          const gType = is8x8 ? 'checkers8' : (isCheckers ? 'checkers' : 'chess');
-          game = this.createLocalGame(gameId, gType, '5+0', user.id, user.id);
+          // If the game does not exist in local storage, do not forge an active game against oneself!
+          // Only create if demo_live or offline demo
+          if (gameId && (gameId.startsWith('demo_live') || gameId.startsWith('offline_'))) {
+            const is8x8 = gameId.includes('8') || gameId.includes('checkers8');
+            const isCheckers = gameId.includes('checker');
+            const gType = is8x8 ? 'checkers8' : (isCheckers ? 'checkers' : 'chess');
+            game = this.createLocalGame(gameId, gType, '5+0', user.id, user.id);
+          } else {
+            return { success: false, error: 'O‘yin topilmadi' };
+          }
         }
         const now = Date.now();
         const elapsed = Math.max(0, now - (game.lastMoveTimestamp || now));

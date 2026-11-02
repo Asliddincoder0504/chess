@@ -40,11 +40,12 @@ export default async function (message, ctx) {
   if (text.startsWith('/start')) {
     const parts = text.split(' ');
     if (parts.length > 1 && parts[1].startsWith('game_')) {
-      const gameId = parts[1];
+      const rawParam = parts[1];
+      const gameId = rawParam.startsWith('game_game_') ? rawParam.replace('game_game_', 'game_') : rawParam;
       await api.sendMessage({
         chat_id: chatId,
-        text: `🎮 *Siz o‘yinga taklif qilindingiz!*\n\nO‘yin ID: \`${gameId}\`\nPastdagi tugmani bosing va o‘yinga qo‘shiling:`,
-        parse_mode: 'Markdown',
+        text: `⚔️ <b>Siz o‘yinga taklif qilindingiz!</b>\n\nPastdagi tugmani bosing va o‘yinga qo‘shiling:`,
+        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [{ text: '⚔️ O‘yinga qo‘shilish va boshlash', web_app: { url: `${MINI_APP_URL}?gameId=${gameId}` } }]

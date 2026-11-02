@@ -7,7 +7,9 @@ import {
   getUserActiveGame,
   getUserGameHistory,
   getAllActiveGames,
-  getPendingInvitesForUser
+  getPendingInvitesForUser,
+  getGameChat,
+  addGameChatMessage
 } from './storage/games.js';
 import { getUserById, updateUserStats, getAllUsers } from './storage/users.js';
 import { recordRatingHistory } from './storage/ratings.js';
@@ -42,7 +44,7 @@ export async function syncGameClocks(game) {
 
   let whiteTime = game.whiteTimeMs;
   let blackTime = game.blackTimeMs;
-  const GRACE_BUFFER_MS = 3000; // 3 seconds network / lag buffer to prevent false timeout
+  const GRACE_BUFFER_MS = 5000; // 5 seconds network / lag buffer to prevent false timeout
 
   if (game.currentTurn === 'white') {
     whiteTime -= elapsed;
@@ -170,7 +172,6 @@ export async function handleGetGame(gameId) {
   const whiteUser = await getUserById(game.whiteId);
   const blackUser = game.blackId ? await getUserById(game.blackId) : null;
   const moves = await getGameMoves(game.id);
-  const { getGameChat } = await import('../storage/games.js');
   const chat = getGameChat(game.id);
 
   return {
@@ -214,7 +215,6 @@ export async function handleSendChatMessage(gameId, userId, { text, senderName }
     return { error: 'Xabar bo‘sh bo‘lishi mumkin emas', status: 400 };
   }
 
-  const { addGameChatMessage, getGameChat } = await import('../storage/games.js');
   const message = addGameChatMessage(game.id, {
     senderId: uId,
     senderName,
@@ -261,7 +261,7 @@ export async function handleMakeMove(gameId, userId, { move, clientVersion }) {
   let newWhiteTime = game.whiteTimeMs;
   let newBlackTime = game.blackTimeMs;
   const isMovingWhite = game.currentTurn === 'white';
-  const GRACE_BUFFER_MS = 3000;
+  const GRACE_BUFFER_MS = 5000; // 5 seconds network / lag buffer
 
   if (isMovingWhite) {
     newWhiteTime = game.whiteTimeMs - elapsed;
