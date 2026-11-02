@@ -179,7 +179,7 @@ export class GameController {
 
     this.cachedWhiteTime = this.gameData.whiteTimeMs;
     this.cachedBlackTime = this.gameData.blackTimeMs;
-    this.lastClockTick = Date.now();
+    this.lastClockTick = performance.now();
     this.updateClockDisplay();
 
     // Initialize board UI
@@ -280,7 +280,7 @@ export class GameController {
 
     this.cachedWhiteTime = newGame.whiteTimeMs;
     this.cachedBlackTime = newGame.blackTimeMs;
-    this.lastClockTick = Date.now();
+    this.lastClockTick = performance.now();
 
     // Update board state
     if (this.gameData.gameType === 'chess') {
@@ -353,13 +353,12 @@ export class GameController {
           // Reconcile clocks smoothly without jitter
           const serverWhite = res.game.whiteTimeMs;
           const serverBlack = res.game.blackTimeMs;
-          if (Math.abs(this.cachedWhiteTime - serverWhite) > 2500) {
+          if (Math.abs(this.cachedWhiteTime - serverWhite) > 3000) {
             this.cachedWhiteTime = serverWhite;
           }
-          if (Math.abs(this.cachedBlackTime - serverBlack) > 2500) {
+          if (Math.abs(this.cachedBlackTime - serverBlack) > 3000) {
             this.cachedBlackTime = serverBlack;
           }
-          this.lastClockTick = Date.now();
           if (res.game.chat) {
             this.syncChatMessages(res.game.chat);
           }
@@ -372,12 +371,12 @@ export class GameController {
 
   startClock() {
     this.stopClock();
-    this.lastClockTick = Date.now();
+    this.lastClockTick = performance.now();
     this.clockInterval = setInterval(() => {
       if (!this.gameData || this.gameData.status !== 'active') return;
 
-      const now = Date.now();
-      const delta = Math.min(1000, Math.max(0, now - this.lastClockTick));
+      const now = performance.now();
+      const delta = Math.min(500, Math.max(0, now - this.lastClockTick));
       this.lastClockTick = now;
 
       if (this.gameData.currentTurn === 'white') {
@@ -411,7 +410,7 @@ export class GameController {
     const oppTime = isWhite ? this.cachedBlackTime : this.cachedWhiteTime;
 
     const formatTime = ms => {
-      const totalSec = Math.floor(ms / 1000);
+      const totalSec = Math.max(0, Math.ceil(ms / 1000));
       const mins = Math.floor(totalSec / 60);
       const secs = totalSec % 60;
       return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
