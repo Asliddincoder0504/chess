@@ -172,7 +172,7 @@ export async function handleGetGame(gameId) {
   const whiteUser = await getUserById(game.whiteId);
   const blackUser = game.blackId ? await getUserById(game.blackId) : null;
   const moves = await getGameMoves(game.id);
-  const chat = getGameChat(game.id);
+  const chat = await getGameChat(game.id);
 
   return {
     success: true,
@@ -215,7 +215,7 @@ export async function handleSendChatMessage(gameId, userId, { text, senderName }
     return { error: 'Xabar bo‘sh bo‘lishi mumkin emas', status: 400 };
   }
 
-  const message = addGameChatMessage(game.id, {
+  const message = await addGameChatMessage(game.id, {
     senderId: uId,
     senderName,
     text: cleanText
@@ -224,7 +224,7 @@ export async function handleSendChatMessage(gameId, userId, { text, senderName }
   return {
     success: true,
     message,
-    chat: getGameChat(game.id)
+    chat: await getGameChat(game.id)
   };
 }
 

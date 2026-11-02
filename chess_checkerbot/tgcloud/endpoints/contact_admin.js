@@ -1,10 +1,17 @@
 import { EndpointError, api } from 'sdk';
-import { saveAdminMessage } from '../lib/storage/messages.js';
+import { saveAdminMessage, getUserAdminMessages } from '../lib/storage/messages.js';
 
 const ADMIN_IDS = ['6472114736', '8455692606'];
 
 export default async function (input, ctx) {
   const user = ctx.initData?.user || input?.user || input?.devUser;
+  const userId = user?.id || input?.userId || 'Noma‘lum';
+
+  if (input?.action === 'get_messages') {
+    const list = await getUserAdminMessages(userId);
+    return { success: true, messages: list };
+  }
+
   const message = (input?.message || input?.text || '').trim();
   const topic = input?.topic || 'Umumiy';
 
@@ -16,7 +23,6 @@ export default async function (input, ctx) {
   const senderLastName = user?.last_name || user?.lastName || '';
   const fullName = `${senderName} ${senderLastName}`.trim();
   const username = user?.username ? `@${user.username}` : 'Mavjud emas';
-  const userId = user?.id || input?.userId || 'Noma‘lum';
 
   // Persist message in tgcloud database
   try {

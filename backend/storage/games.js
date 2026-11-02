@@ -62,11 +62,11 @@ export async function getGameById(id) {
 
 const gameChats = new Map();
 
-export function getGameChat(gameId) {
+export async function getGameChat(gameId) {
   return gameChats.get(String(gameId)) || [];
 }
 
-export function addGameChatMessage(gameId, { senderId, senderName, text }) {
+export async function addGameChatMessage(gameId, { senderId, senderName, text }) {
   const gId = String(gameId);
   if (!gameChats.has(gId)) {
     gameChats.set(gId, []);
@@ -83,6 +83,12 @@ export function addGameChatMessage(gameId, { senderId, senderName, text }) {
   if (chatList.length > 80) {
     chatList.shift();
   }
+  try {
+    const game = await getGameById(gId);
+    if (game && game.status === 'active') {
+      await updateGame(gId, { version: (game.version || 0) + 1 });
+    }
+  } catch {}
   return msg;
 }
 

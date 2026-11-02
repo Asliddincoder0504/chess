@@ -156,7 +156,7 @@ export default async function (input, ctx) {
   }
 
   if (action === 'chat_get') {
-    const chat = getGameChat(gameId);
+    const chat = await getGameChat(gameId);
     return { success: true, chat };
   }
 

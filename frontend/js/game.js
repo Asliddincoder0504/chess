@@ -691,15 +691,16 @@ export class GameController {
 
   syncChatMessages(newChatList) {
     if (!Array.isArray(newChatList)) return;
-    const currentLen = this.chatMessages.length;
-    if (newChatList.length > currentLen) {
-      const myId = Number(this.app.currentUser.id);
-      const incoming = newChatList.slice(currentLen);
-      const hasOpponentMsg = incoming.some(m => Number(m.senderId) !== myId);
+    const myId = Number(this.app.currentUser.id);
+    const existingIds = new Set(this.chatMessages.map(m => m.id));
+    const newIncoming = newChatList.filter(m => !existingIds.has(m.id));
+
+    if (newIncoming.length > 0 || newChatList.length !== this.chatMessages.length) {
+      const hasOpponentMsg = newIncoming.some(m => Number(m.senderId) !== myId);
       if (hasOpponentMsg) {
         sounds.chat();
         if (!this.isChatOpen) {
-          const count = incoming.filter(m => Number(m.senderId) !== myId).length;
+          const count = newIncoming.filter(m => Number(m.senderId) !== myId).length;
           this.chatUnreadCount += count;
           this.updateChatBadge();
         }

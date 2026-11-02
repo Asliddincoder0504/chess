@@ -101,9 +101,23 @@ export const adminMessages = table('admin_messages', {
   username: text('username'),
   topic: text('topic'),
   message: text('message'),
+  replyText: text('reply_text'),
+  repliedAt: integer('replied_at'),
+  repliedBy: text('replied_by'),
   createdAt: integer('created_at'),
   isRead: integer('is_read').default(0)
 }, (t) => ({
   senderIdx: index('idx_admin_msg_sender').on(t.senderId)
+}));
+
+export const gameMessages = table('game_messages', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  gameId: text('game_id'),
+  senderId: integer('sender_id'),
+  senderName: text('sender_name'),
+  text: text('text'),
+  timestamp: integer('timestamp')
+}, (t) => ({
+  gameIdx: index('idx_game_messages_game').on(t.gameId)
 }));
 

@@ -46,3 +46,39 @@ export async function markAdminMessageRead(id) {
     return false;
   }
 }
+
+export async function getUserAdminMessages(userId, limit = 50) {
+  try {
+    const list = await db.select()
+      .from(adminMessages)
+      .where(eq(adminMessages.senderId, Number(userId)))
+      .all();
+    return (list || []).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  } catch (err) {
+    console.error('[backend getUserAdminMessages Error]:', err.message);
+    return [];
+  }
+}
+
+export async function replyToAdminMessage(messageId, replyText, repliedBy = 'Admin') {
+  try {
+    const now = Math.floor(Date.now() / 1000);
+    await db.update(adminMessages)
+      .set({
+        replyText: String(replyText).trim(),
+        repliedAt: now,
+        repliedBy: String(repliedBy),
+        isRead: 1
+      })
+      .where(eq(adminMessages.id, Number(messageId)))
+      .run();
+    const rows = await db.select()
+      .from(adminMessages)
+      .where(eq(adminMessages.id, Number(messageId)))
+      .all();
+    return rows[0] || null;
+  } catch (err) {
+    console.error('[backend replyToAdminMessage Error]:', err.message);
+    return null;
+  }
+}

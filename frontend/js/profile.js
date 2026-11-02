@@ -335,6 +335,10 @@ export class ProfileController {
                 ? `https://t.me/${m.username.replace(/^@/, '')}`
                 : (m.senderId ? `tg://user?id=${m.senderId}` : null);
 
+              const replyTimeStr = m.repliedAt
+                ? new Date(m.repliedAt * 1000).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+                : '';
+
               card.innerHTML = `
                 <div class="admin-msg-top">
                   <div class="admin-msg-sender-meta">
@@ -348,16 +352,62 @@ export class ProfileController {
                   <span class="admin-msg-topic-badge" style="background-color: ${badgeColor}22; color: ${badgeColor}; border: 1px solid ${badgeColor}44;">
                     📌 ${escapeHtml(m.topic || 'Umumiy')}
                   </span>
+                  ${m.replyText ? `<span class="badge-status-replied">✅ Javob berilgan</span>` : `<span class="badge-status-waiting">⏳ Kutilmoqda</span>`}
                 </div>
                 <div class="admin-msg-content">${escapeHtml(m.message || '')}</div>
-                ${replyUrl ? `
-                  <div class="admin-msg-footer">
-                    <a href="${replyUrl}" target="_blank" class="btn-small btn-reply-tg">
-                      <span>✉️ Telegramda javob berish</span>
-                    </a>
+                
+                ${m.replyText ? `
+                  <div class="admin-msg-replied-box">
+                    <div class="admin-msg-replied-header">
+                      <span>🛡️ Sizning javobingiz (${escapeHtml(m.repliedBy || 'Admin')}):</span>
+                      <span class="text-muted" style="font-size: 0.72rem;">${replyTimeStr}</span>
+                    </div>
+                    <div class="admin-msg-replied-text">${escapeHtml(m.replyText)}</div>
                   </div>
                 ` : ''}
+
+                <div class="admin-inline-reply-section">
+                  <textarea class="admin-inline-reply-input" placeholder="${m.replyText ? 'Qayta javob yozish...' : 'Web App orqali javob yozing...'}" rows="2" data-reply-for="${m.id}"></textarea>
+                  <div class="admin-inline-reply-actions">
+                    <button class="btn-small btn-primary admin-btn-send-reply" data-msg-id="${m.id}">
+                      <span>✉️ Web Appda javob berish</span>
+                    </button>
+                    ${replyUrl ? `
+                      <a href="${replyUrl}" target="_blank" class="btn-small btn-reply-tg">
+                        <span>✈️ Telegramda ochish</span>
+                      </a>
+                    ` : ''}
+                  </div>
+                </div>
               `;
+
+              const sendReplyBtn = card.querySelector(`.admin-btn-send-reply[data-msg-id="${m.id}"]`);
+              if (sendReplyBtn) {
+                sendReplyBtn.addEventListener('click', async () => {
+                  const textarea = card.querySelector(`textarea[data-reply-for="${m.id}"]`);
+                  const replyText = (textarea?.value || '').trim();
+                  if (!replyText) {
+                    this.app.showToast('Iltimos, javob matnini yozing', 'error');
+                    return;
+                  }
+                  sendReplyBtn.disabled = true;
+                  sendReplyBtn.textContent = 'Yuborilmoqda...';
+                  try {
+                    const res = await api.adminReplyMessage(m.id, replyText);
+                    if (res && res.success) {
+                      this.app.showToast('✅ Javob foydalanuvchiga muvaffaqiyatli yetkazildi!', 'success');
+                      this.loadAdminData();
+                    } else {
+                      throw new Error(res?.error || 'Xatolik');
+                    }
+                  } catch (err) {
+                    this.app.showToast(`Xatolik: ${err.message}`, 'error');
+                    sendReplyBtn.disabled = false;
+                    sendReplyBtn.textContent = '✉️ Web Appda javob berish';
+                  }
+                });
+              }
+
               messagesContainer.appendChild(card);
             });
           }

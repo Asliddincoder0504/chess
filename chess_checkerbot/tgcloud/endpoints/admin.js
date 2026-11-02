@@ -3,7 +3,7 @@ import { isAdminUser } from '../lib/core/admin.js';
 import { getAllUsers, setUserBanStatus, getUserById } from '../lib/storage/users.js';
 import { getAllActiveGames, getGameById, updateGame } from '../lib/storage/games.js';
 import { getQueueStats } from '../lib/storage/matchmaking.js';
-import { getAdminMessages } from '../lib/storage/messages.js';
+import { getAdminMessages, replyToAdminMessage } from '../lib/storage/messages.js';
 import { db } from 'sdk';
 import { eq, sql } from 'sdk/db';
 import { users } from '../schema.js';
@@ -96,6 +96,30 @@ export default async function (input, ctx) {
     });
 
     return { success: true, message: 'O‘yin admin tomonidan bekor qilindi', game: updated };
+  }
+
+  if (action === 'reply_message') {
+    const { messageId, replyText } = input;
+    if (!messageId || !replyText) {
+      throw new EndpointError('Missing messageId or replyText', { code: 'MISSING_FIELDS' });
+    }
+    const adminName = user.first_name || 'Admin';
+    const repliedMsg = await replyToAdminMessage(messageId, replyText, adminName);
+    if (!repliedMsg) throw new EndpointError('Message not found or reply failed', { code: 'NOT_FOUND' });
+
+    if (repliedMsg.senderId) {
+      try {
+        const escapeHtml = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        await api.sendMessage({
+          chat_id: repliedMsg.senderId,
+          text: `🛡️ <b>WellChess Adminidan javob:</b>\n\n${escapeHtml(replyText)}\n\n<i>Mini app orqali ham muloqotni davom ettirishingiz mumkin.</i>`,
+          parse_mode: 'HTML'
+        });
+      } catch (tgErr) {
+        console.warn('[Admin reply telegram notify]:', tgErr.message);
+      }
+    }
+    return { success: true, message: repliedMsg };
   }
 
   if (action === 'messages') {

@@ -1,6 +1,6 @@
 import { db } from 'sdk';
 import { eq, and, or, desc } from 'sdk/db';
-import { games, moves } from '../../schema.js';
+import { games, moves, gameMessages } from '../../schema.js';
 import { parseTimeControl } from '../core/validation.js';
 import { INITIAL_FEN } from '../core/chess.js';
 import { INITIAL_CHECKERS_STATE, INITIAL_CHECKERS_8_STATE } from '../core/checkers.js';
@@ -69,28 +69,68 @@ export async function getGameById(id) {
 
 const gameChats = new Map();
 
-export function getGameChat(gameId) {
+export async function getGameChat(gameId) {
+  try {
+    const rows = await db.select()
+      .from(gameMessages)
+      .where(eq(gameMessages.gameId, String(gameId)))
+      .all();
+    if (rows && rows.length > 0) {
+      return rows.map(r => ({
+        id: `msg_${r.id}`,
+        senderId: Number(r.senderId),
+        senderName: r.senderName,
+        text: r.text,
+        timestamp: r.timestamp
+      }));
+    }
+  } catch (err) {
+    // Fall back to memory cache
+  }
   return gameChats.get(String(gameId)) || [];
 }
 
-export function addGameChatMessage(gameId, { senderId, senderName, text }) {
+export async function addGameChatMessage(gameId, { senderId, senderName, text }) {
   const gId = String(gameId);
+  const now = Date.now();
+  const clean = String(text || '').slice(0, 300);
+  const msgObj = {
+    id: `msg_${now}_${Math.random().toString(36).slice(2, 6)}`,
+    gameId: gId,
+    senderId: Number(senderId),
+    senderName: senderName || 'O‘yinchi',
+    text: clean,
+    timestamp: now
+  };
+
   if (!gameChats.has(gId)) {
     gameChats.set(gId, []);
   }
   const chatList = gameChats.get(gId);
-  const msg = {
-    id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-    senderId: Number(senderId),
-    senderName: senderName || 'O‘yinchi',
-    text: String(text).slice(0, 200),
-    timestamp: Date.now()
-  };
-  chatList.push(msg);
+  chatList.push(msgObj);
   if (chatList.length > 80) {
     chatList.shift();
   }
-  return msg;
+
+  try {
+    await db.insert(gameMessages).values({
+      gameId: gId,
+      senderId: Number(senderId),
+      senderName: senderName || 'O‘yinchi',
+      text: clean,
+      timestamp: now
+    }).run();
+
+    // Increment game version so opponent polling detects change immediately!
+    const game = await getGameById(gId);
+    if (game && game.status === 'active') {
+      await updateGame(gId, { version: (game.version || 0) + 1 });
+    }
+  } catch (err) {
+    console.warn('[addGameChatMessage db insert error]:', err.message);
+  }
+
+  return msgObj;
 }
 
 export async function updateGame(id, updates) {

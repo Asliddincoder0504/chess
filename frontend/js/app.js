@@ -329,20 +329,108 @@ class WellChessApp {
   }
 
   initPieceTheme() {
-    const savedTheme = localStorage.getItem('wellchess_piece_theme') || 'classic';
-    document.body.dataset.pieceTheme = savedTheme;
+    this.initCustomizationThemes();
+  }
 
-    const pills = document.querySelectorAll('.piece-theme-pill');
-    pills.forEach(pill => {
-      pill.classList.toggle('selected', pill.dataset.pieceTheme === savedTheme);
+  initCustomizationThemes() {
+    const savedBoard = localStorage.getItem('wellchess_board_theme') || 'wood';
+    const savedPiece = localStorage.getItem('wellchess_piece_theme') || 'classic';
+    document.body.dataset.boardTheme = savedBoard;
+    document.body.dataset.pieceTheme = savedPiece;
+
+    // Board theme pills in settings
+    const boardPills = document.querySelectorAll('.board-theme-pill');
+    boardPills.forEach(pill => {
+      pill.classList.toggle('selected', pill.dataset.boardTheme === savedBoard);
+      pill.addEventListener('click', () => {
+        const theme = pill.dataset.boardTheme;
+        localStorage.setItem('wellchess_board_theme', theme);
+        document.body.dataset.boardTheme = theme;
+        boardPills.forEach(p => p.classList.toggle('selected', p === pill));
+        this.showToast(`Taxta dizayni tanlandi: ${pill.textContent.trim()}`, 'success');
+      });
+    });
+
+    // Piece theme pills in settings
+    const piecePills = document.querySelectorAll('.piece-theme-pill');
+    piecePills.forEach(pill => {
+      pill.classList.toggle('selected', pill.dataset.pieceTheme === savedPiece);
       pill.addEventListener('click', () => {
         const theme = pill.dataset.pieceTheme;
         localStorage.setItem('wellchess_piece_theme', theme);
         document.body.dataset.pieceTheme = theme;
-        pills.forEach(p => p.classList.toggle('selected', p === pill));
-        this.showToast(`Toshlar dizayni o‘zgartirildi: ${pill.textContent.trim()}`, 'success');
+        piecePills.forEach(p => p.classList.toggle('selected', p === pill));
+        this.showToast(`Toshlar dizayni tanlandi: ${pill.textContent.trim()}`, 'success');
       });
     });
+
+    // In-game theme customizer modal
+    document.getElementById('game-theme-btn')?.addEventListener('click', () => {
+      this.openThemeSelectorModal();
+    });
+    document.getElementById('close-theme-modal-btn')?.addEventListener('click', () => {
+      this.closeThemeSelectorModal();
+    });
+    document.getElementById('theme-selector-modal')?.addEventListener('click', (e) => {
+      if (e.target.id === 'theme-selector-modal') this.closeThemeSelectorModal();
+    });
+
+    document.querySelectorAll('.theme-choice-card[data-modal-board]').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.theme-choice-card[data-modal-board]').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+      });
+    });
+
+    document.querySelectorAll('.theme-choice-card[data-modal-piece]').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.theme-choice-card[data-modal-piece]').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+      });
+    });
+
+    document.getElementById('btn-save-theme-modal')?.addEventListener('click', () => {
+      const selectedBoardCard = document.querySelector('.theme-choice-card[data-modal-board].selected');
+      const selectedPieceCard = document.querySelector('.theme-choice-card[data-modal-piece].selected');
+      if (selectedBoardCard) {
+        const boardTheme = selectedBoardCard.dataset.modalBoard;
+        localStorage.setItem('wellchess_board_theme', boardTheme);
+        document.body.dataset.boardTheme = boardTheme;
+        boardPills.forEach(p => p.classList.toggle('selected', p.dataset.boardTheme === boardTheme));
+      }
+      if (selectedPieceCard) {
+        const pieceTheme = selectedPieceCard.dataset.modalPiece;
+        localStorage.setItem('wellchess_piece_theme', pieceTheme);
+        document.body.dataset.pieceTheme = pieceTheme;
+        piecePills.forEach(p => p.classList.toggle('selected', p.dataset.pieceTheme === pieceTheme));
+      }
+      this.closeThemeSelectorModal();
+      this.showToast('🎨 Dizayn sozlamalari muvaffaqiyatli saqlandi!', 'success');
+    });
+  }
+
+  openThemeSelectorModal() {
+    const modal = document.getElementById('theme-selector-modal');
+    if (!modal) return;
+    const currentBoard = document.body.dataset.boardTheme || 'wood';
+    const currentPiece = document.body.dataset.pieceTheme || 'classic';
+
+    document.querySelectorAll('.theme-choice-card[data-modal-board]').forEach(card => {
+      card.classList.toggle('selected', card.dataset.modalBoard === currentBoard);
+    });
+    document.querySelectorAll('.theme-choice-card[data-modal-piece]').forEach(card => {
+      card.classList.toggle('selected', card.dataset.modalPiece === currentPiece);
+    });
+
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+  }
+
+  closeThemeSelectorModal() {
+    const modal = document.getElementById('theme-selector-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
   }
 
   async openPlayerInspectModal(targetUserId) {
@@ -764,6 +852,12 @@ class WellChessApp {
     document.getElementById('btn-send-contact')?.addEventListener('click', () => {
       this.submitContactAdmin();
     });
+    document.getElementById('contact-message-input')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.submitContactAdmin();
+      }
+    });
     document.getElementById('contact-admin-modal')?.addEventListener('click', e => {
       if (e.target.id === 'contact-admin-modal') {
         this.closeContactAdminModal();
@@ -846,10 +940,17 @@ class WellChessApp {
     const sendBtn = document.getElementById('btn-send-contact');
     if (sendBtn) {
       sendBtn.disabled = false;
-      sendBtn.textContent = 'Yuborish ✉️';
     }
     modal.classList.remove('hidden');
     modal.style.display = 'flex';
+
+    this.loadSupportChatThread();
+
+    // Start live polling while modal is open (every 2.5 seconds)
+    if (this.supportPollTimer) clearInterval(this.supportPollTimer);
+    this.supportPollTimer = setInterval(() => {
+      this.loadSupportChatThread(true);
+    }, 2500);
   }
 
   closeContactAdminModal() {
@@ -857,6 +958,88 @@ class WellChessApp {
     if (!modal) return;
     modal.classList.add('hidden');
     modal.style.display = 'none';
+    if (this.supportPollTimer) {
+      clearInterval(this.supportPollTimer);
+      this.supportPollTimer = null;
+    }
+  }
+
+  async loadSupportChatThread(isBackground = false) {
+    const thread = document.getElementById('support-chat-thread');
+    if (!thread) return;
+
+    try {
+      const res = await api.getSupportMessages();
+      if (res && res.success && Array.isArray(res.messages)) {
+        this.renderSupportChatThread(res.messages, isBackground);
+      } else if (!isBackground) {
+        thread.innerHTML = '<div class="support-empty-state">Hozircha xabarlar yo‘q. Murojaatingizni yozib qoldiring, admin tez orada javob beradi!</div>';
+      }
+    } catch (err) {
+      if (!isBackground) {
+        thread.innerHTML = `<div class="support-error-state">Xabarlarni yuklashda xatolik: ${err.message}</div>`;
+      }
+    }
+  }
+
+  renderSupportChatThread(messages, isBackground = false) {
+    const thread = document.getElementById('support-chat-thread');
+    if (!thread) return;
+
+    if (!messages || messages.length === 0) {
+      thread.innerHTML = `
+        <div class="support-empty-state">
+          <div class="support-empty-icon">💬</div>
+          <div class="support-empty-title">Admin bilan jonli muloqot</div>
+          <div class="support-empty-text">Platforma bo‘yicha har qanday savol, taklif yoki texnik muammoni shu yerga yozing. Admin tez orada javob qaytaradi!</div>
+        </div>
+      `;
+      return;
+    }
+
+    const escapeHtml = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    let html = '';
+    messages.forEach(m => {
+      const msgDate = m.createdAt
+        ? new Date(m.createdAt * 1000).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+        : '';
+      const replyDate = m.repliedAt
+        ? new Date(m.repliedAt * 1000).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+        : '';
+
+      html += `
+        <div class="support-msg-pair">
+          <div class="support-user-bubble">
+            <div class="support-bubble-header">
+              <span class="support-topic-tag">📌 ${escapeHtml(m.topic || 'Umumiy')}</span>
+              <span class="support-time">${msgDate}</span>
+            </div>
+            <div class="support-user-text">${escapeHtml(m.message)}</div>
+            <div class="support-msg-status">
+              ${m.replyText ? '<span class="status-replied">✓ Javob berildi</span>' : '<span class="status-waiting">⏳ Admin ko‘rib chiqmoqda...</span>'}
+            </div>
+          </div>
+
+          ${m.replyText ? `
+            <div class="support-admin-bubble">
+              <div class="support-admin-badge">
+                <span class="admin-badge-icon">🛡️</span>
+                <span class="admin-badge-name">${escapeHtml(m.repliedBy || 'Admin')}</span>
+                <span class="admin-badge-time">${replyDate}</span>
+              </div>
+              <div class="support-admin-text">${escapeHtml(m.replyText)}</div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    });
+
+    const isScrolledToBottom = (thread.scrollHeight - thread.scrollTop - thread.clientHeight) < 60;
+    thread.innerHTML = html;
+    if (!isBackground || isScrolledToBottom) {
+      thread.scrollTop = thread.scrollHeight;
+    }
   }
 
   async submitContactAdmin() {
@@ -872,52 +1055,40 @@ class WellChessApp {
       if (feedback) {
         feedback.className = 'contact-status-alert error';
         feedback.style.display = 'block';
-        feedback.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';
-        feedback.style.color = '#ef4444';
-        feedback.style.border = '1px solid rgba(239, 68, 68, 0.3)';
         feedback.textContent = 'Iltimos, murojaat matnini kiriting!';
         feedback.classList.remove('hidden');
       }
       return;
     }
 
+    if (feedback) {
+      feedback.className = 'contact-status-alert hidden';
+      feedback.style.display = 'none';
+    }
+
     if (sendBtn) {
       sendBtn.disabled = true;
-      sendBtn.textContent = 'Yuborilmoqda...';
     }
 
     try {
-      const res = await api.contactAdmin(message, topic);
-      if (res.success) {
-        if (feedback) {
-          feedback.className = 'contact-status-alert success';
-          feedback.style.display = 'block';
-          feedback.style.backgroundColor = 'rgba(34, 197, 94, 0.15)';
-          feedback.style.color = '#4ade80';
-          feedback.style.border = '1px solid rgba(34, 197, 94, 0.3)';
-          feedback.textContent = '✅ Murojaatingiz adminlarga yetkazildi! Tez orada ko‘rib chiqiladi.';
-          feedback.classList.remove('hidden');
-        }
+      const res = await api.sendSupportMessage(message, topic);
+      if (res && res.success) {
         if (msgInput) msgInput.value = '';
-        setTimeout(() => {
-          this.closeContactAdminModal();
-        }, 1800);
+        this.showToast('✅ Murojaatingiz yuborildi!', 'success');
+        await this.loadSupportChatThread();
       } else {
-        throw new Error(res.error || res.message || 'Xatolik yuz berdi');
+        throw new Error(res?.error || res?.message || 'Xatolik yuz berdi');
       }
     } catch (err) {
       if (feedback) {
         feedback.className = 'contact-status-alert error';
         feedback.style.display = 'block';
-        feedback.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';
-        feedback.style.color = '#ef4444';
-        feedback.style.border = '1px solid rgba(239, 68, 68, 0.3)';
         feedback.textContent = `Xatolik: ${err.message}`;
         feedback.classList.remove('hidden');
       }
+    } finally {
       if (sendBtn) {
         sendBtn.disabled = false;
-        sendBtn.textContent = 'Yuborish ✉️';
       }
     }
   }

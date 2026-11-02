@@ -250,10 +250,20 @@ export async function dispatchApiRequest({ method, pathname, query = {}, body = 
       const { handleGetAdminMessages } = await import('./api/admin.js');
       return await handleGetAdminMessages(user.id, parseInt(body.limit || query.limit, 10) || 50);
     }
+    if (act === 'reply_message') {
+      const { replyToAdminMessage } = await import('./storage/messages.js');
+      const replied = await replyToAdminMessage(body.messageId, body.replyText, user.firstName || 'Admin');
+      return { success: true, message: replied };
+    }
   }
 
   // CONTACT ADMIN endpoint
   if (pathname === '/api/contact_admin' || (pathname === '/api/admin' && body.action === 'contact')) {
+    if (body.action === 'get_messages' || query.action === 'get_messages') {
+      const { getUserAdminMessages } = await import('./storage/messages.js');
+      const messages = await getUserAdminMessages(user.id);
+      return { success: true, messages };
+    }
     const message = (body.message || body.text || '').trim();
     const topic = body.topic || 'Umumiy';
     if (!message) {
