@@ -75,3 +75,37 @@ test('Matchmaking: does not match player against themselves', async () => {
   const res2 = await joinMatchmaking({ userId: 301, gameType: 'chess', timeControl: '10+0' });
   assert.equal(res2.status, 'searching');
 });
+
+test('Matchmaking: pairs players with ELO difference > 100 when tolerance expands', async () => {
+  db.clear();
+  const u1 = await getOrCreateUser({ id: 401, first_name: 'Player Low', username: 'p_low' });
+  const u2 = await getOrCreateUser({ id: 402, first_name: 'Player High', username: 'p_high' });
+
+  // Update ratings: u1 = 1000, u2 = 1140 (difference = 140)
+  const { updateUserStats } = await import('../backend/storage/users.js');
+  await updateUserStats(402, { chessElo: 1140 });
+
+  // Player 1 joins queue
+  await joinMatchmaking({ userId: 401, gameType: 'chess', timeControl: '3+2' });
+
+  // Simulate 12 seconds elapsed for Player 1 (tolerance becomes 150)
+  const { addToQueue } = await import('../backend/storage/matchmaking.js');
+  const now = Math.floor(Date.now() / 1000);
+  await addToQueue({
+    userId: 401,
+    gameType: 'chess',
+    timeControl: '3+2',
+    userElo: 1000,
+    joinedAt: now - 12
+  });
+
+  // Player 2 joins queue (diff 140 <= tolerance 150)
+  const res2 = await joinMatchmaking({ userId: 402, gameType: 'chess', timeControl: '3+2' });
+  assert.equal(res2.status, 'matched');
+  assert.ok(res2.gameId);
+
+  // Player 1 polling receives matched game
+  const status1 = await getMatchmakingStatus(401);
+  assert.equal(status1.status, 'matched');
+  assert.equal(status1.gameId, res2.gameId);
+});

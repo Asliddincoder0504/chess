@@ -23,12 +23,21 @@ export class MatchmakingController {
     this.startTime = Date.now();
     this.isMatched = false;
 
+    let initialElo = 1200;
+    if (this.app?.currentUser) {
+      if (gameType === 'checkers8') initialElo = this.app.currentUser.checkers8Elo || this.app.currentUser.checkersElo || 1200;
+      else if (gameType === 'checkers') initialElo = this.app.currentUser.checkersElo || 1200;
+      else initialElo = this.app.currentUser.chessElo || 1200;
+    }
+    this.currentUserElo = initialElo;
+
     this.app.navigate('matchmaking');
 
     document.getElementById('mm-game-type').textContent = this.formatGameType(gameType);
     document.getElementById('mm-time-control').textContent = timeControl;
     document.getElementById('mm-status-text').textContent = 'Mos raqib qidirilmoqda...';
     document.getElementById('mm-elapsed-timer').textContent = '00:00';
+    this.updateEloToleranceUI(0);
 
     const box = document.getElementById('mm-dispatched-box');
     if (box) box.classList.add('hidden');
@@ -40,6 +49,11 @@ export class MatchmakingController {
       if (res.status === 'matched' && res.gameId) {
         this.onMatchFound(res.gameId);
         return;
+      }
+
+      if (res.userElo !== undefined) {
+        this.currentUserElo = res.userElo;
+        this.updateEloToleranceUI(0);
       }
 
       if (res.status === 'active_game_exists' && res.gameId) {
@@ -58,6 +72,29 @@ export class MatchmakingController {
     } catch (err) {
       console.warn('[Matchmaking Join Fallback]:', err.message);
       this.startStatusPolling();
+    }
+  }
+
+  updateEloToleranceUI(totalSecs) {
+    const rangeEl = document.getElementById('mm-elo-range');
+    if (!rangeEl) return;
+
+    const userElo = this.currentUserElo || 1200;
+    // 0-9s: 100, 10-19s: 150, 20-29s: 200, 30-39s: 250, etc.
+    const steps = Math.floor(totalSecs / 10);
+    const tolerance = 100 + steps * 50;
+    const minElo = Math.max(100, userElo - tolerance);
+    const maxElo = userElo + tolerance;
+
+    rangeEl.innerHTML = `ELO oralig‘i: <strong>${minElo} - ${maxElo}</strong> <span class="elo-tol-badge">±${tolerance}</span>`;
+
+    const statusEl = document.getElementById('mm-status-text');
+    if (statusEl && !this.isMatched) {
+      if (tolerance === 100) {
+        statusEl.textContent = 'Mos raqib qidirilmoqda...';
+      } else {
+        statusEl.textContent = `Qidiruv doirasi kengaytirilmoqda (±${tolerance})...`;
+      }
     }
   }
 
@@ -95,6 +132,8 @@ export class MatchmakingController {
       const formatted = `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
       const timerEl = document.getElementById('mm-elapsed-timer');
       if (timerEl) timerEl.textContent = formatted;
+
+      this.updateEloToleranceUI(totalSecs);
     }, 1000);
   }
 
@@ -118,11 +157,16 @@ export class MatchmakingController {
         }
 
         if (res.status === 'waiting' || res.status === 'searching') {
-          const rangeEl = document.getElementById('mm-elo-range');
-          if (rangeEl && res.userElo !== undefined && res.allowedTolerance !== undefined) {
-            const minElo = Math.max(100, res.userElo - res.allowedTolerance);
-            const maxElo = res.userElo + res.allowedTolerance;
-            rangeEl.textContent = `ELO oralig‘i: ${minElo} - ${maxElo} (±${res.allowedTolerance})`;
+          if (res.userElo !== undefined) {
+            this.currentUserElo = res.userElo;
+          }
+          if (res.allowedTolerance !== undefined) {
+            const minElo = Math.max(100, (this.currentUserElo || 1200) - res.allowedTolerance);
+            const maxElo = (this.currentUserElo || 1200) + res.allowedTolerance;
+            const rangeEl = document.getElementById('mm-elo-range');
+            if (rangeEl) {
+              rangeEl.innerHTML = `ELO oralig‘i: <strong>${minElo} - ${maxElo}</strong> <span class="elo-tol-badge">±${res.allowedTolerance}</span>`;
+            }
           }
         }
       } catch (err) {

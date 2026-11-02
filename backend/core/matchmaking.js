@@ -5,7 +5,9 @@ import {
   findOpponentsInQueue,
   setMatchedGame,
   cleanExpiredQueue,
-  getQueueStats
+  getQueueStats,
+  touchQueueHeartbeat,
+  isQueueEntryStale
 } from '../storage/matchmaking.js';
 import { createGame, getUserActiveGame } from '../storage/games.js';
 import { getUserById } from '../storage/users.js';
@@ -23,6 +25,64 @@ export function calculateAllowedEloRange(joinedAtTimestamp) {
   const elapsed = Math.max(0, Math.floor(Date.now() / 1000) - joinedAtTimestamp);
   const steps = Math.floor(elapsed / EXPANSION_STEP_SECONDS);
   return INITIAL_ELO_TOLERANCE + steps * ELO_EXPANSION_RATE;
+}
+
+async function attemptPairInQueue(entry) {
+  const opponents = await findOpponentsInQueue({
+    userId: entry.userId,
+    gameType: entry.gameType,
+    timeControl: entry.timeControl
+  });
+
+  if (!opponents || opponents.length === 0) return null;
+
+  opponents.sort((a, b) => Math.abs(a.userElo - entry.userElo) - Math.abs(b.userElo - entry.userElo));
+
+  const now = Math.floor(Date.now() / 1000);
+  for (const opp of opponents) {
+    if (isQueueEntryStale(opp.userId, opp.joinedAt, now, 20)) {
+      await removeFromQueue(opp.userId);
+      continue;
+    }
+
+    const oppAllowed = calculateAllowedEloRange(opp.joinedAt);
+    const userAllowed = calculateAllowedEloRange(entry.joinedAt);
+    const effectiveAllowed = Math.max(oppAllowed, userAllowed);
+    const diff = Math.abs(opp.userElo - entry.userElo);
+
+    if (diff <= effectiveAllowed) {
+      const latestOppEntry = await getQueueEntry(opp.userId);
+      if (!latestOppEntry || latestOppEntry.matchedGameId) {
+        continue;
+      }
+
+      const isUserWhite = Math.random() < 0.5;
+      const whiteId = isUserWhite ? entry.userId : opp.userId;
+      const blackId = isUserWhite ? opp.userId : entry.userId;
+
+      const game = await createGame({
+        gameType: entry.gameType,
+        timeControl: entry.timeControl,
+        whiteId,
+        blackId
+      });
+
+      await setMatchedGame(entry.userId, game.id, isUserWhite ? 'white' : 'black');
+      await setMatchedGame(opp.userId, game.id, isUserWhite ? 'black' : 'white');
+
+      return {
+        status: 'matched',
+        gameId: game.id,
+        assignedColor: isUserWhite ? 'white' : 'black',
+        opponent: {
+          id: opp.userId,
+          elo: opp.userElo
+        }
+      };
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -58,69 +118,18 @@ export async function joinMatchmaking({ userId, gameType, timeControl }) {
   // Clean stale queue items older than 20 seconds
   await cleanExpiredQueue(20);
 
-  // Add / refresh user queue record
+  // Add user queue record with fresh timestamp
   const queueEntry = await addToQueue({
     userId,
     gameType,
     timeControl,
-    userElo
+    userElo,
+    joinedAt: Math.floor(Date.now() / 1000)
   });
 
-  // Search for an eligible opponent in queue
-  const opponents = await findOpponentsInQueue({ userId, gameType, timeControl });
-
-  if (opponents.length > 0) {
-    // Sort opponents by closest ELO
-    opponents.sort((a, b) => Math.abs(a.userElo - userElo) - Math.abs(b.userElo - userElo));
-
-    const now = Math.floor(Date.now() / 1000);
-    for (const opp of opponents) {
-      // Ignore and purge opponents older than 20 seconds
-      if (now - opp.joinedAt > 20) {
-        await removeFromQueue(opp.userId);
-        continue;
-      }
-
-      const oppAllowed = calculateAllowedEloRange(opp.joinedAt);
-      const userAllowed = calculateAllowedEloRange(queueEntry.joinedAt);
-      const effectiveAllowed = Math.max(oppAllowed, userAllowed);
-      const diff = Math.abs(opp.userElo - userElo);
-
-      if (diff <= effectiveAllowed) {
-        // Concurrency check: Ensure opponent hasn't been snatched
-        const latestOppEntry = await getQueueEntry(opp.userId);
-        if (!latestOppEntry || latestOppEntry.matchedGameId) {
-          continue;
-        }
-
-        // Randomly assign White and Black
-        const isUserWhite = Math.random() < 0.5;
-        const whiteId = isUserWhite ? userId : opp.userId;
-        const blackId = isUserWhite ? opp.userId : userId;
-
-        // Create new authoritative game
-        const game = await createGame({
-          gameType,
-          timeControl,
-          whiteId,
-          blackId
-        });
-
-        // Set match in queue for both players
-        await setMatchedGame(userId, game.id, isUserWhite ? 'white' : 'black');
-        await setMatchedGame(opp.userId, game.id, isUserWhite ? 'black' : 'white');
-
-        return {
-          status: 'matched',
-          gameId: game.id,
-          assignedColor: isUserWhite ? 'white' : 'black',
-          opponent: {
-            id: opp.userId,
-            elo: opp.userElo
-          }
-        };
-      }
-    }
+  const match = await attemptPairInQueue(queueEntry);
+  if (match) {
+    return match;
   }
 
   // No immediate match found: player is queued and waiting
@@ -154,19 +163,16 @@ export async function getMatchmakingStatus(userId) {
     };
   }
 
-  const allowedRange = calculateAllowedEloRange(entry.joinedAt);
-  const elapsed = Math.floor(Date.now() / 1000) - entry.joinedAt;
+  touchQueueHeartbeat(userId);
 
-  // Attempt pairing during poll cycle as well
-  const matchResult = await joinMatchmaking({
-    userId,
-    gameType: entry.gameType,
-    timeControl: entry.timeControl
-  });
-
-  if (matchResult.status === 'matched') {
+  // Attempt pairing with expanded tolerance during poll cycle
+  const matchResult = await attemptPairInQueue(entry);
+  if (matchResult) {
     return matchResult;
   }
+
+  const allowedRange = calculateAllowedEloRange(entry.joinedAt);
+  const elapsed = Math.floor(Date.now() / 1000) - entry.joinedAt;
 
   return {
     status: 'searching',

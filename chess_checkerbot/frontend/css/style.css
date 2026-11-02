@@ -730,6 +730,19 @@ body {
   color: var(--text-muted);
 }
 
+.elo-tol-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.12);
+  border-radius: 6px;
+  margin-left: 4px;
+  border: 1px solid rgba(74, 222, 128, 0.28);
+  transition: all 0.3s ease;
+}
+
 .mm-timer {
   font-size: 1.8rem;
   font-weight: 800;

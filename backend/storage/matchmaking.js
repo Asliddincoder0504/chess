@@ -1,16 +1,30 @@
 import { db, eq, and, ne } from './index.js';
 import { matchmakingQueue } from '../../schema.js';
 
-export async function addToQueue({ userId, gameType, timeControl, userElo }) {
+const lastHeartbeatMap = new Map();
+
+export function touchQueueHeartbeat(userId) {
+  lastHeartbeatMap.set(Number(userId), Date.now());
+}
+
+export function isQueueEntryStale(userId, joinedAt, nowSeconds, maxAgeSeconds = 20) {
+  const hb = lastHeartbeatMap.get(Number(userId));
+  const lastActive = hb ? Math.floor(hb / 1000) : joinedAt;
+  return (nowSeconds - lastActive) > maxAgeSeconds;
+}
+
+export async function addToQueue({ userId, gameType, timeControl, userElo, joinedAt }) {
   const entry = {
     userId: Number(userId),
     gameType,
     timeControl,
     userElo: Number(userElo),
-    joinedAt: Math.floor(Date.now() / 1000),
+    joinedAt: joinedAt || Math.floor(Date.now() / 1000),
     matchedGameId: null,
     assignedColor: null
   };
+
+  touchQueueHeartbeat(userId);
 
   await db.insert(matchmakingQueue)
     .values(entry)
@@ -24,10 +38,11 @@ export async function addToQueue({ userId, gameType, timeControl, userElo }) {
 }
 
 export async function removeFromQueue(userId) {
+  lastHeartbeatMap.delete(Number(userId));
   const res = await db.delete(matchmakingQueue)
     .where(eq(matchmakingQueue.userId, Number(userId)))
     .run();
-  return res.changes > 0;
+  return (res?.changes || 0) > 0;
 }
 
 export async function getQueueEntry(userId) {
@@ -64,10 +79,9 @@ export async function setMatchedGame(userId, gameId, assignedColor) {
 
 export async function cleanExpiredQueue(maxAgeSeconds = 20) {
   const now = Math.floor(Date.now() / 1000);
-  const cutoff = now - maxAgeSeconds;
   const all = await db.select().from(matchmakingQueue).all();
   for (const entry of all) {
-    if (entry.joinedAt < cutoff) {
+    if (isQueueEntryStale(entry.userId, entry.joinedAt, now, maxAgeSeconds)) {
       await removeFromQueue(entry.userId);
     }
   }
