@@ -78,8 +78,13 @@ class WellChessApp {
     const contactAdminParam = params.get('contact_admin');
     const rulesParam = params.get('rules');
 
-    if (contactAdminParam === '1') {
+    const adminParam = params.get('admin');
+    const viewParam = params.get('view');
+
+    if (contactAdminParam === '1' || viewParam === 'contact_admin' || viewParam === 'chat') {
       this.openContactAdminModal();
+    } else if (adminParam === '1' || viewParam === 'admin') {
+      this.navigate('admin');
     } else if (rulesParam === '1') {
       this.openRulesModal();
     }

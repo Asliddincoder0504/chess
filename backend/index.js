@@ -253,6 +253,21 @@ export async function dispatchApiRequest({ method, pathname, query = {}, body = 
     if (act === 'reply_message') {
       const { replyToAdminMessage } = await import('./storage/messages.js');
       const replied = await replyToAdminMessage(body.messageId, body.replyText, user.firstName || 'Admin');
+      if (replied && replied.senderId) {
+        try {
+          const { sendTelegramMessage } = await import('./bot/notifications.js');
+          const MINI_APP_URL = 'https://app9223102562.tgcloud.ai/';
+          const text = `🛡️ *Admin sizning murojaatingizga javob berdi!*\n\n💬 *Javob:*\n${body.replyText || ''}\n\n_Pastdagi tugma orqali Web Appda chatni ochishingiz mumkin:_`;
+          const replyMarkup = {
+            inline_keyboard: [
+              [{ text: '💬 Web Appda chatni ochish', web_app: { url: `${MINI_APP_URL}?contact_admin=1` } }]
+            ]
+          };
+          await sendTelegramMessage(replied.senderId, text, replyMarkup);
+        } catch (tgErr) {
+          console.warn('[Local reply telegram warn]:', tgErr.message);
+        }
+      }
       return { success: true, message: replied };
     }
   }
@@ -298,10 +313,19 @@ export async function dispatchApiRequest({ method, pathname, query = {}, body = 
       message
     ].join('\n');
 
+    const MINI_APP_URL = 'https://app9223102562.tgcloud.ai/';
+    const replyMarkup = {
+      inline_keyboard: [
+        [{ text: '💬 Web Appda chatni ochish (Javob berish)', web_app: { url: `${MINI_APP_URL}?admin=1` } }]
+      ]
+    };
+    if (user.username) {
+      replyMarkup.inline_keyboard.push([{ text: '✉️ Foydalanuvchiga Telegramda yozish', url: `https://t.me/${user.username.replace(/^@/, '')}` }]);
+    }
     const ADMIN_IDS = ['6472114736', '8455692606'];
     for (const adminId of ADMIN_IDS) {
       try {
-        await sendTelegramMessage(adminId, text);
+        await sendTelegramMessage(adminId, text, replyMarkup);
       } catch (err) {
         console.error(`Local contact_admin send error:`, err.message);
       }

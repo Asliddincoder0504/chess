@@ -109,11 +109,17 @@ export default async function (input, ctx) {
 
     if (repliedMsg.senderId) {
       try {
+        const MINI_APP_URL = 'https://app9223102562.tgcloud.ai/';
         const escapeHtml = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         await api.sendMessage({
           chat_id: repliedMsg.senderId,
-          text: `🛡️ <b>WellChess Adminidan javob:</b>\n\n${escapeHtml(replyText)}\n\n<i>Mini app orqali ham muloqotni davom ettirishingiz mumkin.</i>`,
-          parse_mode: 'HTML'
+          text: `🛡️ <b>Admin sizning murojaatingizga javob berdi!</b>\n\n💬 <b>Javob:</b>\n${escapeHtml(replyText)}\n\n<i>Quyidagi tugma orqali Web Appda chatni ochishingiz va muloqotni davom ettirishingiz mumkin:</i>`,
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '💬 Web Appda chatni ochish', web_app: { url: `${MINI_APP_URL}?contact_admin=1` } }]
+            ]
+          }
         });
       } catch (tgErr) {
         console.warn('[Admin reply telegram notify]:', tgErr.message);

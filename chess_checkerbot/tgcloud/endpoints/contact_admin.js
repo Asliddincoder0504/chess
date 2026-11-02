@@ -50,17 +50,16 @@ export default async function (input, ctx) {
     message
   ].join('\n');
 
-  const replyMarkup = user?.username
-    ? {
-        inline_keyboard: [
-          [{ text: '✉️ Foydalanuvchiga yozish', url: `https://t.me/${user.username}` }]
-        ]
-      }
-    : (user?.id ? {
-        inline_keyboard: [
-          [{ text: '✉️ Foydalanuvchiga yozish', url: `tg://user?id=${user.id}` }]
-        ]
-      } : undefined);
+  const MINI_APP_URL = 'https://app9223102562.tgcloud.ai/';
+  const keyboard = [
+    [{ text: '💬 Web Appda chatni ochish (Javob berish)', web_app: { url: `${MINI_APP_URL}?admin=1` } }]
+  ];
+  if (user?.username) {
+    keyboard.push([{ text: '✉️ Foydalanuvchiga Telegramda yozish', url: `https://t.me/${user.username.replace(/^@/, '')}` }]);
+  } else if (user?.id) {
+    keyboard.push([{ text: '✉️ Foydalanuvchiga Telegramda yozish', url: `tg://user?id=${user.id}` }]);
+  }
+  const replyMarkup = { inline_keyboard: keyboard };
 
   let sentCount = 0;
   for (const adminId of ADMIN_IDS) {
