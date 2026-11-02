@@ -298,14 +298,25 @@ class ApiClient {
 
     if (endpoint === 'matchmaking') {
       if (action === 'join') {
-        const gameId = `local_mm_${Date.now()}`;
-        const game = this.createLocalGame(gameId, payload.gameType || 'chess', payload.timeControl || '3+2', user.id, 999);
         return {
           success: true,
-          status: 'matched',
-          gameId: game.id,
-          assignedColor: 'white',
-          game
+          status: 'waiting',
+          userElo: user.chessElo || 1200,
+          allowedTolerance: 100
+        };
+      }
+      if (action === 'poll' || action === 'status') {
+        return {
+          success: true,
+          status: 'waiting',
+          userElo: user.chessElo || 1200,
+          allowedTolerance: 100
+        };
+      }
+      if (action === 'cancel') {
+        return {
+          success: true,
+          cancelled: true
         };
       }
       if (action === 'accept_challenge') {
@@ -591,6 +602,16 @@ class ApiClient {
 
   async getMatchmakingStatus() {
     return this.call('matchmaking', { action: 'status' });
+  }
+
+  startBotGame(gameType = 'chess', timeControl = '3+2') {
+    const user = {
+      id: Number(this.tg?.initDataUnsafe?.user?.id || (typeof localStorage !== 'undefined' && localStorage.getItem('wellchess_dev_user_id')) || 1001),
+      firstName: this.tg?.initDataUnsafe?.user?.first_name || 'Siz'
+    };
+    const gameId = `local_bot_${Date.now()}`;
+    const game = this.createLocalGame(gameId, gameType, timeControl, user.id, 999);
+    return game;
   }
 
   // Game API

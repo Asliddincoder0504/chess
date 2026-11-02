@@ -29,22 +29,7 @@ export default async function (input, ctx) {
 
     try {
       const result = await joinMatchmaking({ userId, gameType, timeControl });
-      let dispatchedTargets = [];
-      if (result.status === 'waiting') {
-        const broadcastRes = await broadcastMatchmakingRequest({
-          hostUser: user,
-          gameType,
-          timeControl,
-          userElo: result.userElo
-        }).catch(err => {
-          console.warn('[Broadcast matchmaking bg error]:', err.message);
-          return null;
-        });
-        if (broadcastRes?.targets) {
-          dispatchedTargets = broadcastRes.targets;
-        }
-      }
-      return { success: true, ...result, dispatchedTargets };
+      return { success: true, ...result, dispatchedTargets: [] };
     } catch (err) {
       throw new EndpointError(err.message, { code: 'MATCHMAKING_ERROR' });
     }

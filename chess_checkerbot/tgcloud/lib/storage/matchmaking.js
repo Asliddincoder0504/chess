@@ -62,7 +62,7 @@ export async function setMatchedGame(userId, gameId, assignedColor) {
     .run();
 }
 
-export async function cleanExpiredQueue(maxAgeSeconds = 300) {
+export async function cleanExpiredQueue(maxAgeSeconds = 20) {
   const now = Math.floor(Date.now() / 1000);
   const cutoff = now - maxAgeSeconds;
   const all = await db.select().from(matchmakingQueue).all();

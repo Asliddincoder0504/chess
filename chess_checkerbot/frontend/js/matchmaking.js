@@ -33,6 +33,14 @@ export class MatchmakingController {
     const box = document.getElementById('mm-dispatched-box');
     if (box) box.classList.add('hidden');
 
+    const botOption = document.getElementById('mm-bot-option');
+    if (botOption) botOption.classList.add('hidden');
+
+    const botBtn = document.getElementById('btn-play-bot-fallback');
+    if (botBtn) {
+      botBtn.onclick = () => this.playWithBot();
+    }
+
     this.startElapsedTimer();
 
     try {
@@ -87,7 +95,27 @@ export class MatchmakingController {
       const formatted = `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
       const timerEl = document.getElementById('mm-elapsed-timer');
       if (timerEl) timerEl.textContent = formatted;
+
+      if (totalSecs >= 8) {
+        document.getElementById('mm-bot-option')?.classList.remove('hidden');
+      }
     }, 1000);
+  }
+
+  playWithBot() {
+    this.isMatched = true;
+    this.stopElapsedTimer();
+    this.stopStatusPolling();
+
+    document.getElementById('mm-bot-option')?.classList.add('hidden');
+    document.getElementById('mm-dispatched-box')?.classList.add('hidden');
+
+    try {
+      api.cancelMatchmaking();
+    } catch {}
+
+    const game = api.startBotGame(this.gameType, this.timeControl);
+    this.app.launchGame(game.id);
   }
 
   stopElapsedTimer() {
@@ -142,6 +170,7 @@ export class MatchmakingController {
     this.stopElapsedTimer();
     this.stopStatusPolling();
 
+    document.getElementById('mm-bot-option')?.classList.add('hidden');
     document.getElementById('mm-status-text').textContent = 'Raqib topildi! O‘yinga ulanmoqda...';
 
     setTimeout(() => {
@@ -154,6 +183,7 @@ export class MatchmakingController {
     this.stopElapsedTimer();
     this.stopStatusPolling();
 
+    document.getElementById('mm-bot-option')?.classList.add('hidden');
     const box = document.getElementById('mm-dispatched-box');
     if (box) box.classList.add('hidden');
 

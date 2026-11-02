@@ -62,8 +62,8 @@ export async function joinMatchmaking({ userId, gameType, timeControl }) {
     };
   }
 
-  // Clean stale queue items
-  await cleanExpiredQueue(300);
+  // Clean stale queue items older than 20 seconds
+  await cleanExpiredQueue(20);
 
   // Add / refresh user queue record
   const queueEntry = await addToQueue({
@@ -80,7 +80,14 @@ export async function joinMatchmaking({ userId, gameType, timeControl }) {
     // Sort opponents by closest ELO
     opponents.sort((a, b) => Math.abs(a.userElo - userElo) - Math.abs(b.userElo - userElo));
 
+    const now = Math.floor(Date.now() / 1000);
     for (const opp of opponents) {
+      // Ignore and purge opponents older than 20 seconds
+      if (now - opp.joinedAt > 20) {
+        await removeFromQueue(opp.userId);
+        continue;
+      }
+
       const oppAllowed = calculateAllowedEloRange(opp.joinedAt);
       const userAllowed = calculateAllowedEloRange(queueEntry.joinedAt);
       const effectiveAllowed = Math.max(oppAllowed, userAllowed);
@@ -138,17 +145,9 @@ export async function joinMatchmaking({ userId, gameType, timeControl }) {
  * @returns {Promise<Object>}
  */
 export async function getMatchmakingStatus(userId) {
+  await cleanExpiredQueue(20);
   const entry = await getQueueEntry(userId);
   if (!entry) {
-    // Also check if user has an active game
-    const active = await getUserActiveGame(userId);
-    if (active) {
-      return {
-        status: 'matched',
-        gameId: active.id,
-        assignedColor: active.whiteId === Number(userId) ? 'white' : 'black'
-      };
-    }
     return { status: 'idle' };
   }
 
