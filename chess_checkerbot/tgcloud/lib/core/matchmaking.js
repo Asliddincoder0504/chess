@@ -143,9 +143,11 @@ export async function cancelMatchmaking(userId) {
   return { cancelled: true };
 }
 
+const escapeHtml = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
 export async function broadcastMatchmakingRequest({ hostUser, gameType, timeControl, userElo }) {
   try {
-    if (!hostUser || !hostUser.id) return;
+    if (!hostUser || !hostUser.id) return { dispatchedCount: 0, targets: [] };
     const hostId = Number(hostUser.id);
     const allUsers = await getAllUsers(100);
     const activeGames = await getAllActiveGames();
@@ -159,18 +161,19 @@ export async function broadcastMatchmakingRequest({ hostUser, gameType, timeCont
     const now = Date.now();
     const candidates = allUsers.filter(u => {
       const uId = Number(u.id);
+      if (!uId || isNaN(uId) || uId <= 1000) return false;
       if (uId === hostId) return false;
       if (u.isBanned) return false;
       if (busyUserIds.has(uId)) return false;
 
-      // Throttle: don't notify same user more than once every 60s
+      // Throttle: don't notify same user more than once every 15s
       const lastSent = notificationThrottleMap.get(uId) || 0;
-      if (now - lastSent < 60000) return false;
+      if (now - lastSent < 15000) return false;
 
       return true;
     });
 
-    if (candidates.length === 0) return;
+    if (candidates.length === 0) return { dispatchedCount: 0, targets: [] };
 
     // Sort candidates by closest ELO difference
     const getElo = (u) => {
@@ -179,33 +182,47 @@ export async function broadcastMatchmakingRequest({ hostUser, gameType, timeCont
       return u.chessElo || 1200;
     };
 
-    candidates.sort((a, b) => Math.abs(getElo(a) - userElo) - Math.abs(getElo(b) - userElo));
+    const hostElo = Number(userElo) || 1200;
+    candidates.sort((a, b) => Math.abs(getElo(a) - hostElo) - Math.abs(getElo(b) - hostElo));
 
-    // Choose top 3 closest candidates
-    const targets = candidates.slice(0, 3);
     const MINI_APP_URL = 'https://app9223102562.tgcloud.ai/';
 
     let gName = 'Shaxmat (8x8 FIDE)';
     if (gameType === 'checkers8') gName = 'Klassik shashka (8x8, 12 tosh)';
     else if (gameType === 'checkers') gName = 'Xalqaro shashka (10x10, 20 tosh)';
 
-    const hostName = hostUser.first_name || hostUser.firstName || 'O‘yinchi';
+    const hostName = [hostUser.first_name || hostUser.firstName, hostUser.last_name || hostUser.lastName].filter(Boolean).join(' ') || 'O‘yinchi';
 
-    for (const target of targets) {
+    const safeHost = escapeHtml(hostName);
+    const safeGame = escapeHtml(gName);
+    const safeTime = escapeHtml(timeControl || '3+2');
+    const safeUrl = `${MINI_APP_URL}?joinMatch=${hostId}&game=${encodeURIComponent(gameType || 'chess')}&tc=${encodeURIComponent(timeControl || '3+2')}`;
+
+    const dispatchedTargets = [];
+
+    for (const target of candidates) {
+      if (dispatchedTargets.length >= 3) break;
       try {
-        notificationThrottleMap.set(Number(target.id), now);
         await api.sendMessage({
           chat_id: target.id,
-          text: `⚡ *Yangi onlayn o‘yin chaqiruvi!*\n\n👤 Raqib: *${hostName}*\n🏆 Reyting: *${userElo} ELO* (darajangizga mos)\n🎮 O‘yin turi: *${gName}*\n⏱ Vaqt nazorati: *${timeControl}*\n\n🏆 *Birinchi qabul qilgan o‘yinchi bilan o‘yin darhol boshlanadi!*`,
-          parse_mode: 'Markdown',
+          text: `⚡ <b>Yangi onlayn o‘yin chaqiruvi!</b>\n\n👤 Raqib: <b>${safeHost}</b>\n🏆 Reyting: <b>${hostElo} ELO</b> (darajangizga mos)\n🎮 O‘yin turi: <b>${safeGame}</b>\n⏱ Vaqt nazorati: <b>${safeTime}</b>\n\n🏆 <i>Birinchi qabul qilgan o‘yinchi bilan o‘yin darhol boshlanadi!</i>`,
+          parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [{
                 text: '⚔️ Qabul qilish va bellashuvga kirish',
-                web_app: { url: `${MINI_APP_URL}?joinMatch=${hostId}&game=${gameType}&tc=${timeControl}` }
+                web_app: { url: safeUrl }
               }]
             ]
           }
+        });
+
+        notificationThrottleMap.set(Number(target.id), now);
+        dispatchedTargets.push({
+          id: target.id,
+          firstName: target.firstName || target.first_name || 'O‘yinchi',
+          username: target.username || '',
+          elo: getElo(target)
         });
       } catch (err) {
         console.warn(`[Broadcast to ${target.id} failed]:`, err.message);
@@ -213,13 +230,8 @@ export async function broadcastMatchmakingRequest({ hostUser, gameType, timeCont
     }
 
     return {
-      dispatchedCount: targets.length,
-      targets: targets.map(t => ({
-        id: t.id,
-        firstName: t.firstName || 'O‘yinchi',
-        username: t.username || '',
-        elo: getElo(t)
-      }))
+      dispatchedCount: dispatchedTargets.length,
+      targets: dispatchedTargets
     };
   } catch (err) {
     console.warn('[broadcastMatchmakingRequest error]:', err.message);
