@@ -604,16 +604,6 @@ class ApiClient {
     return this.call('matchmaking', { action: 'status' });
   }
 
-  startBotGame(gameType = 'chess', timeControl = '3+2') {
-    const user = {
-      id: Number(this.tg?.initDataUnsafe?.user?.id || (typeof localStorage !== 'undefined' && localStorage.getItem('wellchess_dev_user_id')) || 1001),
-      firstName: this.tg?.initDataUnsafe?.user?.first_name || 'Siz'
-    };
-    const gameId = `local_bot_${Date.now()}`;
-    const game = this.createLocalGame(gameId, gameType, timeControl, user.id, 999);
-    return game;
-  }
-
   // Game API
   async getGame(gameId) {
     return this.call('game', { action: 'get', gameId });
