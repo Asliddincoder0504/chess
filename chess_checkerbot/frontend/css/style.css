@@ -2655,6 +2655,15 @@ body {
   animation: pulseGlow 1.8s infinite;
 }
 
+.challenge-incoming-dialog .modal-actions-row button {
+  height: 40px !important;
+  min-height: 40px !important;
+  margin-top: 0 !important;
+  font-size: 0.88rem !important;
+  padding: 0 14px !important;
+  border-radius: 9px !important;
+}
+
 @keyframes alertPulse {
   0% { transform: scale(0.95); opacity: 0.8; }
   50% { transform: scale(1.25); opacity: 1; }
@@ -3054,76 +3063,237 @@ body[data-piece-theme="minimal"] .checkers-piece {
    Player Profile Inspection Modal
    ========================================================================== */
 .player-inspect-dialog {
-  max-width: 390px;
+  max-width: 380px;
   width: 92%;
   border-radius: var(--radius-lg);
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  padding: 18px;
+  padding: 16px 18px 18px 18px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  box-sizing: border-box;
 }
 
 .inspect-header {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   margin-bottom: 12px;
+  width: 100%;
+  position: relative;
+}
+
+.inspect-user-details {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
 }
 
 .inspect-user-details h3 {
-  font-size: 1.15rem;
+  font-size: 1.08rem;
   font-weight: 800;
   color: var(--text-main);
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inspect-user-details .text-muted {
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .inspect-status-row {
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 .online-status-tag {
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   color: #10b981;
   font-weight: 600;
+}
+
+.inspect-close-x {
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.82rem;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.inspect-close-x:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--text-main);
 }
 
 .inspect-stats-grid {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin: 12px 0;
+  gap: 7px;
+  margin: 10px 0 14px 0;
+  width: 100%;
 }
 
 .inspect-stat-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
-  padding: 10px 12px;
+  padding: 8px 12px;
+  text-align: left;
+  transition: background 0.2s ease;
+}
+
+.inspect-stat-card:hover {
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .inspect-card-title {
   font-weight: 700;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   color: var(--text-main);
 }
 
 .inspect-elo {
   font-weight: 800;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   color: var(--primary-gold);
   margin-top: 2px;
 }
 
 .inspect-sub {
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   color: var(--text-muted);
   margin-top: 2px;
 }
 
 .inspect-rate {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   color: #10b981;
   font-weight: 700;
   margin-top: 2px;
+}
+
+/* Compact, proportional action buttons for inspect modal */
+.player-inspect-dialog .modal-actions-row,
+.inspect-actions-row {
+  display: flex !important;
+  gap: 10px !important;
+  width: 100% !important;
+  margin-top: 12px !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+}
+
+.player-inspect-dialog .modal-actions-row button,
+.inspect-actions-row button,
+#inspect-challenge-btn,
+#close-inspect-modal-btn {
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding: 0 14px !important;
+  font-size: 0.84rem !important;
+  border-radius: 9px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+#inspect-challenge-btn {
+  flex: 1.35 !important;
+  background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  box-shadow: 0 3px 12px rgba(245, 158, 11, 0.35) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25) !important;
+}
+
+#inspect-challenge-btn:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 5px 16px rgba(245, 158, 11, 0.5) !important;
+  transform: translateY(-1px);
+}
+
+#inspect-challenge-btn:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+#close-inspect-modal-btn {
+  flex: 0.85 !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-muted) !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+#close-inspect-modal-btn:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: var(--text-main) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+#close-inspect-modal-btn:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+[data-theme="light"] .player-inspect-dialog {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12) !important;
+}
+
+[data-theme="light"] .inspect-stat-card {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] .inspect-stat-card:hover {
+  background: #f1f5f9 !important;
+}
+
+[data-theme="light"] .inspect-close-x {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #64748b !important;
+}
+
+[data-theme="light"] .inspect-close-x:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] #close-inspect-modal-btn {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+}
+
+[data-theme="light"] #close-inspect-modal-btn:hover {
+  background: #e2e8f0 !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
 }
 
 /* ==========================================================================
