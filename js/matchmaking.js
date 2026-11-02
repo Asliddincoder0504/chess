@@ -172,7 +172,6 @@ export class MatchmakingController {
   handleTimeout() {
     this.isTimedOut = true;
     this.stopElapsedTimer();
-    this.stopStatusPolling();
 
     const timerEl = document.getElementById('mm-elapsed-timer');
     if (timerEl) timerEl.textContent = '01:00';
@@ -184,7 +183,9 @@ export class MatchmakingController {
     document.getElementById('mm-active-actions')?.classList.add('hidden');
     document.getElementById('mm-timeout-box')?.classList.remove('hidden');
 
-    api.cancelMatchmaking().catch(() => {});
+    // Do not cancel matchmaking immediately while host is deciding to retry or go home.
+    // Status polling continues in the background so if a candidate clicked the invite,
+    // the game will connect and launch automatically.
   }
 
   stopElapsedTimer() {
@@ -198,7 +199,7 @@ export class MatchmakingController {
     this.stopStatusPolling();
 
     const check = async () => {
-      if (this.isMatched || this.isTimedOut) return;
+      if (this.isMatched) return;
       try {
         const res = await api.getMatchmakingStatus();
         if (res.status === 'matched' && res.gameId) {
@@ -206,7 +207,7 @@ export class MatchmakingController {
           return;
         }
 
-        if (res.status === 'waiting' || res.status === 'searching') {
+        if (!this.isTimedOut && (res.status === 'waiting' || res.status === 'searching')) {
           if (res.userElo !== undefined) {
             this.currentUserElo = res.userElo;
           }
@@ -233,8 +234,9 @@ export class MatchmakingController {
         console.warn('[Matchmaking Poll Error]:', err.message);
       }
 
-      if (!this.isMatched && !this.isTimedOut) {
-        this.pollTimer = setTimeout(check, 1500);
+      if (!this.isMatched) {
+        const interval = this.isTimedOut ? 2500 : 1500;
+        this.pollTimer = setTimeout(check, interval);
       }
     };
 
