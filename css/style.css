@@ -4606,3 +4606,370 @@ body[data-piece-theme="ruby"] .checkers-piece.piece-b {
   font-size: 0.74rem;
   font-weight: 600;
 }
+
+/* ========================================================
+   PROFILE ACTION BUTTONS (QOIDALAR & ADMINGA MUROJAAT)
+   ======================================================== */
+.profile-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.btn-action-rules, #btn-open-rules {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 13px 14px !important;
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4) !important;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+}
+.btn-action-rules:hover, #btn-open-rules:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.55) !important;
+}
+.btn-action-rules:active, #btn-open-rules:active {
+  transform: translateY(0);
+}
+.btn-action-rules .btn-icon, #btn-open-rules .btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-action-rules .btn-icon svg, #btn-open-rules .btn-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke: #ffffff !important;
+}
+
+.btn-action-contact, #btn-open-contact-admin {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 13px 14px !important;
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4) !important;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+}
+.btn-action-contact:hover, #btn-open-contact-admin:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.55) !important;
+}
+.btn-action-contact:active, #btn-open-contact-admin:active {
+  transform: translateY(0);
+}
+.btn-action-contact .btn-icon, #btn-open-contact-admin .btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-action-contact .btn-icon svg, #btn-open-contact-admin .btn-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke: #0f172a !important;
+}
+
+/* ========================================================
+   TOP PLAYERS PERKS, PODIUM & PRESTIGE BADGES
+   ======================================================== */
+/* 1. Top Player Perks Card in Profile */
+.top-player-perks-card {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1.5px solid rgba(229, 183, 59, 0.45);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-top: 14px;
+  box-shadow: 0 4px 20px rgba(229, 183, 59, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+.top-player-perks-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #e5b73b, transparent);
+}
+.perks-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.perks-crown-icon {
+  font-size: 1.6rem;
+  animation: crownFloat 2.5s ease-in-out infinite;
+}
+@keyframes crownFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px) rotate(3deg); }
+}
+.perks-title {
+  font-size: 0.94rem;
+  font-weight: 800;
+  color: var(--primary-gold);
+}
+.perks-sub {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+.perks-active-tag {
+  font-size: 0.68rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #e5b73b, #d97706);
+  color: #0f172a;
+  padding: 3px 8px;
+  border-radius: 20px;
+  box-shadow: 0 2px 6px rgba(229, 183, 59, 0.3);
+}
+.perks-features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.perk-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.perk-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.perk-desc b {
+  color: var(--primary-gold);
+}
+
+/* 2. Top 3 Champion Podium Showcase in Leaderboard */
+.lb-podium-container {
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8));
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 14px 10px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+}
+.podium-header-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.podium-header-icon {
+  font-size: 1.2rem;
+}
+.podium-header-title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--primary-gold);
+  letter-spacing: 0.3px;
+}
+.podium-header-tag {
+  font-size: 0.66rem;
+  font-weight: 800;
+  background: rgba(229, 183, 59, 0.2);
+  color: var(--primary-gold);
+  padding: 2px 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(229, 183, 59, 0.35);
+}
+.podium-row {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr 1fr;
+  gap: 8px;
+  align-items: flex-end;
+}
+.podium-col {
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--border-color);
+  border-radius: 12px;
+  padding: 10px 6px 12px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.podium-col:hover {
+  transform: translateY(-3px);
+}
+.podium-col.rank-1 {
+  background: linear-gradient(180deg, rgba(229, 183, 59, 0.15) 0%, var(--bg-elevated) 100%);
+  border: 2px solid #e5b73b;
+  box-shadow: 0 6px 22px rgba(229, 183, 59, 0.25);
+  padding-top: 14px;
+}
+.podium-col.rank-2 {
+  border-color: #94a3b8;
+}
+.podium-col.rank-3 {
+  border-color: #cd7f32;
+}
+.podium-crown-badge {
+  font-size: 1.4rem;
+  margin-bottom: 2px;
+}
+.podium-col.rank-1 .podium-crown-badge {
+  font-size: 1.8rem;
+  animation: crownFloat 2.5s ease-in-out infinite;
+}
+.podium-avatar-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  margin-bottom: 6px;
+}
+.gold-aura {
+  width: 52px;
+  height: 52px;
+  border: 2.5px solid #e5b73b;
+  box-shadow: 0 0 12px rgba(229, 183, 59, 0.5);
+}
+.podium-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.podium-avatar-initial {
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--primary-gold);
+}
+.podium-rank-tag {
+  position: absolute;
+  bottom: -6px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  background: #334155;
+  color: #ffffff;
+  padding: 1px 5px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.rank-1 .podium-rank-tag {
+  background: #e5b73b;
+  color: #0f172a;
+  border-color: #fef08a;
+}
+.podium-name {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text-main);
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 4px;
+}
+.champion-col .podium-name {
+  font-size: 0.82rem;
+  color: var(--primary-gold);
+}
+.podium-elo {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--text-muted);
+}
+.champion-col .podium-elo {
+  color: #ffffff;
+}
+.podium-tier-tag {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-top: 2px;
+  margin-bottom: 6px;
+}
+.tier-gold {
+  color: var(--primary-gold);
+  font-weight: 800;
+}
+.btn-podium-challenge {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 90%;
+  white-space: nowrap;
+}
+.btn-podium-challenge:hover {
+  background: var(--primary-gold);
+  color: #0f172a;
+}
+.btn-gold-glow {
+  background: linear-gradient(135deg, #e5b73b, #d97706);
+  color: #0f172a;
+  border: none;
+  box-shadow: 0 2px 8px rgba(229, 183, 59, 0.4);
+}
+.btn-gold-glow:hover {
+  transform: scale(1.04);
+}
+
+/* 3. Table Prestige Tags for Top Players */
+.top-prestige-tag {
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.tag-champion {
+  background: linear-gradient(135deg, rgba(229, 183, 59, 0.25), rgba(217, 119, 6, 0.35));
+  color: #e5b73b;
+  border: 1px solid rgba(229, 183, 59, 0.5);
+  box-shadow: 0 0 8px rgba(229, 183, 59, 0.3);
+}
+.tag-master {
+  background: rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+}
+.tag-top10 {
+  background: rgba(99, 102, 241, 0.18);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+}

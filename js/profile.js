@@ -65,6 +65,21 @@ export class ProfileController {
       if (ch8El) ch8El.textContent = this.profileStats.checkers8?.elo || 1200;
       if (chEl) chEl.textContent = this.profileStats.checkers?.elo || 1200;
 
+      const perksCard = document.getElementById('top-player-perks-card');
+      const perksTitle = document.getElementById('perks-tier-title');
+      const perksSub = document.getElementById('perks-tier-sub');
+      if (perksCard) {
+        if (highestElo >= 1250) {
+          perksCard.classList.remove('hidden');
+          if (perksTitle) perksTitle.textContent = highestElo >= 1500 ? '👑 Grossmeyster Imtiyozlari (Faol)' : '⭐ Elita Master Imtiyozlari (Faol)';
+          if (perksSub) perksSub.textContent = 'Reytingingiz yuqori bo‘lgani sababli sizga barcha maxsus Grandmaster imtiyozlari faollashtirildi!';
+        } else {
+          perksCard.classList.remove('hidden');
+          if (perksTitle) perksTitle.textContent = '👑 Top O‘yinchilar Imtiyozlari';
+          if (perksSub) perksSub.textContent = 'Reytingda Top 10 talikka kiring va VIP grandmaster imtiyozlariga ega bo‘ling!';
+        }
+      }
+
       this.updateProfileStatCard(this.activeProfileGame);
     } catch (err) {
       console.warn('[Profile Render Error]:', err.message);
@@ -101,12 +116,91 @@ export class ProfileController {
     try {
       const res = await api.getLeaderboard(gameType);
       this.leaderboardData = res.leaderboard || [];
+      this.renderPodium(this.leaderboardData);
       this.filterLeaderboard('');
     } catch (err) {
       if (tbody) {
         tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 20px; color: #ef4444;">Reytingni yuklab bo‘lmadi: ${err.message}</td></tr>`;
       }
     }
+  }
+
+  renderPodium(data) {
+    const podiumEl = document.getElementById('lb-podium-container');
+    if (!podiumEl) return;
+    if (!data || data.length === 0) {
+      podiumEl.innerHTML = '';
+      return;
+    }
+
+    const p1 = data[0] || null;
+    const p2 = data[1] || null;
+    const p3 = data[2] || null;
+
+    if (!p1) {
+      podiumEl.innerHTML = '';
+      return;
+    }
+
+    const renderCard = (p, rank, medal, tier, isGold = false) => {
+      if (!p) return '<div class="podium-col empty-podium"></div>';
+      const initial = (p.firstName || 'O').charAt(0).toUpperCase();
+      const avatar = p.photoUrl
+        ? `<img src="${p.photoUrl}" class="podium-avatar-img ${isGold ? 'champion-avatar' : ''}" onerror="this.outerHTML='<span class=\\'podium-avatar-initial\\'>${initial}</span>'" />`
+        : `<span class="podium-avatar-initial">${initial}</span>`;
+
+      return `
+        <div class="podium-col rank-${rank} ${isGold ? 'champion-col' : ''}" data-inspect-id="${p.id}">
+          <div class="podium-crown-badge">${medal}</div>
+          <div class="podium-avatar-wrap ${isGold ? 'gold-aura' : ''}">
+            ${avatar}
+            <span class="podium-rank-tag">#${rank}</span>
+          </div>
+          <div class="podium-name">${escapeHtml(p.firstName || 'O‘yinchi')}</div>
+          <div class="podium-elo">${p.elo || 1200} ELO</div>
+          <div class="podium-tier-tag ${isGold ? 'tier-gold' : ''}">${tier}</div>
+          <button class="btn-podium-challenge ${isGold ? 'btn-gold-glow' : ''}" data-challenge-id="${p.id}" data-challenge-name="${escapeHtml(p.firstName || 'O‘yinchi')}">
+            <span>⚔️ Bellashuv</span>
+          </button>
+        </div>
+      `;
+    };
+
+    podiumEl.innerHTML = `
+      <div class="podium-header-banner">
+        <span class="podium-header-icon">🏆</span>
+        <span class="podium-header-title">Chempionlar Shon-Sharaf Zali</span>
+        <span class="podium-header-tag">TOP 3</span>
+      </div>
+      <div class="podium-row">
+        ${renderCard(p2, 2, '🥈', 'Vitse-chempion', false)}
+        ${renderCard(p1, 1, '👑', 'Chempion', true)}
+        ${renderCard(p3, 3, '🥉', 'Bronza Master', false)}
+      </div>
+    `;
+
+    podiumEl.querySelectorAll('.podium-col').forEach(col => {
+      col.addEventListener('click', (e) => {
+        if (e.target.closest('.btn-podium-challenge')) return;
+        const pid = col.dataset.inspectId;
+        if (pid && this.app.openPlayerInspectModal) {
+          this.app.openPlayerInspectModal(pid);
+        }
+      });
+    });
+
+    podiumEl.querySelectorAll('.btn-podium-challenge').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const pid = btn.dataset.challengeId;
+        const pname = btn.dataset.challengeName;
+        if (this.app.liveController && typeof this.app.liveController.openChallengeModal === 'function') {
+          this.app.liveController.openChallengeModal({ id: pid, firstName: pname });
+        } else if (this.app.openPlayerInspectModal) {
+          this.app.openPlayerInspectModal(pid);
+        }
+      });
+    });
   }
 
   filterLeaderboard(searchQuery) {
@@ -139,9 +233,19 @@ export class ProfileController {
       tr.style.cursor = 'pointer';
 
       let rankDisplay = `<span class="rank-num">${rank}</span>`;
-      if (rank === 1) rankDisplay = `<span class="rank-badge">${ICONS.medalGold || '🥇'}</span>`;
-      else if (rank === 2) rankDisplay = `<span class="rank-badge">${ICONS.medalSilver || '🥈'}</span>`;
-      else if (rank === 3) rankDisplay = `<span class="rank-badge">${ICONS.medalBronze || '🥉'}</span>`;
+      let rankPill = '';
+      if (rank === 1) {
+        rankDisplay = `<span class="rank-badge medal-champion">${ICONS.medalGold || '🥇'}</span>`;
+        rankPill = `<span class="top-prestige-tag tag-champion">👑 Chempion</span>`;
+      } else if (rank === 2) {
+        rankDisplay = `<span class="rank-badge">${ICONS.medalSilver || '🥈'}</span>`;
+        rankPill = `<span class="top-prestige-tag tag-master">🥈 Vitse</span>`;
+      } else if (rank === 3) {
+        rankDisplay = `<span class="rank-badge">${ICONS.medalBronze || '🥉'}</span>`;
+        rankPill = `<span class="top-prestige-tag tag-master">🥉 Master</span>`;
+      } else if (rank <= 10) {
+        rankPill = `<span class="top-prestige-tag tag-top10">⭐ TOP 10</span>`;
+      }
 
       const initial = (p.firstName || 'O').charAt(0).toUpperCase();
       const avatarHtml = p.photoUrl
@@ -156,7 +260,10 @@ export class ProfileController {
           <div class="lb-player-cell">
             ${avatarHtml}
             <div class="lb-player-text">
-              <span class="lb-row-name">${escapeHtml(p.firstName || 'O‘yinchi')}</span>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="lb-row-name">${escapeHtml(p.firstName || 'O‘yinchi')}</span>
+                ${rankPill}
+              </div>
               <span class="lb-row-username">${p.username ? '@' + p.username : 'ID: ' + p.id}</span>
             </div>
           </div>
