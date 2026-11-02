@@ -295,6 +295,10 @@
               <span>Chat</span>
               <span class="chat-badge hidden" id="game-chat-badge">0</span>
             </button>
+            <button class="btn-secondary btn-with-icon" id="game-theme-btn" title="Doska va toshlar dizayni">
+              <span class="btn-ctrl-icon" id="icon-btn-game-theme">🎨</span>
+              <span>Dizayn</span>
+            </button>
             <button class="btn-secondary btn-with-icon" id="draw-btn">
               <span class="btn-ctrl-icon" id="icon-btn-draw"></span>
               <span>Durang</span>
@@ -468,12 +472,47 @@
             </div>
           </div>
           <div class="settings-divider" style="height: 1px; background: var(--border-color); margin: 10px 0;"></div>
+          <div style="margin-top: 10px; margin-bottom: 12px;">
+            <div style="font-weight: 600; font-size: 0.88rem; margin-bottom: 8px;">🏁 Taxta (Doska) uslubi:</div>
+            <div class="board-theme-selector" id="board-theme-selector">
+              <div class="board-theme-pill selected" data-board-theme="wood">
+                <span class="theme-icon">🪵</span>
+                <span>Yog'och</span>
+              </div>
+              <div class="board-theme-pill" data-board-theme="emerald">
+                <span class="theme-icon">🟢</span>
+                <span>Zumrad</span>
+              </div>
+              <div class="board-theme-pill" data-board-theme="ocean">
+                <span class="theme-icon">🌊</span>
+                <span>Okean</span>
+              </div>
+              <div class="board-theme-pill" data-board-theme="midnight">
+                <span class="theme-icon">🌌</span>
+                <span>Tungi</span>
+              </div>
+              <div class="board-theme-pill" data-board-theme="neon">
+                <span class="theme-icon">⚡</span>
+                <span>Neon</span>
+              </div>
+              <div class="board-theme-pill" data-board-theme="amber">
+                <span class="theme-icon">🍯</span>
+                <span>Qahrabo</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-divider" style="height: 1px; background: var(--border-color); margin: 10px 0;"></div>
           <div style="margin-top: 10px;">
-            <div style="font-weight: 600; font-size: 0.88rem; margin-bottom: 8px;">🎨 Toshlar va taxta dizayni:</div>
+            <div style="font-weight: 600; font-size: 0.88rem; margin-bottom: 8px;">♟️ Toshlar (Sipohlar) uslubi:</div>
             <div class="piece-theme-selector" id="piece-theme-selector">
               <div class="piece-theme-pill selected" data-piece-theme="classic">
                 <span class="theme-icon">♟️</span>
                 <span>Klassik</span>
+              </div>
+              <div class="piece-theme-pill" data-piece-theme="gold">
+                <span class="theme-icon">👑</span>
+                <span>Oltin</span>
               </div>
               <div class="piece-theme-pill" data-piece-theme="neon">
                 <span class="theme-icon">⚡</span>
@@ -486,6 +525,10 @@
               <div class="piece-theme-pill" data-piece-theme="minimal">
                 <span class="theme-icon">🔷</span>
                 <span>Minimal</span>
+              </div>
+              <div class="piece-theme-pill" data-piece-theme="ruby">
+                <span class="theme-icon">💎</span>
+                <span>Yoqut</span>
               </div>
             </div>
           </div>
@@ -840,40 +883,127 @@
       </div>
     </div>
 
-    <!-- 10. Contact Admin Modal -->
+    <!-- 10. Contact Admin & In-App Live Support Chat Modal -->
     <div class="modal-overlay hidden" id="contact-admin-modal" style="display: none;">
-      <div class="modal-dialog contact-admin-dialog">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px; margin: 0;">
-            <span class="modal-icon-badge" id="icon-contact-modal-title"></span>
-            <span>Adminga murojaat</span>
-          </h3>
+      <div class="modal-dialog support-chat-dialog">
+        <div class="support-dialog-header">
+          <div class="support-header-info">
+            <span class="support-shield-icon">🛡️</span>
+            <div>
+              <h3 class="support-dialog-title">Admin bilan muloqot</h3>
+              <div class="support-dialog-sub">
+                <span class="support-live-pulse"></span>
+                <span>Qo‘llab-quvvatlash xizmati • Jonli chat</span>
+              </div>
+            </div>
+          </div>
           <button class="btn-icon-close" id="close-contact-modal-btn">✕</button>
         </div>
-        <p class="modal-subtitle" style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">
-          Platforma bo‘yicha taklif, shikoyat yoki savolingiz bo‘lsa, to‘g‘ridan-to‘g‘ri adminlarga xabar yuborishingiz mumkin.
-        </p>
 
-        <label class="modal-label">Mavzu turi:</label>
-        <select id="contact-topic-select" class="modal-select">
-          <option value="💡 Taklif va fikrlar">💡 Taklif va fikrlar</option>
-          <option value="⚠️ Xatolik / Texnik muammo">⚠️ Xatolik / Texnik muammo</option>
-          <option value="🏆 Reyting / Profil masalasi">🏆 Reyting / Profil masalasi</option>
-          <option value="💬 Boshqa savollar">💬 Boshqa savollar</option>
-        </select>
-
-        <label class="modal-label" style="margin-top: 10px;">Xabaringiz:</label>
-        <textarea id="contact-message-input" class="modal-input" rows="4" style="resize: vertical; min-height: 90px; font-family: inherit; line-height: 1.4;" placeholder="Murojaatingiz mazmunini yozing..."></textarea>
-
-        <div id="contact-feedback-msg" class="contact-status-alert hidden" style="margin-top: 10px; padding: 10px; border-radius: var(--radius-sm); font-size: 0.84rem;"></div>
-
-        <div class="modal-actions-row" style="display: flex; gap: 10px; width: 100%; margin-top: 14px;">
-          <button class="btn btn-secondary" id="btn-cancel-contact" style="flex: 1;">Bekor qilish</button>
-          <button class="btn btn-primary btn-send-contact-glow" id="btn-send-contact" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;">
-            <span class="btn-icon" id="icon-btn-send-contact"></span>
-            <span>Xabarni yuborish</span>
-          </button>
+        <!-- Chat messages thread -->
+        <div class="support-chat-thread" id="support-chat-thread">
+          <div class="support-chat-loading">
+            <div class="loader-spinner-sm"></div>
+            <span>Xabarlar yuklanmoqda...</span>
+          </div>
         </div>
+
+        <!-- Chat input & topic row -->
+        <div class="support-composer-area">
+          <div class="support-topic-strip">
+            <label class="support-topic-tag" for="contact-topic-select">Mavzu:</label>
+            <select id="contact-topic-select" class="support-topic-dropdown">
+              <option value="💡 Taklif va fikrlar">💡 Taklif va fikrlar</option>
+              <option value="⚠️ Xatolik / Texnik muammo">⚠️ Xatolik / Texnik muammo</option>
+              <option value="🏆 Reyting / Profil masalasi">🏆 Reyting / Profil masalasi</option>
+              <option value="💬 Savol / Yordam">💬 Savol / Yordam</option>
+            </select>
+          </div>
+
+          <div class="support-input-row">
+            <textarea id="contact-message-input" class="support-text-input" rows="2" placeholder="Xabaringizni yozing..." maxlength="500"></textarea>
+            <button class="btn-support-send" id="btn-send-contact" title="Xabarni yuborish">
+              <span class="btn-icon" id="icon-btn-send-contact">➤</span>
+            </button>
+          </div>
+          <div id="contact-feedback-msg" class="contact-status-alert hidden"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Theme & Board Customizer Modal -->
+    <div class="modal-overlay hidden" id="theme-selector-modal" style="display: none;">
+      <div class="modal-dialog theme-customizer-dialog">
+        <div class="support-dialog-header">
+          <div class="support-header-info">
+            <span class="support-shield-icon">🎨</span>
+            <div>
+              <h3 class="support-dialog-title">Doska va Toshlar sozlamalari</h3>
+              <div class="support-dialog-sub">O'zingizga mos rang va toshlarni tanlang</div>
+            </div>
+          </div>
+          <button class="btn-icon-close" id="close-theme-modal-btn">✕</button>
+        </div>
+
+        <div class="customizer-section-title">Taxta (Doska) uslubi:</div>
+        <div class="board-theme-grid" id="modal-board-theme-grid">
+          <div class="theme-choice-card" data-modal-board="wood">
+            <span class="theme-choice-icon">🪵</span>
+            <span class="theme-choice-name">Yog'och</span>
+          </div>
+          <div class="theme-choice-card" data-modal-board="emerald">
+            <span class="theme-choice-icon">🟢</span>
+            <span class="theme-choice-name">Zumrad (FIDE)</span>
+          </div>
+          <div class="theme-choice-card" data-modal-board="ocean">
+            <span class="theme-choice-icon">🌊</span>
+            <span class="theme-choice-name">Okean</span>
+          </div>
+          <div class="theme-choice-card" data-modal-board="midnight">
+            <span class="theme-choice-icon">🌌</span>
+            <span class="theme-choice-name">Tungi Obsidian</span>
+          </div>
+          <div class="theme-choice-card" data-modal-board="neon">
+            <span class="theme-choice-icon">⚡</span>
+            <span class="theme-choice-name">Neon Kiber</span>
+          </div>
+          <div class="theme-choice-card" data-modal-board="amber">
+            <span class="theme-choice-icon">🍯</span>
+            <span class="theme-choice-name">Qahrabo</span>
+          </div>
+        </div>
+
+        <div class="customizer-section-title" style="margin-top: 14px;">Toshlar (Sipohlar) uslubi:</div>
+        <div class="piece-theme-grid" id="modal-piece-theme-grid">
+          <div class="theme-choice-card" data-modal-piece="classic">
+            <span class="theme-choice-icon">♟️</span>
+            <span class="theme-choice-name">Klassik</span>
+          </div>
+          <div class="theme-choice-card" data-modal-piece="gold">
+            <span class="theme-choice-icon">👑</span>
+            <span class="theme-choice-name">Qirollik Oltin</span>
+          </div>
+          <div class="theme-choice-card" data-modal-piece="neon">
+            <span class="theme-choice-icon">⚡</span>
+            <span class="theme-choice-name">Neon Kiber</span>
+          </div>
+          <div class="theme-choice-card" data-modal-piece="wood">
+            <span class="theme-choice-icon">🪵</span>
+            <span class="theme-choice-name">Yog'och</span>
+          </div>
+          <div class="theme-choice-card" data-modal-piece="minimal">
+            <span class="theme-choice-icon">🔷</span>
+            <span class="theme-choice-name">Minimal</span>
+          </div>
+          <div class="theme-choice-card" data-modal-piece="ruby">
+            <span class="theme-choice-icon">💎</span>
+            <span class="theme-choice-name">Yoqut / Sapfir</span>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="btn-save-theme-modal" style="margin-top: 16px; width: 100%;">
+          <span>Saqlash va qo‘llash</span>
+        </button>
       </div>
     </div>
 

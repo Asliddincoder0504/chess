@@ -200,7 +200,40 @@ class ApiClient {
     }
 
     if (endpoint === 'contact_admin' || action === 'contact') {
-      return { success: true, message: 'Murojaatingiz adminlarga yetkazildi!' };
+      let localSupport = [];
+      try { localSupport = JSON.parse(localStorage.getItem('wellchess_support_chat') || '[]'); } catch {}
+      if (action === 'get_messages') {
+        if (localSupport.length === 0) {
+          localSupport = [
+            {
+              id: 1,
+              senderId: user.id,
+              senderName: user.firstName,
+              topic: 'Umumiy',
+              message: 'Assalomu alaykum! Mini ilovada qanday yangiliklar bor?',
+              replyText: 'Va alaykum assalom! Yaqinda yangi toshlar va doskalar dizaynlari qo‘shildi. Omad tilaymiz!',
+              repliedBy: 'Admin',
+              createdAt: Math.floor(Date.now() / 1000) - 3600,
+              repliedAt: Math.floor(Date.now() / 1000) - 1800
+            }
+          ];
+          try { localStorage.setItem('wellchess_support_chat', JSON.stringify(localSupport)); } catch {}
+        }
+        return { success: true, messages: localSupport };
+      }
+
+      const newMsg = {
+        id: Date.now(),
+        senderId: user.id,
+        senderName: user.firstName,
+        topic: payload.topic || 'Umumiy',
+        message: payload.message || payload.text,
+        createdAt: Math.floor(Date.now() / 1000),
+        replyText: null
+      };
+      localSupport.push(newMsg);
+      try { localStorage.setItem('wellchess_support_chat', JSON.stringify(localSupport)); } catch {}
+      return { success: true, message: 'Murojaatingiz adminlarga yetkazildi!', chatMessage: newMsg };
     }
 
     if (endpoint === 'admin') {
@@ -645,6 +678,19 @@ class ApiClient {
 
   async getAdminMessages(limit = 50) {
     return this.call('admin', { action: 'messages', limit });
+  }
+
+  async adminReplyMessage(messageId, replyText) {
+    return this.call('admin', { action: 'reply_message', messageId, replyText });
+  }
+
+  // User Support Chat API
+  async getSupportMessages() {
+    return this.call('contact_admin', { action: 'get_messages' });
+  }
+
+  async sendSupportMessage(message, topic = 'Umumiy') {
+    return this.call('contact_admin', { action: 'send', message, topic });
   }
 
   // Contact Admin
