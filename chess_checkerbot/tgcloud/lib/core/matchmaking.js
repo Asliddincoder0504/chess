@@ -40,14 +40,8 @@ export async function joinMatchmaking({ userId, gameType, timeControl }) {
 
   const userElo = gameType === 'chess' ? (user.chessElo || 1200) : (user.checkersElo || 1200);
 
-  const currentQueueEntry = await getQueueEntry(userId);
-  if (currentQueueEntry && currentQueueEntry.matchedGameId) {
-    return {
-      status: 'matched',
-      gameId: currentQueueEntry.matchedGameId,
-      assignedColor: currentQueueEntry.assignedColor
-    };
-  }
+  // Always remove any previous/stuck queue record for this user before joining a fresh search
+  await removeFromQueue(userId);
 
   await cleanExpiredQueue(20);
 
@@ -145,18 +139,6 @@ export async function pollMatchmakingStatus(userId) {
 }
 
 export async function cancelMatchmaking(userId) {
-  const entry = await getQueueEntry(userId);
-  if (!entry) return { cancelled: false, message: 'Not in queue' };
-
-  if (entry.matchedGameId) {
-    return {
-      cancelled: false,
-      status: 'matched',
-      gameId: entry.matchedGameId,
-      assignedColor: entry.assignedColor
-    };
-  }
-
   await removeFromQueue(userId);
   return { cancelled: true };
 }

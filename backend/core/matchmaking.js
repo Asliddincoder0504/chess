@@ -52,15 +52,8 @@ export async function joinMatchmaking({ userId, gameType, timeControl }) {
 
   const userElo = gameType === 'chess' ? (user.chessElo || 1000) : (user.checkersElo || 1000);
 
-  // Check if already in queue and matched
-  const currentQueueEntry = await getQueueEntry(userId);
-  if (currentQueueEntry && currentQueueEntry.matchedGameId) {
-    return {
-      status: 'matched',
-      gameId: currentQueueEntry.matchedGameId,
-      assignedColor: currentQueueEntry.assignedColor
-    };
-  }
+  // Always remove any previous/stuck queue record for this user before joining a fresh search
+  await removeFromQueue(userId);
 
   // Clean stale queue items older than 20 seconds
   await cleanExpiredQueue(20);

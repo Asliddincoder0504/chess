@@ -791,6 +791,19 @@ class WellChessApp {
       this.navigate('live');
     });
 
+    const handleLeaveGame = () => {
+      if (this.gameController.gameData?.status === 'active') {
+        if (confirm('O‘yindan chiqib bosh sahifaga qaytmoqchimisiz? (O‘yin to‘xtatilmaydi)')) {
+          this.closeGameAndReturnHome();
+        }
+      } else {
+        this.closeGameAndReturnHome();
+      }
+    };
+
+    document.getElementById('btn-game-back-home')?.addEventListener('click', handleLeaveGame);
+    document.getElementById('btn-game-leave')?.addEventListener('click', handleLeaveGame);
+
     document.getElementById('btn-quick-live')?.addEventListener('click', () => {
       this.navigate('live');
     });

@@ -50,6 +50,14 @@ export class MatchmakingController {
         return;
       }
 
+      if (res.status === 'active_game_exists' && res.gameId) {
+        this.stopElapsedTimer();
+        this.stopStatusPolling();
+        this.app.showToast('Faol o‘yiningiz mavjud. O‘yinga ulanmoqda...', 'info');
+        this.app.launchGame(res.gameId);
+        return;
+      }
+
       if (res.dispatchedTargets && res.dispatchedTargets.length > 0) {
         this.renderDispatchedTargets(res.dispatchedTargets);
       }
