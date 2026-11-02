@@ -260,6 +260,14 @@
       <!-- 3. GAME VIEW (O'YIN MAYDONI) -->
       <section id="view-game" class="view-panel hidden">
         <div class="game-view-container">
+          <!-- Top Game Bar with Back to Home button -->
+          <div class="game-top-bar" style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 8px;">
+            <button class="btn-secondary" id="btn-game-back-home" style="padding: 5px 12px; font-size: 0.8rem; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; height: 32px; width: auto;">
+              <span>← Bosh sahifa</span>
+            </button>
+            <span id="game-status-badge" class="badge-gold" style="font-size: 0.76rem; padding: 3px 8px;">O'yin</span>
+          </div>
+
           <!-- Opponent Strip -->
           <div class="player-strip">
             <div class="player-meta">
@@ -314,6 +322,10 @@
             <button class="btn-secondary btn-with-icon" id="resign-btn">
               <span class="btn-ctrl-icon" id="icon-btn-resign"></span>
               <span>Taslim bo'lish</span>
+            </button>
+            <button class="btn-secondary btn-with-icon" id="btn-game-leave" title="O'yindan chiqish">
+              <span class="btn-ctrl-icon">🚪</span>
+              <span>Chiqish</span>
             </button>
             <button class="btn-secondary btn-with-icon hidden" id="exit-spectate-btn">
               <span class="btn-ctrl-icon" id="icon-btn-exit-spectate"></span>

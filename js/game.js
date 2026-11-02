@@ -156,11 +156,29 @@ export class GameController {
     const resignBtn = document.getElementById('resign-btn');
     const exitSpectateBtn = document.getElementById('exit-spectate-btn');
     const chatToggleBtn = document.getElementById('game-chat-toggle-btn');
+    const isCompleted = this.gameData.status === 'completed';
+
+    const badge = document.getElementById('game-status-badge');
+    if (badge) {
+      let gName = 'Shaxmat';
+      if (this.gameData.gameType === 'checkers8') gName = 'Shashka 8x8';
+      else if (this.gameData.gameType === 'checkers') gName = 'Shashka 10x10';
+      badge.textContent = isCompleted ? `${gName} • Yakunlangan` : gName;
+    }
+
     if (isSpectator) {
       if (drawBtn) drawBtn.classList.add('hidden');
       if (resignBtn) resignBtn.classList.add('hidden');
       if (exitSpectateBtn) exitSpectateBtn.classList.remove('hidden');
       if (chatToggleBtn) chatToggleBtn.classList.add('hidden');
+    } else if (isCompleted) {
+      if (drawBtn) drawBtn.classList.add('hidden');
+      if (resignBtn) resignBtn.classList.add('hidden');
+      if (exitSpectateBtn) exitSpectateBtn.classList.add('hidden');
+      if (chatToggleBtn) chatToggleBtn.classList.remove('hidden');
+      setTimeout(() => {
+        this.showGameOverModal();
+      }, 300);
     } else {
       if (drawBtn) drawBtn.classList.remove('hidden');
       if (resignBtn) resignBtn.classList.remove('hidden');
