@@ -202,12 +202,12 @@ export async function broadcastMatchmakingRequest({ hostUser, gameType, timeCont
       hostNotifiedCandidatesMap.set(hostId, new Set());
     }
     const alreadyNotified = hostNotifiedCandidatesMap.get(hostId);
-    const hostElo = Number(userElo) || 1200;
+    const hostElo = Number(userElo) || 1000;
 
     const getElo = (u) => {
-      if (gameType === 'checkers8') return u.checkers8Elo || u.checkersElo || 1200;
-      if (gameType === 'checkers') return u.checkersElo || 1200;
-      return u.chessElo || 1200;
+      if (gameType === 'checkers8') return u.checkers8Elo || u.checkersElo || 1000;
+      if (gameType === 'checkers') return u.checkersElo || 1000;
+      return u.chessElo || 1000;
     };
 
     const candidates = allUsers.filter(u => {
@@ -220,21 +220,20 @@ export async function broadcastMatchmakingRequest({ hostUser, gameType, timeCont
       // Do not re-notify candidate who already received an invitation for this active search
       if (alreadyNotified.has(uId)) return false;
 
-      // Global throttle: don't notify same user more than once every 15s
+      // Global throttle: don't notify same user more than once every 10s
       const lastSent = notificationThrottleMap.get(uId) || 0;
-      if (now - lastSent < 15000) return false;
+      if (now - lastSent < 10000) return false;
 
       return true;
     });
 
     if (candidates.length === 0) return { dispatchedCount: 0, targets: [] };
 
-    // Sort candidates by closest ELO difference
+    // Sort candidates by closest ELO difference to host so closer ratings are prioritized first
     candidates.sort((a, b) => Math.abs(getElo(a) - hostElo) - Math.abs(getElo(b) - hostElo));
 
-    // Prefer candidates within current tolerance, or if none, closest available candidates
-    const withinTol = candidates.filter(u => Math.abs(getElo(u) - hostElo) <= tolerance);
-    const targetsToNotify = (withinTol.length > 0 ? withinTol : candidates).slice(0, 3);
+    // Broadcast challenge invitations to all available candidates across all ELO tiers (up to 20 players)
+    const targetsToNotify = candidates.slice(0, 20);
 
     const MINI_APP_URL = 'https://app9223102562.tgcloud.ai/';
 
@@ -252,9 +251,16 @@ export async function broadcastMatchmakingRequest({ hostUser, gameType, timeCont
     const dispatchedTargets = [];
 
     for (const target of targetsToNotify) {
+      if (dispatchedTargets.length >= 20) break;
+      const targetId = Number(target.id);
+
+      // Record as notified immediately so a single error (e.g. user blocked bot) never blocks subsequent candidates or polls
+      alreadyNotified.add(targetId);
+      notificationThrottleMap.set(targetId, now);
+
       try {
         await api.sendMessage({
-          chat_id: Number(target.id),
+          chat_id: targetId,
           text: `⚡ <b>Sizga yangi onlayn o‘yin so‘rovi bor!</b>\n\n👤 Raqib: <b>${safeHost}</b> (<b>${hostElo} ELO</b>)\n🎮 O‘yin turi: <b>${safeGame}</b>\n⏱ Vaqt nazorati: <b>${safeTime}</b>\n\n🏆 <i>Raqibingiz sizni jonli bellashuvga chorlamoqda! Pastdagi tugmani bosing va o‘yin darhol boshlanadi:</i>`,
           parse_mode: 'HTML',
           reply_markup: {
@@ -267,8 +273,6 @@ export async function broadcastMatchmakingRequest({ hostUser, gameType, timeCont
           }
         });
 
-        alreadyNotified.add(Number(target.id));
-        notificationThrottleMap.set(Number(target.id), now);
         dispatchedTargets.push({
           id: target.id,
           firstName: target.firstName || target.first_name || 'O‘yinchi',
