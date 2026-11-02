@@ -22,6 +22,7 @@ export class MatchmakingController {
     this.timeControl = timeControl;
     this.startTime = Date.now();
     this.isMatched = false;
+    this.dispatchedTargets = [];
 
     let initialElo = 1200;
     if (this.app?.currentUser) {
@@ -65,7 +66,10 @@ export class MatchmakingController {
       }
 
       if (res.dispatchedTargets && res.dispatchedTargets.length > 0) {
-        this.renderDispatchedTargets(res.dispatchedTargets);
+        this.dispatchedTargets = [...res.dispatchedTargets];
+        this.renderDispatchedTargets(this.dispatchedTargets);
+      } else {
+        this.dispatchedTargets = [];
       }
 
       this.startStatusPolling();
@@ -168,6 +172,16 @@ export class MatchmakingController {
               rangeEl.innerHTML = `ELO oralig‘i: <strong>${minElo} - ${maxElo}</strong> <span class="elo-tol-badge">±${res.allowedTolerance}</span>`;
             }
           }
+
+          if (res.newDispatchedTargets && res.newDispatchedTargets.length > 0) {
+            if (!this.dispatchedTargets) this.dispatchedTargets = [];
+            for (const t of res.newDispatchedTargets) {
+              if (!this.dispatchedTargets.some(e => Number(e.id) === Number(t.id))) {
+                this.dispatchedTargets.push(t);
+              }
+            }
+            this.renderDispatchedTargets(this.dispatchedTargets);
+          }
         }
       } catch (err) {
         console.warn('[Matchmaking Poll Error]:', err.message);
@@ -205,6 +219,7 @@ export class MatchmakingController {
     this.isMatched = true;
     this.stopElapsedTimer();
     this.stopStatusPolling();
+    this.dispatchedTargets = [];
 
     const box = document.getElementById('mm-dispatched-box');
     if (box) box.classList.add('hidden');
