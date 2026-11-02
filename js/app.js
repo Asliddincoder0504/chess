@@ -837,6 +837,9 @@ class WellChessApp {
     document.getElementById('close-inspect-modal-btn')?.addEventListener('click', () => {
       this.closePlayerInspectModal();
     });
+    document.getElementById('close-inspect-x-btn')?.addEventListener('click', () => {
+      this.closePlayerInspectModal();
+    });
 
     document.getElementById('player-inspect-modal')?.addEventListener('click', e => {
       if (e.target.id === 'player-inspect-modal') {
