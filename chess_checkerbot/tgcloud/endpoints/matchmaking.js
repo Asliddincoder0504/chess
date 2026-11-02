@@ -71,23 +71,7 @@ export default async function (input, ctx) {
 
   if (action === 'poll' || action === 'status') {
     const result = await pollMatchmakingStatus(userId);
-    let newDispatchedTargets = [];
-    if (result.status === 'waiting') {
-      const broadcastRes = await broadcastMatchmakingRequest({
-        hostUser: user,
-        gameType: result.gameType || 'chess',
-        timeControl: result.timeControl || '3+2',
-        userElo: result.userElo,
-        tolerance: result.allowedTolerance || 100
-      }).catch(err => {
-        console.warn('[Broadcast matchmaking poll error]:', err.message);
-        return null;
-      });
-      if (broadcastRes?.targets && broadcastRes.targets.length > 0) {
-        newDispatchedTargets = broadcastRes.targets;
-      }
-    }
-    return { success: true, ...result, newDispatchedTargets };
+    return { success: true, ...result };
   }
 
   if (action === 'cancel') {

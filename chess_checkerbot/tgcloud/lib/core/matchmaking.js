@@ -19,6 +19,7 @@ export const ELO_EXPANSION_RATE = 50; // Expand ±50 per 10s wait
 
 const notificationThrottleMap = new Map();
 const hostNotifiedCandidatesMap = new Map();
+const hostLastBroadcastMap = new Map();
 
 export function calculateAllowedEloRange(joinedAtTimestamp) {
   const elapsed = Math.max(0, Math.floor(Date.now() / 1000) - joinedAtTimestamp);
@@ -187,10 +188,18 @@ export async function broadcastMatchmakingRequest({ hostUser, gameType, timeCont
   try {
     if (!hostUser || !hostUser.id) return { dispatchedCount: 0, targets: [] };
     const hostId = Number(hostUser.id);
+    const now = Date.now();
+
+    // Prevent double-clicks or rapid calls: host can only broadcast once per 15 seconds
+    const lastHostBroadcast = hostLastBroadcastMap.get(hostId) || 0;
+    if (now - lastHostBroadcast < 15000) {
+      return { dispatchedCount: 0, targets: [] };
+    }
+    hostLastBroadcastMap.set(hostId, now);
+
     const allUsers = await getAllUsers(200);
     const activeGames = await getAllActiveGames();
 
-    const now = Date.now();
     const busyUserIds = new Set();
     for (const g of activeGames) {
       // Only treat players as busy if active game had activity in last 15 minutes
@@ -223,9 +232,9 @@ export async function broadcastMatchmakingRequest({ hostUser, gameType, timeCont
       // Do not re-notify candidate who already received an invitation for this active search
       if (alreadyNotified.has(uId)) return false;
 
-      // Global throttle: don't notify same user more than once every 10s
+      // Global throttle: strictly limit each candidate to at most 1 invite every 60s
       const lastSent = notificationThrottleMap.get(uId) || 0;
-      if (now - lastSent < 10000) return false;
+      if (now - lastSent < 60000) return false;
 
       return true;
     });
