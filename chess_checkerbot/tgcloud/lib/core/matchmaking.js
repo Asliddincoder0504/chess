@@ -184,21 +184,24 @@ export async function broadcastMatchmakingRequest({ hostUser, gameType, timeCont
   try {
     if (!hostUser || !hostUser.id) return { dispatchedCount: 0, targets: [] };
     const hostId = Number(hostUser.id);
-    const allUsers = await getAllUsers(100);
+    const allUsers = await getAllUsers(200);
     const activeGames = await getAllActiveGames();
 
+    const now = Date.now();
     const busyUserIds = new Set();
     for (const g of activeGames) {
-      if (g.whiteId) busyUserIds.add(Number(g.whiteId));
-      if (g.blackId) busyUserIds.add(Number(g.blackId));
+      // Only treat players as busy if active game had activity in last 15 minutes
+      const lastActive = g.lastMoveTimestamp || g.createdAt || 0;
+      if (now - lastActive < 15 * 60 * 1000) {
+        if (g.whiteId) busyUserIds.add(Number(g.whiteId));
+        if (g.blackId) busyUserIds.add(Number(g.blackId));
+      }
     }
 
     if (!hostNotifiedCandidatesMap.has(hostId)) {
       hostNotifiedCandidatesMap.set(hostId, new Set());
     }
     const alreadyNotified = hostNotifiedCandidatesMap.get(hostId);
-
-    const now = Date.now();
     const hostElo = Number(userElo) || 1200;
 
     const getElo = (u) => {
@@ -221,11 +224,6 @@ export async function broadcastMatchmakingRequest({ hostUser, gameType, timeCont
       const lastSent = notificationThrottleMap.get(uId) || 0;
       if (now - lastSent < 15000) return false;
 
-      // Candidate must fall into current expanded ELO tolerance!
-      const candElo = getElo(u);
-      const diff = Math.abs(candElo - hostElo);
-      if (diff > tolerance) return false;
-
       return true;
     });
 
@@ -233,6 +231,10 @@ export async function broadcastMatchmakingRequest({ hostUser, gameType, timeCont
 
     // Sort candidates by closest ELO difference
     candidates.sort((a, b) => Math.abs(getElo(a) - hostElo) - Math.abs(getElo(b) - hostElo));
+
+    // Prefer candidates within current tolerance, or if none, closest available candidates
+    const withinTol = candidates.filter(u => Math.abs(getElo(u) - hostElo) <= tolerance);
+    const targetsToNotify = (withinTol.length > 0 ? withinTol : candidates).slice(0, 3);
 
     const MINI_APP_URL = 'https://app9223102562.tgcloud.ai/';
 
@@ -249,17 +251,16 @@ export async function broadcastMatchmakingRequest({ hostUser, gameType, timeCont
 
     const dispatchedTargets = [];
 
-    for (const target of candidates) {
-      if (dispatchedTargets.length >= 3) break;
+    for (const target of targetsToNotify) {
       try {
         await api.sendMessage({
-          chat_id: target.id,
-          text: `⚡ <b>Yangi onlayn o‘yin chaqiruvi!</b>\n\n👤 Raqib: <b>${safeHost}</b>\n🏆 Reyting: <b>${hostElo} ELO</b> (darajangizga mos)\n🎮 O‘yin turi: <b>${safeGame}</b>\n⏱ Vaqt nazorati: <b>${safeTime}</b>\n\n🏆 <i>Birinchi qabul qilgan o‘yinchi bilan o‘yin darhol boshlanadi!</i>`,
+          chat_id: Number(target.id),
+          text: `⚡ <b>Sizga yangi onlayn o‘yin so‘rovi bor!</b>\n\n👤 Raqib: <b>${safeHost}</b> (<b>${hostElo} ELO</b>)\n🎮 O‘yin turi: <b>${safeGame}</b>\n⏱ Vaqt nazorati: <b>${safeTime}</b>\n\n🏆 <i>Raqibingiz sizni jonli bellashuvga chorlamoqda! Pastdagi tugmani bosing va o‘yin darhol boshlanadi:</i>`,
           parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [{
-                text: '⚔️ Qabul qilish va bellashuvga kirish',
+                text: '⚔️ Qabul qilish va o‘yinga kirish',
                 web_app: { url: safeUrl }
               }]
             ]

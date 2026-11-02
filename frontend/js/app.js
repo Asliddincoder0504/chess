@@ -635,6 +635,16 @@ class WellChessApp {
       this.matchmakingController.cancel();
     });
 
+    // Retry Matchmaking button after 1-min timeout
+    document.getElementById('btn-mm-retry')?.addEventListener('click', () => {
+      this.matchmakingController.startSearch(this.selectedGameType, this.selectedTimeControl);
+    });
+
+    // Home button after Matchmaking timeout
+    document.getElementById('btn-mm-home')?.addEventListener('click', () => {
+      this.matchmakingController.cancel();
+    });
+
     // Friend Invite Button on Home
     document.getElementById('friend-invite-btn')?.addEventListener('click', () => {
       this.openFriendInviteModal();

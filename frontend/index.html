@@ -222,7 +222,7 @@
       <!-- 2. MATCHMAKING VIEW (RAQIB QIDIRISH) -->
       <section id="view-matchmaking" class="view-panel hidden">
         <div class="matchmaking-container">
-          <div class="radar-wrapper">
+          <div class="radar-wrapper" id="mm-radar-wrapper">
             <div class="radar-ring"></div>
             <div class="radar-ring"></div>
             <div class="radar-ring"></div>
@@ -230,22 +230,41 @@
           </div>
 
           <div class="mm-status-title" id="mm-status-text">Raqib qidirilmoqda...</div>
-          <div class="mm-details">
+          <div class="mm-details" id="mm-game-details">
             <span id="mm-game-type">SHAXMAT</span> • <span id="mm-time-control">3+2</span>
           </div>
           <div class="mm-details" id="mm-elo-range">ELO oralig‘i: <strong>1100 - 1300</strong> <span class="elo-tol-badge">±100</span></div>
           <div class="mm-timer" id="mm-elapsed-timer">00:00</div>
 
-          <!-- Dispatched Candidate Requests Box -->
+          <!-- Dispatched Candidate Requests Box (Kengaytirilgan, qulay blok) -->
           <div id="mm-dispatched-box" class="mm-dispatched-box hidden">
             <div class="mm-dispatched-header">
               <span class="pulse-dot-sm"></span>
-              <span>Yaqin darajadagi raqiblarga yuborilgan so'rovlar:</span>
+              <span id="mm-dispatched-header-text">Telegram orqali yuborilgan o'yin so'rovlari:</span>
             </div>
             <div id="mm-dispatched-list" class="mm-dispatched-list"></div>
           </div>
 
-          <button class="btn-secondary" id="cancel-matchmaking-btn">Qidiruvni bekor qilish</button>
+          <!-- Qidiruv paytidagi tugma -->
+          <div id="mm-active-actions" style="width: 100%; max-width: 440px; margin-top: 14px;">
+            <button class="btn-secondary" id="cancel-matchmaking-btn" style="width: 100%;">Qidiruvni bekor qilish</button>
+          </div>
+
+          <!-- 1 daqiqalik taymout bloki (Raqib topilmasa qayta qidirish) -->
+          <div id="mm-timeout-box" class="mm-timeout-box hidden" style="width: 100%; max-width: 440px; margin-top: 14px;">
+            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-md); padding: 14px; text-align: center; margin-bottom: 12px;">
+              <div style="font-size: 0.98rem; font-weight: 700; color: #f87171; margin-bottom: 4px;">⏳ 1 daqiqa ichida raqib topilmadi</div>
+              <p class="text-muted" style="font-size: 0.84rem; margin: 0;">Telegram orqali raqiblarga so'rov yuborildi. Ular qabul qilganda o'yin ochiladi, yoki hoziroq qayta qidirishingiz mumkin.</p>
+            </div>
+            <div style="display: flex; gap: 10px; width: 100%;">
+              <button class="btn-primary" id="btn-mm-retry" style="flex: 1; height: 44px; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <span>🔄 Qayta qidirish</span>
+              </button>
+              <button class="btn-secondary" id="btn-mm-home" style="flex: 1; height: 44px; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <span>🏠 Bosh sahifa</span>
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 

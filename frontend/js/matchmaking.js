@@ -9,6 +9,18 @@ export class MatchmakingController {
     this.gameType = 'chess';
     this.timeControl = '3+2';
     this.isMatched = false;
+    this.isTimedOut = false;
+    this.dispatchedTargets = [];
+    this.bindEvents();
+  }
+
+  bindEvents() {
+    document.getElementById('btn-mm-retry')?.addEventListener('click', () => {
+      this.startSearch(this.gameType, this.timeControl);
+    });
+    document.getElementById('btn-mm-home')?.addEventListener('click', () => {
+      this.cancel();
+    });
   }
 
   formatGameType(type) {
@@ -22,7 +34,13 @@ export class MatchmakingController {
     this.timeControl = timeControl;
     this.startTime = Date.now();
     this.isMatched = false;
+    this.isTimedOut = false;
     this.dispatchedTargets = [];
+
+    // Reset UI state
+    document.getElementById('mm-timeout-box')?.classList.add('hidden');
+    document.getElementById('mm-active-actions')?.classList.remove('hidden');
+    document.getElementById('mm-radar-wrapper')?.classList.remove('paused');
 
     let initialElo = 1200;
     if (this.app?.currentUser) {
@@ -93,7 +111,7 @@ export class MatchmakingController {
     rangeEl.innerHTML = `ELO oralig‘i: <strong>${minElo} - ${maxElo}</strong> <span class="elo-tol-badge">±${tolerance}</span>`;
 
     const statusEl = document.getElementById('mm-status-text');
-    if (statusEl && !this.isMatched) {
+    if (statusEl && !this.isMatched && !this.isTimedOut) {
       if (tolerance === 100) {
         statusEl.textContent = 'Mos raqib qidirilmoqda...';
       } else {
@@ -113,24 +131,34 @@ export class MatchmakingController {
     }
 
     box.classList.remove('hidden');
-    list.innerHTML = targets.map(t => `
-      <div class="mm-dispatched-item">
-        <div class="mm-target-info">
-          <div class="avatar-wrap avatar-xs"><span class="avatar-initials">${(t.firstName || 'O').charAt(0).toUpperCase()}</span></div>
-          <div class="mm-target-meta">
-            <span class="mm-target-name">${t.firstName || 'O‘yinchi'} ${t.username ? `<span class="text-muted">(@${t.username})</span>` : ''}</span>
-            <span class="mm-target-elo">${t.elo || 1200} ELO • Bot orqali taklif yuborildi</span>
+    list.innerHTML = targets.map(t => {
+      const initial = (t.firstName || 'O').charAt(0).toUpperCase();
+      const name = t.firstName || 'O‘yinchi';
+      const username = t.username ? `@${t.username}` : '';
+      const elo = t.elo || 1200;
+      return `
+        <div class="mm-dispatched-item">
+          <div class="mm-target-info">
+            <div class="avatar-wrap avatar-xs"><span class="avatar-initials">${initial}</span></div>
+            <div class="mm-target-meta">
+              <span class="mm-target-name">${name} ${username ? `<span class="text-muted">(${username})</span>` : ''}</span>
+              <span class="mm-target-elo">🏆 ${elo} ELO • Telegram orqali so‘rov yuborildi</span>
+            </div>
           </div>
+          <div class="mm-target-badge"><span class="pulse-dot-sm"></span> Yuborildi</div>
         </div>
-        <div class="mm-target-badge"><span class="pulse-dot-sm"></span> Yuborildi</div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
 
   startElapsedTimer() {
     this.stopElapsedTimer();
     this.elapsedTimer = setInterval(() => {
       const totalSecs = Math.floor((Date.now() - this.startTime) / 1000);
+      if (totalSecs >= 60) {
+        this.handleTimeout();
+        return;
+      }
       const mins = Math.floor(totalSecs / 60);
       const secs = totalSecs % 60;
       const formatted = `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
@@ -139,6 +167,24 @@ export class MatchmakingController {
 
       this.updateEloToleranceUI(totalSecs);
     }, 1000);
+  }
+
+  handleTimeout() {
+    this.isTimedOut = true;
+    this.stopElapsedTimer();
+    this.stopStatusPolling();
+
+    const timerEl = document.getElementById('mm-elapsed-timer');
+    if (timerEl) timerEl.textContent = '01:00';
+
+    const statusEl = document.getElementById('mm-status-text');
+    if (statusEl) statusEl.textContent = '1 daqiqa ichida raqib topilmadi';
+
+    document.getElementById('mm-radar-wrapper')?.classList.add('paused');
+    document.getElementById('mm-active-actions')?.classList.add('hidden');
+    document.getElementById('mm-timeout-box')?.classList.remove('hidden');
+
+    api.cancelMatchmaking().catch(() => {});
   }
 
   stopElapsedTimer() {
@@ -152,7 +198,7 @@ export class MatchmakingController {
     this.stopStatusPolling();
 
     const check = async () => {
-      if (this.isMatched) return;
+      if (this.isMatched || this.isTimedOut) return;
       try {
         const res = await api.getMatchmakingStatus();
         if (res.status === 'matched' && res.gameId) {
@@ -187,7 +233,7 @@ export class MatchmakingController {
         console.warn('[Matchmaking Poll Error]:', err.message);
       }
 
-      if (!this.isMatched) {
+      if (!this.isMatched && !this.isTimedOut) {
         this.pollTimer = setTimeout(check, 1500);
       }
     };
@@ -205,6 +251,7 @@ export class MatchmakingController {
   onMatchFound(gameId) {
     if (this.isMatched) return;
     this.isMatched = true;
+    this.isTimedOut = false;
     this.stopElapsedTimer();
     this.stopStatusPolling();
 
@@ -217,9 +264,14 @@ export class MatchmakingController {
 
   async cancel() {
     this.isMatched = true;
+    this.isTimedOut = false;
     this.stopElapsedTimer();
     this.stopStatusPolling();
     this.dispatchedTargets = [];
+
+    document.getElementById('mm-timeout-box')?.classList.add('hidden');
+    document.getElementById('mm-active-actions')?.classList.remove('hidden');
+    document.getElementById('mm-radar-wrapper')?.classList.remove('paused');
 
     const box = document.getElementById('mm-dispatched-box');
     if (box) box.classList.add('hidden');

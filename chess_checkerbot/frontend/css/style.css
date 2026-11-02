@@ -2869,35 +2869,43 @@ body {
 }
 
 /* ==========================================================================
-   Matchmaking Dispatched Candidate Requests Box
+   Matchmaking Dispatched Candidate Requests Box & Timeout State
    ========================================================================== */
+.radar-wrapper.paused .radar-ring {
+  animation: none !important;
+  opacity: 0.12;
+}
+
 .mm-dispatched-box {
   width: 100%;
-  max-width: 360px;
-  margin: 12px auto 0;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  max-width: 440px;
+  margin: 14px auto 0;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(245, 158, 11, 0.35);
   border-radius: var(--radius-md);
-  padding: 10px 14px;
+  padding: 12px 14px;
   text-align: left;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
 .mm-dispatched-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.75rem;
+  gap: 8px;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--primary-gold);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .pulse-dot-sm {
   display: inline-block;
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background-color: var(--primary-gold);
   box-shadow: 0 0 6px var(--primary-gold);
@@ -2907,54 +2915,64 @@ body {
 .mm-dispatched-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  max-height: 130px;
+  gap: 8px;
+  max-height: 240px;
   overflow-y: auto;
+  padding-right: 2px;
 }
 
 .mm-dispatched-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(0, 0, 0, 0.28);
+  background: rgba(0, 0, 0, 0.38);
   border-radius: var(--radius-sm);
-  padding: 6px 10px;
-  font-size: 0.82rem;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 8px 12px;
+  font-size: 0.86rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
+}
+
+.mm-dispatched-item:hover {
+  border-color: rgba(245, 158, 11, 0.4);
+  background: rgba(0, 0, 0, 0.5);
 }
 
 .mm-target-info {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .mm-target-meta {
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
 .mm-target-name {
   font-weight: 700;
   color: var(--text-main);
-  font-size: 0.82rem;
+  font-size: 0.88rem;
 }
 
 .mm-target-elo {
-  font-size: 0.72rem;
+  font-size: 0.76rem;
   color: var(--text-muted);
 }
 
 .mm-target-badge {
-  font-size: 0.72rem;
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  padding: 2px 7px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.14);
+  border: 1px solid rgba(74, 222, 128, 0.32);
+  padding: 3px 8px;
   border-radius: 12px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+  white-space: nowrap;
 }
 
 /* ==========================================================================
