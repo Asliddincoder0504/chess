@@ -423,7 +423,11 @@ export async function handleDrawAction(gameId, userId, { action }) {
   const opponentColor = isWhite ? 'black' : 'white';
 
   if (action === 'offer') {
-    const updated = await updateGame(game.id, { drawOfferedBy: playerColor });
+    const nextVersion = (game.version || 0) + 1;
+    const updated = await updateGame(game.id, {
+      drawOfferedBy: playerColor,
+      version: nextVersion
+    });
     return { success: true, message: 'Draw offer sent', game: updated };
   }
 
@@ -440,7 +444,11 @@ export async function handleDrawAction(gameId, userId, { action }) {
   }
 
   if (action === 'decline') {
-    const updated = await updateGame(game.id, { drawOfferedBy: null });
+    const nextVersion = (game.version || 0) + 1;
+    const updated = await updateGame(game.id, {
+      drawOfferedBy: null,
+      version: nextVersion
+    });
     return { success: true, message: 'Draw offer declined', game: updated };
   }
 

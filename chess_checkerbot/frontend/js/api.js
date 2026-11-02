@@ -455,9 +455,20 @@ class ApiClient {
 
       if (action === 'draw') {
         if (game) {
-          game.status = 'completed';
-          game.winner = 'draw';
-          game.winReason = 'draw_agreement';
+          const drawAct = payload.drawAction || 'offer';
+          if (drawAct === 'offer') {
+            game.drawOfferedBy = game.currentTurn;
+            game.version = (game.version || 1) + 1;
+          } else if (drawAct === 'accept') {
+            game.status = 'completed';
+            game.winner = 'draw';
+            game.winReason = 'draw_agreement';
+            game.drawOfferedBy = null;
+            game.version = (game.version || 1) + 1;
+          } else if (drawAct === 'decline') {
+            game.drawOfferedBy = null;
+            game.version = (game.version || 1) + 1;
+          }
           localGames[gameId] = game;
           this.saveLocalGames(localGames);
         }
