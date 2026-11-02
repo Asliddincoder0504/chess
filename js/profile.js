@@ -265,6 +265,10 @@ export class ProfileController {
     }
   }
 
+  loadAdminData(query = '') {
+    return this.renderAdmin(query);
+  }
+
   async renderAdmin(query = '') {
     const statsContainer = document.getElementById('admin-stats-container');
     const gamesContainer = document.getElementById('admin-active-games-list');
@@ -396,7 +400,7 @@ export class ProfileController {
                     const res = await api.adminReplyMessage(m.id, replyText);
                     if (res && res.success) {
                       this.app.showToast('✅ Javob foydalanuvchiga muvaffaqiyatli yetkazildi!', 'success');
-                      this.loadAdminData();
+                      await this.renderAdmin();
                     } else {
                       throw new Error(res?.error || 'Xatolik');
                     }
