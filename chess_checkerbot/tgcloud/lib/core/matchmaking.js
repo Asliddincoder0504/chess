@@ -39,7 +39,7 @@ async function findAndPairMatch(entry) {
 
   const now = Math.floor(Date.now() / 1000);
   for (const opp of opponents) {
-    if (isQueueEntryStale(opp.userId, opp.joinedAt, now, 20)) {
+    if (isQueueEntryStale(opp.userId, opp.joinedAt, now, 180)) {
       await removeFromQueue(opp.userId);
       continue;
     }
@@ -85,11 +85,14 @@ async function findAndPairMatch(entry) {
 export async function joinMatchmaking({ userId, gameType, timeControl }) {
   const activeGame = await getUserActiveGame(userId);
   if (activeGame) {
-    return {
-      status: 'active_game_exists',
-      gameId: activeGame.id,
-      message: 'You already have an ongoing game in progress'
-    };
+    const lastActive = activeGame.lastMoveTimestamp || activeGame.createdAt || 0;
+    if (Date.now() - lastActive < 15 * 60 * 1000) {
+      return {
+        status: 'active_game_exists',
+        gameId: activeGame.id,
+        message: 'You already have an ongoing game in progress'
+      };
+    }
   }
 
   const user = await getUserById(userId);
@@ -97,11 +100,11 @@ export async function joinMatchmaking({ userId, gameType, timeControl }) {
     throw new Error('User does not exist');
   }
 
-  const userElo = gameType === 'chess' ? (user.chessElo || 1200) : (user.checkersElo || 1200);
+  const userElo = gameType === 'chess' ? (user.chessElo || 1000) : (user.checkersElo || 1000);
 
   // Always remove any previous/stuck queue record for this user before joining a fresh search
   await removeFromQueue(userId);
-  await cleanExpiredQueue(20);
+  await cleanExpiredQueue(180);
   hostNotifiedCandidatesMap.set(Number(userId), new Set());
 
   const queueEntry = await addToQueue({
@@ -129,7 +132,7 @@ export async function joinMatchmaking({ userId, gameType, timeControl }) {
 }
 
 export async function pollMatchmakingStatus(userId) {
-  await cleanExpiredQueue(20);
+  await cleanExpiredQueue(180);
 
   const entry = await getQueueEntry(userId);
   if (!entry) {
@@ -302,29 +305,60 @@ export async function acceptMatchmakingChallenge({ hostUserId, candidateUserId, 
     return { status: 'error', message: 'O‘zingiz bilan o‘ynay olmaysiz' };
   }
 
-  // Check if candidate already has active game
-  const candActive = await getUserActiveGame(candId);
-  if (candActive) {
-    return {
-      status: 'matched',
-      gameId: candActive.id,
-      assignedColor: Number(candActive.whiteId) === candId ? 'white' : 'black',
-      game: candActive
-    };
+  // Ensure candidate user profile exists in database
+  let candUser = await getUserById(candId);
+  if (!candUser) {
+    try {
+      candUser = await getOrCreateUser({ id: candId, first_name: 'O‘yinchi' });
+    } catch {}
   }
 
-  const hostEntry = await getQueueEntry(hostId);
+  // Check if candidate already has active game (within last 15 mins)
+  const candActive = await getUserActiveGame(candId);
+  if (candActive) {
+    const lastActive = candActive.lastMoveTimestamp || candActive.createdAt || 0;
+    if (Date.now() - lastActive < 15 * 60 * 1000) {
+      if (Number(candActive.whiteId) === hostId || Number(candActive.blackId) === hostId) {
+        return {
+          status: 'matched',
+          gameId: candActive.id,
+          assignedColor: Number(candActive.whiteId) === candId ? 'white' : 'black',
+          game: candActive
+        };
+      }
+    }
+  }
+
+  let hostEntry = await getQueueEntry(hostId);
   if (!hostEntry) {
     // Check if game already created with host
     const hostActive = await getUserActiveGame(hostId);
     if (hostActive && (Number(hostActive.whiteId) === candId || Number(hostActive.blackId) === candId)) {
-      return {
-        status: 'matched',
-        gameId: hostActive.id,
-        assignedColor: Number(hostActive.whiteId) === candId ? 'white' : 'black',
-        game: hostActive
+      const lastActive = hostActive.lastMoveTimestamp || hostActive.createdAt || 0;
+      if (Date.now() - lastActive < 15 * 60 * 1000) {
+        return {
+          status: 'matched',
+          gameId: hostActive.id,
+          assignedColor: Number(hostActive.whiteId) === candId ? 'white' : 'black',
+          game: hostActive
+        };
+      }
+    }
+
+    // Resilient fallback: Check if host was active in bot in last 3 minutes
+    const hostUser = await getUserById(hostId);
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (hostUser && hostUser.updatedAt && (nowSec - hostUser.updatedAt < 180)) {
+      hostEntry = {
+        userId: hostId,
+        gameType: gameType || 'chess',
+        timeControl: timeControl || '3+2',
+        userElo: hostUser.chessElo || 1000
       };
     }
+  }
+
+  if (!hostEntry) {
     return {
       status: 'expired',
       message: 'Ushbu taklif muddati o‘tgan yoki o‘yin allaqachon boshlangan'

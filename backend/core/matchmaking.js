@@ -40,7 +40,7 @@ async function attemptPairInQueue(entry) {
 
   const now = Math.floor(Date.now() / 1000);
   for (const opp of opponents) {
-    if (isQueueEntryStale(opp.userId, opp.joinedAt, now, 20)) {
+    if (isQueueEntryStale(opp.userId, opp.joinedAt, now, 180)) {
       await removeFromQueue(opp.userId);
       continue;
     }
@@ -115,8 +115,8 @@ export async function joinMatchmaking({ userId, gameType, timeControl }) {
   // Always remove any previous/stuck queue record for this user before joining a fresh search
   await removeFromQueue(userId);
 
-  // Clean stale queue items older than 20 seconds
-  await cleanExpiredQueue(20);
+  // Clean stale queue items older than 180 seconds (3 minutes)
+  await cleanExpiredQueue(180);
 
   // Add user queue record with fresh timestamp
   const queueEntry = await addToQueue({
@@ -147,7 +147,7 @@ export async function joinMatchmaking({ userId, gameType, timeControl }) {
  * @returns {Promise<Object>}
  */
 export async function getMatchmakingStatus(userId) {
-  await cleanExpiredQueue(20);
+  await cleanExpiredQueue(180);
   const entry = await getQueueEntry(userId);
   if (!entry) {
     return { status: 'idle' };

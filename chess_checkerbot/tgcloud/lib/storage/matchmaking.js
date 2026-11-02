@@ -8,7 +8,7 @@ export function touchQueueHeartbeat(userId) {
   lastHeartbeatMap.set(Number(userId), Date.now());
 }
 
-export function isQueueEntryStale(userId, joinedAt, nowSeconds, maxAgeSeconds = 20) {
+export function isQueueEntryStale(userId, joinedAt, nowSeconds, maxAgeSeconds = 180) {
   const hb = lastHeartbeatMap.get(Number(userId));
   const lastActive = hb ? Math.floor(hb / 1000) : joinedAt;
   return (nowSeconds - lastActive) > maxAgeSeconds;
@@ -77,7 +77,7 @@ export async function setMatchedGame(userId, gameId, assignedColor) {
     .run();
 }
 
-export async function cleanExpiredQueue(maxAgeSeconds = 20) {
+export async function cleanExpiredQueue(maxAgeSeconds = 180) {
   const now = Math.floor(Date.now() / 1000);
   const all = await db.select().from(matchmakingQueue).all();
   for (const entry of all) {
