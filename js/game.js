@@ -347,8 +347,17 @@ export class GameController {
     try {
       const res = await api.getGame(this.gameId);
       if (res.success && res.game) {
-        if (res.game.version !== this.gameData.version || res.game.status !== this.gameData.status) {
+        const hasDrawOfferChanged = res.game.drawOfferedBy !== this.gameData.drawOfferedBy;
+        if (res.game.version !== this.gameData.version || res.game.status !== this.gameData.status || hasDrawOfferChanged) {
+          const prevDrawOfferedBy = this.gameData.drawOfferedBy;
           await this.syncGameState(res.game);
+          const oppColor = this.playerColor === 'white' ? 'black' : 'white';
+          if (hasDrawOfferChanged && res.game.drawOfferedBy === oppColor && !prevDrawOfferedBy) {
+            this.app.showToast('🤝 Raqib durang taklif qildi!', 'info');
+            sounds.move();
+          } else if (hasDrawOfferChanged && !res.game.drawOfferedBy && prevDrawOfferedBy === this.playerColor) {
+            this.app.showToast('Raqib durang taklifini rad etdi', 'info');
+          }
         } else {
           // Reconcile clocks smoothly without jitter
           const serverWhite = res.game.whiteTimeMs;
@@ -482,13 +491,31 @@ export class GameController {
 
   checkDrawOffers() {
     const banner = document.getElementById('draw-offer-banner');
-    if (!banner) return;
+    const drawBtn = document.getElementById('draw-btn');
+    if (!this.gameData) return;
 
     const oppColor = this.playerColor === 'white' ? 'black' : 'white';
-    if (this.gameData.drawOfferedBy === oppColor && this.gameData.status === 'active') {
-      banner.classList.remove('hidden');
-    } else {
-      banner.classList.add('hidden');
+    const isOppOffer = this.gameData.drawOfferedBy === oppColor && this.gameData.status === 'active';
+    const isOwnOffer = this.gameData.drawOfferedBy === this.playerColor && this.gameData.status === 'active';
+
+    if (banner) {
+      if (isOppOffer) {
+        banner.classList.remove('hidden');
+      } else {
+        banner.classList.add('hidden');
+      }
+    }
+
+    if (drawBtn) {
+      if (isOwnOffer) {
+        drawBtn.disabled = true;
+        drawBtn.title = 'Durang taklifi yuborilgan, raqib javobi kutilmoqda';
+        drawBtn.style.opacity = '0.6';
+      } else {
+        drawBtn.disabled = false;
+        drawBtn.title = 'Durang taklif qilish';
+        drawBtn.style.opacity = '1';
+      }
     }
   }
 
@@ -593,9 +620,16 @@ export class GameController {
   }
 
   async declineDraw() {
-    const res = await api.sendDrawAction(this.gameId, 'decline');
-    if (res.success) {
-      document.getElementById('draw-offer-banner')?.classList.add('hidden');
+    try {
+      const res = await api.sendDrawAction(this.gameId, 'decline');
+      if (res.success) {
+        document.getElementById('draw-offer-banner')?.classList.add('hidden');
+        if (res.game) {
+          await this.syncGameState(res.game);
+        }
+      }
+    } catch (err) {
+      console.warn('[declineDraw error]:', err.message);
     }
   }
 
