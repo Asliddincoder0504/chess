@@ -18,6 +18,7 @@ export const EXPANSION_STEP_SECONDS = 10;
 export const ELO_EXPANSION_RATE = 50; // Expand ±50 per 10s wait
 
 const notificationThrottleMap = new Map();
+const hostNotifiedCandidatesMap = new Map();
 
 export function calculateAllowedEloRange(joinedAtTimestamp) {
   const elapsed = Math.max(0, Math.floor(Date.now() / 1000) - joinedAtTimestamp);
@@ -101,6 +102,7 @@ export async function joinMatchmaking({ userId, gameType, timeControl }) {
   // Always remove any previous/stuck queue record for this user before joining a fresh search
   await removeFromQueue(userId);
   await cleanExpiredQueue(20);
+  hostNotifiedCandidatesMap.set(Number(userId), new Set());
 
   const queueEntry = await addToQueue({
     userId,
@@ -112,6 +114,7 @@ export async function joinMatchmaking({ userId, gameType, timeControl }) {
 
   const match = await findAndPairMatch(queueEntry);
   if (match) {
+    hostNotifiedCandidatesMap.delete(Number(userId));
     return match;
   }
 
@@ -119,6 +122,8 @@ export async function joinMatchmaking({ userId, gameType, timeControl }) {
     status: 'waiting',
     joinedAt: queueEntry.joinedAt,
     userElo,
+    gameType,
+    timeControl,
     allowedTolerance: calculateAllowedEloRange(queueEntry.joinedAt)
   };
 }
@@ -128,11 +133,13 @@ export async function pollMatchmakingStatus(userId) {
 
   const entry = await getQueueEntry(userId);
   if (!entry) {
+    hostNotifiedCandidatesMap.delete(Number(userId));
     return { status: 'idle' };
   }
 
   if (entry.matchedGameId) {
     await removeFromQueue(userId);
+    hostNotifiedCandidatesMap.delete(Number(userId));
     return {
       status: 'matched',
       gameId: entry.matchedGameId,
@@ -146,6 +153,7 @@ export async function pollMatchmakingStatus(userId) {
   // Attempt pairing with the dynamically expanded ELO tolerance
   const match = await findAndPairMatch(entry);
   if (match) {
+    hostNotifiedCandidatesMap.delete(Number(userId));
     return match;
   }
 
@@ -157,19 +165,22 @@ export async function pollMatchmakingStatus(userId) {
     status: 'waiting',
     joinedAt: entry.joinedAt,
     userElo: entry.userElo,
+    gameType: entry.gameType,
+    timeControl: entry.timeControl,
     elapsedSeconds: elapsed,
     allowedTolerance: currentTolerance
   };
 }
 
 export async function cancelMatchmaking(userId) {
+  hostNotifiedCandidatesMap.delete(Number(userId));
   await removeFromQueue(userId);
   return { cancelled: true };
 }
 
 const escapeHtml = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-export async function broadcastMatchmakingRequest({ hostUser, gameType, timeControl, userElo }) {
+export async function broadcastMatchmakingRequest({ hostUser, gameType, timeControl, userElo, tolerance = 100 }) {
   try {
     if (!hostUser || !hostUser.id) return { dispatchedCount: 0, targets: [] };
     const hostId = Number(hostUser.id);
@@ -182,7 +193,20 @@ export async function broadcastMatchmakingRequest({ hostUser, gameType, timeCont
       if (g.blackId) busyUserIds.add(Number(g.blackId));
     }
 
+    if (!hostNotifiedCandidatesMap.has(hostId)) {
+      hostNotifiedCandidatesMap.set(hostId, new Set());
+    }
+    const alreadyNotified = hostNotifiedCandidatesMap.get(hostId);
+
     const now = Date.now();
+    const hostElo = Number(userElo) || 1200;
+
+    const getElo = (u) => {
+      if (gameType === 'checkers8') return u.checkers8Elo || u.checkersElo || 1200;
+      if (gameType === 'checkers') return u.checkersElo || 1200;
+      return u.chessElo || 1200;
+    };
+
     const candidates = allUsers.filter(u => {
       const uId = Number(u.id);
       if (!uId || isNaN(uId) || uId <= 1000) return false;
@@ -190,9 +214,17 @@ export async function broadcastMatchmakingRequest({ hostUser, gameType, timeCont
       if (u.isBanned) return false;
       if (busyUserIds.has(uId)) return false;
 
-      // Throttle: don't notify same user more than once every 15s
+      // Do not re-notify candidate who already received an invitation for this active search
+      if (alreadyNotified.has(uId)) return false;
+
+      // Global throttle: don't notify same user more than once every 15s
       const lastSent = notificationThrottleMap.get(uId) || 0;
       if (now - lastSent < 15000) return false;
+
+      // Candidate must fall into current expanded ELO tolerance!
+      const candElo = getElo(u);
+      const diff = Math.abs(candElo - hostElo);
+      if (diff > tolerance) return false;
 
       return true;
     });
@@ -200,13 +232,6 @@ export async function broadcastMatchmakingRequest({ hostUser, gameType, timeCont
     if (candidates.length === 0) return { dispatchedCount: 0, targets: [] };
 
     // Sort candidates by closest ELO difference
-    const getElo = (u) => {
-      if (gameType === 'checkers8') return u.checkers8Elo || u.checkersElo || 1200;
-      if (gameType === 'checkers') return u.checkersElo || 1200;
-      return u.chessElo || 1200;
-    };
-
-    const hostElo = Number(userElo) || 1200;
     candidates.sort((a, b) => Math.abs(getElo(a) - hostElo) - Math.abs(getElo(b) - hostElo));
 
     const MINI_APP_URL = 'https://app9223102562.tgcloud.ai/';
@@ -241,6 +266,7 @@ export async function broadcastMatchmakingRequest({ hostUser, gameType, timeCont
           }
         });
 
+        alreadyNotified.add(Number(target.id));
         notificationThrottleMap.set(Number(target.id), now);
         dispatchedTargets.push({
           id: target.id,
